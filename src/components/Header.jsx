@@ -49,22 +49,22 @@ export default function Header({ cartCount, onOpenCart, onOpenWhatsApp, searchQu
       </div>
 
       {/* Main Header Navbar */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between gap-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
         
-        {/* Brand Logo with Increased Gap to Text */}
-        <div className="flex items-center gap-4 sm:gap-5 cursor-pointer group" onClick={() => handleNavClick('home')}>
-          <div className="h-10 md:h-12 w-auto flex items-center shrink-0">
+        {/* Brand Logo with Reduced Tight Gap to Brand Name */}
+        <div className="flex items-center gap-2 cursor-pointer group" onClick={() => handleNavClick('home')}>
+          <div className="h-9 md:h-11 w-auto flex items-center shrink-0">
             <img 
               src="/image.png" 
               alt="OTTMoneySaver Logo" 
-              className="h-full object-contain max-h-12 rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300" 
+              className="h-full object-contain max-h-11 rounded shadow-sm group-hover:scale-105 transition-transform duration-200" 
               onError={(e) => {
                 e.target.onerror = null;
                 e.target.style.display = 'none';
               }}
             />
           </div>
-          <span className="text-xl md:text-2xl font-black tracking-tight text-white flex items-center gap-1 font-sans pl-1">
+          <span className="text-xl md:text-2xl font-black tracking-tight text-white flex items-center gap-1 font-sans">
             <span className="text-brand-red">OTT</span>
             <span className="text-white">Money</span>
             <span className="text-brand-green">Saver</span>
