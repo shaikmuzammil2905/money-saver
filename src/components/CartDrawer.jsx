@@ -1,26 +1,36 @@
-import React from 'react';
-import { X, ShoppingBag, Plus, Minus, Trash2, MessageCircle, ArrowRight, ShieldCheck } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, ShoppingBag, Plus, Minus, Trash2, CheckCircle2, ArrowRight } from 'lucide-react';
 
 export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQuantity, onRemoveItem, onClearCart }) {
+  const [orderSubmitted, setOrderSubmitted] = useState(false);
+
   if (!isOpen) return null;
 
   const subtotal = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
   const totalOriginal = cartItems.reduce((acc, item) => acc + (item.originalPrice || item.price) * item.quantity, 0);
   const totalSavings = totalOriginal - subtotal;
 
-  const handleWhatsAppCheckout = () => {
-    let text = `*New Order Inquiry from OTTMoneySaver*\n\n`;
+  const handleSubmitOrder = () => {
+    // Show instant submitted popup
+    setOrderSubmitted(true);
+
+    // Prepare WhatsApp message
+    let text = `*New Order Submitted from OTTMoneySaver*\n\n`;
     cartItems.forEach((item, index) => {
-      text += `${index + 1}. *${item.title}* (${item.subtitle || ''})\n   Qty: ${item.quantity} x ₹${item.price} = ₹${item.price * item.quantity}\n`;
+      text += `${index + 1}. *${item.title}* (${item.subtitle || ''})\n   Qty: ${item.quantity} x ₹${item.price.toLocaleString()} = ₹${(item.price * item.quantity).toLocaleString()}\n`;
     });
     text += `\n*Total Amount:* ₹${subtotal.toLocaleString()}`;
     if (totalSavings > 0) {
-      text += ` (You Saved ₹${totalSavings.toLocaleString()}!)`;
+      text += ` (Total Savings: ₹${totalSavings.toLocaleString()}!)`;
     }
-    text += `\n\nDelivery Address: Hyderabad, Telangana\nCall / Contact: 6305151531`;
+    text += `\n\nDelivery Address: Hyderabad, Telangana\nContact: 6305151531`;
 
     const encodedText = encodeURIComponent(text);
-    window.open(`https://wa.me/916305151531?text=${encodedText}`, '_blank');
+
+    setTimeout(() => {
+      window.open(`https://wa.me/916305151531?text=${encodedText}`, '_blank');
+      setOrderSubmitted(false);
+    }, 1200);
   };
 
   return (
@@ -38,7 +48,7 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQuantit
           <div className="p-4 sm:p-6 bg-slate-950 text-white flex items-center justify-between">
             <div className="flex items-center gap-2">
               <ShoppingBag className="w-5 h-5 text-brand-green" />
-              <h2 className="text-lg font-bold">Your Shopping Cart ({cartItems.reduce((a, b) => a + b.quantity, 0)})</h2>
+              <h2 className="text-lg font-bold">Your Cart ({cartItems.reduce((a, b) => a + b.quantity, 0)})</h2>
             </div>
             <button 
               onClick={onClose}
@@ -54,7 +64,7 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQuantit
               <div className="h-full flex flex-col items-center justify-center text-center text-slate-500 py-12">
                 <ShoppingBag className="w-16 h-16 text-slate-300 mb-3" />
                 <p className="font-bold text-base text-slate-700">Your cart is empty</p>
-                <p className="text-xs text-slate-500 mt-1">Explore our smart deals and add items!</p>
+                <p className="text-xs text-slate-500 mt-1">Add products to submit your order!</p>
               </div>
             ) : (
               cartItems.map((item) => (
@@ -91,14 +101,14 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQuantit
                         onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
                         className="px-2 py-1 text-slate-600 hover:bg-slate-100"
                       >
-                        <Minus className="w-3 h-3" />
+                        -
                       </button>
                       <span className="px-2 font-bold text-slate-900">{item.quantity}</span>
                       <button 
                         onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
                         className="px-2 py-1 text-slate-600 hover:bg-slate-100"
                       >
-                        <Plus className="w-3 h-3" />
+                        +
                       </button>
                     </div>
                   </div>
@@ -107,44 +117,56 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQuantit
             )}
           </div>
 
-          {/* Footer & Order Checkout */}
+          {/* Checkout Area matching image copy 2.png with Submit Button */}
           {cartItems.length > 0 && (
             <div className="p-4 sm:p-6 bg-slate-50 border-t border-slate-200 space-y-4">
-              {/* Savings banner */}
+              
+              {/* Total Savings Banner */}
               {totalSavings > 0 && (
-                <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold p-2.5 rounded-xl flex items-center justify-between">
-                  <span>🎉 Total Savings:</span>
-                  <span>₹{totalSavings.toLocaleString()}</span>
+                <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold p-3 rounded-2xl flex items-center justify-between shadow-sm">
+                  <span className="flex items-center gap-1.5">
+                    <span>🎉</span> Total Savings:
+                  </span>
+                  <span className="text-sm font-black text-emerald-700">₹{totalSavings.toLocaleString()}</span>
                 </div>
               )}
 
-              <div className="space-y-1.5 text-xs text-slate-600">
+              {/* Price Breakdown */}
+              <div className="space-y-2 text-xs text-slate-600">
                 <div className="flex justify-between">
-                  <span>Subtotal</span>
+                  <span className="font-medium">Subtotal</span>
                   <span className="font-bold text-slate-900">₹{subtotal.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-emerald-600">
-                  <span>Delivery Charge</span>
-                  <span className="font-bold">FREE</span>
+                  <span className="font-medium">Delivery Charge</span>
+                  <span className="font-extrabold">FREE</span>
                 </div>
                 <div className="flex justify-between text-base font-black text-slate-900 pt-2 border-t border-slate-200">
                   <span>Total Amount</span>
-                  <span className="text-brand-green">₹{subtotal.toLocaleString()}</span>
+                  <span className="text-brand-green text-lg">₹{subtotal.toLocaleString()}</span>
                 </div>
               </div>
 
-              {/* WhatsApp Checkout Button */}
-              <button
-                onClick={handleWhatsAppCheckout}
-                className="w-full py-3.5 px-4 rounded-xl bg-brand-green hover:bg-brand-greenHover text-white font-extrabold text-sm shadow-lg shadow-brand-green/30 transition-all flex items-center justify-center gap-2 group"
-              >
-                <MessageCircle className="w-5 h-5 fill-current" />
-                <span>Order via WhatsApp (6305151531)</span>
-              </button>
+              {/* Submit Order Confirmation State */}
+              {orderSubmitted ? (
+                <div className="bg-brand-green text-white p-3.5 rounded-2xl text-center text-xs font-bold flex items-center justify-center gap-2 animate-bounce">
+                  <CheckCircle2 className="w-5 h-5" />
+                  <span>Submitting Order... Redirecting to WhatsApp!</span>
+                </div>
+              ) : (
+                /* Prominent Submit Button */
+                <button
+                  onClick={handleSubmitOrder}
+                  className="w-full py-4 px-6 rounded-2xl bg-brand-green hover:bg-brand-greenHover text-white font-black text-base shadow-xl shadow-brand-green/30 hover:shadow-brand-green/50 active:scale-95 transition-all flex items-center justify-center gap-2 group"
+                >
+                  <span>Submit Order</span>
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </button>
+              )}
 
               <button
                 onClick={onClearCart}
-                className="w-full py-1 text-xs text-slate-500 hover:text-brand-red transition-colors text-center"
+                className="w-full py-1 text-xs text-slate-500 hover:text-brand-red transition-colors text-center font-medium"
               >
                 Clear Cart
               </button>

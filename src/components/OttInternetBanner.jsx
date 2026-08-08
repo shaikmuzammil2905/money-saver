@@ -3,12 +3,12 @@ import { Tv, Wifi, Layers, ArrowRight } from 'lucide-react';
 
 export default function OttInternetBanner({ onExplorePlans }) {
   return (
-    <section id="ott-plans" className="py-12 bg-white">
+    <section id="ott-plans" className="py-12 bg-white font-sans">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         <div className="relative rounded-3xl bg-slate-950 text-white p-6 sm:p-10 lg:p-12 overflow-hidden shadow-2xl border border-slate-800">
           
-          {/* Subtle Ambient Radial Glow */}
+          {/* Ambient Glow */}
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(229,9,20,0.2),transparent_60%)] pointer-events-none" />
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10">
@@ -27,9 +27,9 @@ export default function OttInternetBanner({ onExplorePlans }) {
                 </p>
               </div>
 
-              {/* 3 Bullet Features */}
+              {/* 3 Features */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-                <div className="flex items-start gap-3 bg-slate-900/80 p-3.5 rounded-2xl border border-slate-800">
+                <div className="flex items-start gap-3 bg-slate-900/90 p-3.5 rounded-2xl border border-slate-800">
                   <Tv className="w-6 h-6 text-brand-red shrink-0" />
                   <div>
                     <h4 className="text-xs font-bold text-white">OTT Subscriptions</h4>
@@ -37,7 +37,7 @@ export default function OttInternetBanner({ onExplorePlans }) {
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3 bg-slate-900/80 p-3.5 rounded-2xl border border-slate-800">
+                <div className="flex items-start gap-3 bg-slate-900/90 p-3.5 rounded-2xl border border-slate-800">
                   <Wifi className="w-6 h-6 text-sky-400 shrink-0" />
                   <div>
                     <h4 className="text-xs font-bold text-white">Fiber Broadband</h4>
@@ -45,7 +45,7 @@ export default function OttInternetBanner({ onExplorePlans }) {
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3 bg-slate-900/80 p-3.5 rounded-2xl border border-slate-800">
+                <div className="flex items-start gap-3 bg-slate-900/90 p-3.5 rounded-2xl border border-slate-800">
                   <Layers className="w-6 h-6 text-amber-400 shrink-0" />
                   <div>
                     <h4 className="text-xs font-bold text-white">Combo Packages</h4>
@@ -54,7 +54,7 @@ export default function OttInternetBanner({ onExplorePlans }) {
                 </div>
               </div>
 
-              {/* View All Plans CTA Button */}
+              {/* Action button */}
               <div className="pt-2">
                 <button
                   onClick={onExplorePlans}
@@ -67,37 +67,31 @@ export default function OttInternetBanner({ onExplorePlans }) {
 
             </div>
 
-            {/* Right Visual Container */}
+            {/* Right Visual: Realistic TV Artwork & Router */}
             <div className="lg:col-span-5 flex flex-col items-center justify-center relative">
-              <div className="relative w-full max-w-sm bg-slate-900/90 border border-slate-800 p-4 rounded-2xl shadow-2xl backdrop-blur-md">
-                <div className="grid grid-cols-3 gap-2 mb-4">
-                  <div className="bg-red-950/90 border border-red-800 p-2.5 rounded-xl text-center">
-                    <span className="text-red-500 font-black text-xs">NETFLIX</span>
-                  </div>
-                  <div className="bg-sky-950/90 border border-sky-800 p-2.5 rounded-xl text-center">
-                    <span className="text-sky-400 font-bold text-[10px]">prime video</span>
-                  </div>
-                  <div className="bg-blue-950/90 border border-blue-800 p-2.5 rounded-xl text-center">
-                    <span className="text-blue-300 font-bold text-[10px]">Disney+ hotstar</span>
-                  </div>
-                  <div className="bg-purple-950/90 border border-purple-800 p-2.5 rounded-xl text-center">
-                    <span className="text-purple-400 font-black text-xs">ZEE5</span>
-                  </div>
-                  <div className="bg-amber-950/90 border border-amber-800 p-2.5 rounded-xl text-center">
-                    <span className="text-amber-500 font-bold text-xs">SONY liv</span>
-                  </div>
-                  <div className="bg-indigo-950/90 border border-indigo-800 p-2.5 rounded-xl text-center">
-                    <span className="text-indigo-400 font-black text-xs">voot</span>
-                  </div>
+              <div className="relative w-full max-w-sm bg-slate-900/95 border border-slate-800 p-4 rounded-3xl shadow-2xl backdrop-blur-md space-y-4">
+                
+                {/* TV Logo Graphic */}
+                <div className="bg-slate-950 p-2 rounded-2xl border border-slate-800 overflow-hidden shadow-inner">
+                  <img
+                    src="/image.png"
+                    alt="OTT Platforms TV Logo"
+                    className="w-full h-auto object-contain rounded-xl hover:scale-105 transition-transform"
+                  />
                 </div>
 
-                <div className="rounded-xl overflow-hidden h-32 border border-slate-800">
+                {/* Router image */}
+                <div className="rounded-2xl overflow-hidden h-28 border border-slate-800 relative">
                   <img
                     src="https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=500&auto=format&fit=crop&q=80"
                     alt="High Speed Broadband Router"
                     className="w-full h-full object-cover"
                   />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 to-transparent flex items-end p-3">
+                    <span className="text-xs font-extrabold text-amber-400">🔥 High-Speed Fiber Internet + OTT Combo</span>
+                  </div>
                 </div>
+
               </div>
             </div>
 
