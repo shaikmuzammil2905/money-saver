@@ -24,48 +24,51 @@ export default function Header({ cartCount, onOpenCart, onOpenWhatsApp, searchQu
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-slate-950 text-white shadow-lg font-sans">
+    <header className="sticky top-0 z-40 w-full bg-slate-950 text-white shadow-xl font-sans">
       {/* Top Announcement Bar */}
       <div className="bg-brand-red text-white py-1.5 px-4 text-xs md:text-sm font-medium flex flex-wrap items-center justify-between gap-2 shadow-inner">
         <div className="flex items-center gap-2 max-w-full overflow-hidden whitespace-nowrap">
-          <span className="bg-white/20 px-2 py-0.5 rounded-full text-[10px] md:text-xs font-bold uppercase tracking-wider flex items-center gap-1">
-            <Flame className="w-3 h-3 text-amber-300 animate-pulse" /> BIG SAVINGS!
+          <span className="bg-white/20 px-2.5 py-0.5 rounded-full text-[10px] md:text-xs font-extrabold uppercase tracking-wider flex items-center gap-1">
+            <Flame className="w-3.5 h-3.5 text-amber-300 animate-pulse" /> BIG SAVINGS!
           </span>
-          <span className="truncate">Save More. Get More. Spend Smart.</span>
+          <span className="truncate font-semibold">Save More. Get More. Spend Smart.</span>
         </div>
         <div className="hidden sm:flex items-center gap-4 text-xs text-slate-100">
-          <span className="flex items-center gap-1">
+          <span className="flex items-center gap-1 font-medium">
             <MapPin className="w-3.5 h-3.5 text-amber-300" /> Hyderabad, Telangana, India
           </span>
           <span className="text-slate-400">|</span>
-          <a href="tel:6305151531" className="flex items-center gap-1 hover:text-white transition-colors">
+          <a href="tel:6305151531" className="flex items-center gap-1 hover:text-white transition-colors font-bold">
             <Phone className="w-3.5 h-3.5 text-amber-300" /> 6305151531
           </a>
           <span className="text-slate-400">|</span>
-          <button onClick={onOpenWhatsApp} className="flex items-center gap-1 text-emerald-300 hover:text-emerald-200 transition-colors font-medium">
+          <button onClick={onOpenWhatsApp} className="flex items-center gap-1 text-emerald-300 hover:text-emerald-200 transition-colors font-bold">
             <MessageCircle className="w-3.5 h-3.5 fill-current" /> WhatsApp
           </button>
         </div>
       </div>
 
       {/* Main Header Navbar */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
-        {/* Brand Logo */}
-        <div className="flex items-center gap-3 cursor-pointer" onClick={() => handleNavClick('home')}>
-          <div className="h-10 md:h-12 w-auto flex items-center">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between gap-6">
+        
+        {/* Brand Logo with Increased Gap to Text */}
+        <div className="flex items-center gap-4 sm:gap-5 cursor-pointer group" onClick={() => handleNavClick('home')}>
+          <div className="h-10 md:h-12 w-auto flex items-center shrink-0">
             <img 
               src="/image.png" 
               alt="OTTMoneySaver Logo" 
-              className="h-full object-contain max-h-12 drop-shadow-md hover:scale-105 transition-transform" 
+              className="h-full object-contain max-h-12 rounded-lg shadow-md group-hover:scale-105 transition-transform duration-300" 
               onError={(e) => {
                 e.target.onerror = null;
                 e.target.style.display = 'none';
               }}
             />
-            <span className="text-xl md:text-2xl font-black tracking-tight text-white flex items-center gap-1 font-sans">
-              <span className="text-brand-red">OTT</span>Money<span className="text-brand-green">Saver</span>
-            </span>
           </div>
+          <span className="text-xl md:text-2xl font-black tracking-tight text-white flex items-center gap-1 font-sans pl-1">
+            <span className="text-brand-red">OTT</span>
+            <span className="text-white">Money</span>
+            <span className="text-brand-green">Saver</span>
+          </span>
         </div>
 
         {/* Desktop Nav Links */}
@@ -75,7 +78,7 @@ export default function Header({ cartCount, onOpenCart, onOpenWhatsApp, searchQu
               key={link.id}
               onClick={() => handleNavClick(link.id)}
               className={`transition-colors duration-200 py-1 relative ${
-                activeTab === link.id ? 'text-brand-green font-bold' : 'text-slate-200 hover:text-brand-red'
+                activeTab === link.id ? 'text-brand-green font-extrabold' : 'text-slate-200 hover:text-brand-red'
               }`}
             >
               {link.name}
@@ -88,8 +91,8 @@ export default function Header({ cartCount, onOpenCart, onOpenWhatsApp, searchQu
 
         {/* Header Right Actions (Search & Cart) */}
         <div className="flex items-center gap-3">
-          {/* Search Input Box */}
-          <div className="relative hidden md:block w-48 lg:w-64">
+          {/* Search Bar Input */}
+          <div className="relative hidden md:block w-48 lg:w-60">
             <input
               type="text"
               placeholder="Search products, plans..."
@@ -154,7 +157,7 @@ export default function Header({ cartCount, onOpenCart, onOpenWhatsApp, searchQu
                 key={link.id}
                 onClick={() => handleNavClick(link.id)}
                 className={`flex items-center justify-between text-left py-2.5 px-3 rounded-lg text-sm font-semibold transition-colors ${
-                  activeTab === link.id ? 'bg-slate-800 text-brand-green' : 'text-slate-200 hover:bg-slate-800/50'
+                  activeTab === link.id ? 'bg-slate-800 text-brand-green font-bold' : 'text-slate-200 hover:bg-slate-800/50'
                 }`}
               >
                 <span>{link.name}</span>
