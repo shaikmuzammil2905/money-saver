@@ -1,7 +1,18 @@
 import React, { useState } from 'react';
 import { Search, ShoppingCart, MapPin, Phone, MessageCircle, Menu, X, Flame, ChevronRight } from 'lucide-react';
 
-export default function Header({ cartCount, onOpenCart, onOpenWhatsApp, searchQuery, setSearchQuery, activeTab, setActiveTab }) {
+export default function Header({ 
+  cartCount, 
+  onOpenCart, 
+  onOpenWhatsApp, 
+  searchQuery, 
+  setSearchQuery, 
+  activeTab, 
+  setActiveTab,
+  user,
+  onOpenProfile,
+  onOpenAuthModal
+}) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navLinks = [
@@ -89,7 +100,7 @@ export default function Header({ cartCount, onOpenCart, onOpenWhatsApp, searchQu
         {/* Header Right Actions */}
         <div className="flex items-center gap-3">
           {/* Search Bar Input */}
-          <div className="relative hidden md:block w-48 lg:w-60">
+          <div className="relative hidden md:block w-44 lg:w-56">
             <input
               type="text"
               placeholder="Search products, plans..."
@@ -100,14 +111,26 @@ export default function Header({ cartCount, onOpenCart, onOpenWhatsApp, searchQu
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
           </div>
 
-          {/* WhatsApp Direct Header Icon */}
-          <button 
-            onClick={onOpenWhatsApp}
-            className="sm:hidden p-2 text-emerald-400 hover:bg-slate-900 rounded-full transition-colors"
-            title="Chat on WhatsApp"
-          >
-            <MessageCircle className="w-5 h-5" />
-          </button>
+          {/* User Account / Profile Button */}
+          {user ? (
+            <button
+              onClick={onOpenProfile}
+              className="p-1.5 sm:px-3 sm:py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-full sm:rounded-xl text-xs font-extrabold text-white flex items-center gap-1.5 transition-all"
+              title="Customer Profile"
+            >
+              <div className="w-6 h-6 rounded-full bg-[#008744] text-white flex items-center justify-center text-xs font-black shrink-0">
+                {user.fullName?.charAt(0)?.toUpperCase() || 'C'}
+              </div>
+              <span className="hidden sm:inline line-clamp-1 max-w-[80px]">{user.fullName?.split(' ')[0]}</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => onOpenAuthModal('login')}
+              className="px-3 py-1.5 rounded-full sm:rounded-xl bg-[#e50914] hover:bg-red-700 text-white text-xs font-black transition-all shadow-sm flex items-center gap-1"
+            >
+              <span>Login</span>
+            </button>
+          )}
 
           {/* Cart Icon with Badge */}
           <button

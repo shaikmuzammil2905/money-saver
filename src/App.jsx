@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Header from './components/Header';
 import HeroSection from './components/HeroSection';
 import CategoryCards from './components/CategoryCards';
@@ -7,12 +7,16 @@ import ValueProposition from './components/ValueProposition';
 import OttInternetBanner from './components/OttInternetBanner';
 import CategoryCarousel from './components/CategoryCarousel';
 import PromoBanner from './components/PromoBanner';
+import PromoSliderBanner from './components/PromoSliderBanner';
+import HowToOrderSection from './components/HowToOrderSection';
 import NeedHelpSection from './components/NeedHelpSection';
 import Footer from './components/Footer';
 import CartDrawer from './components/CartDrawer';
 import Toast from './components/Toast';
 import WhatsAppModal from './components/WhatsAppModal';
-import QuickViewModal from './components/QuickViewModal';
+import ProductDetailModal from './components/ProductDetailModal';
+import AuthModal from './components/AuthModal';
+import CustomerProfileModal from './components/CustomerProfileModal';
 import MobileBottomNav from './components/MobileBottomNav';
 import ViewAllProducts from './components/ViewAllProducts';
 import ProductCard from './components/ProductCard';
@@ -26,37 +30,61 @@ import OffersPage from './pages/OffersPage';
 import ContactPage from './pages/ContactPage';
 
 import { ALL_PRODUCTS } from './data/products';
+import { getUserProfile } from './services/orderService';
+
+const CART_STORAGE_KEY = 'ott_cart';
 
 export default function App() {
-  const [cartItems, setCartItems] = useState([
-    {
-      id: 'boat-550',
-      title: 'boAt Rockerz 550',
-      subtitle: 'Bluetooth Headphone',
-      price: 1499,
-      originalPrice: 2999,
-      image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&auto=format&fit=crop&q=80',
-      quantity: 1
-    },
-    {
-      id: 'realme-narzo-70',
-      title: 'Realme Narzo 70 Pro 5G',
-      subtitle: '(8GB | 128GB)',
-      price: 16999,
-      originalPrice: 21999,
-      image: 'https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=600&auto=format&fit=crop&q=80',
-      quantity: 1
+  // Load Cart from LocalStorage or default items
+  const [cartItems, setCartItems] = useState(() => {
+    try {
+      const saved = localStorage.getItem(CART_STORAGE_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Error loading initial cart:', e);
     }
-  ]);
+    return [
+      {
+        id: 'boat-550',
+        title: 'boAt Rockerz 550 Bluetooth Headphones',
+        subtitle: 'Over-Ear Wireless Headphone',
+        price: 1499,
+        originalPrice: 2999,
+        image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&auto=format&fit=crop&q=80',
+        quantity: 1,
+        inStock: true
+      }
+    ];
+  });
 
+  // User Auth Profile State
+  const [user, setUser] = useState(() => getUserProfile());
+
+  // Wishlist state
   const [wishlistIds, setWishlistIds] = useState(['boat-550']);
+
+  // Modals & Drawers States
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [toast, setToast] = useState(null);
-  const [quickViewProduct, setQuickViewProduct] = useState(null);
+  const [productDetailModal, setProductDetailModal] = useState(null);
   const [isWhatsAppOpen, setIsWhatsAppOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState('login');
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+
+  // Search & Navigation
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('home'); // 'home', 'ott-plans', 'fiber', 'mobiles', 'electronics', 'offers', 'contact', 'view-all'
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('All');
+
+  // Persist Cart
+  useEffect(() => {
+    try {
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems));
+    } catch (e) {
+      console.error('Error saving cart:', e);
+    }
+  }, [cartItems]);
 
   const cartCount = useMemo(() => {
     return cartItems.reduce((acc, item) => acc + item.quantity, 0);
@@ -72,6 +100,11 @@ export default function App() {
   };
 
   const handleAddToCart = (product) => {
+    if (product.inStock === false) {
+      alert('Sorry, this product is currently out of stock!');
+      return;
+    }
+
     setCartItems((prevItems) => {
       const existing = prevItems.find((item) => item.id === product.id);
       if (existing) {
@@ -103,6 +136,17 @@ export default function App() {
     setCartItems([]);
   };
 
+  const handleOpenAuthModal = (mode = 'login') => {
+    setAuthModalMode(mode);
+    setIsAuthModalOpen(true);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('ott_user');
+    setUser(null);
+    setIsProfileModalOpen(false);
+  };
+
   const handleSelectCategory = (catIdOrName) => {
     if (catIdOrName === 'ott') setActiveTab('ott-plans');
     else if (catIdOrName === 'fiber') setActiveTab('fiber');
@@ -124,7 +168,8 @@ export default function App() {
       (p) =>
         p.title.toLowerCase().includes(query) ||
         p.subtitle?.toLowerCase().includes(query) ||
-        p.category?.toLowerCase().includes(query)
+        p.category?.toLowerCase().includes(query) ||
+        p.categoryGroup?.toLowerCase().includes(query)
     );
   }, [searchQuery]);
 
@@ -157,7 +202,7 @@ export default function App() {
                     key={product.id}
                     product={product}
                     onAddToCart={handleAddToCart}
-                    onQuickView={(prod) => setQuickViewProduct(prod)}
+                    onQuickView={(prod) => setProductDetailModal(prod)}
                     isWishlisted={wishlistIds.includes(product.id)}
                     onToggleWishlist={handleToggleWishlist}
                   />
@@ -174,7 +219,7 @@ export default function App() {
         return (
           <OttPlansPage
             onAddToCart={handleAddToCart}
-            onQuickView={(prod) => setQuickViewProduct(prod)}
+            onQuickView={(prod) => setProductDetailModal(prod)}
             onOpenWhatsApp={() => setIsWhatsAppOpen(true)}
           />
         );
@@ -189,7 +234,7 @@ export default function App() {
         return (
           <MobilesGadgetsPage
             onAddToCart={handleAddToCart}
-            onQuickView={(prod) => setQuickViewProduct(prod)}
+            onQuickView={(prod) => setProductDetailModal(prod)}
             wishlistIds={wishlistIds}
             onToggleWishlist={handleToggleWishlist}
           />
@@ -198,7 +243,7 @@ export default function App() {
         return (
           <ElectronicsPage
             onAddToCart={handleAddToCart}
-            onQuickView={(prod) => setQuickViewProduct(prod)}
+            onQuickView={(prod) => setProductDetailModal(prod)}
             wishlistIds={wishlistIds}
             onToggleWishlist={handleToggleWishlist}
           />
@@ -207,7 +252,7 @@ export default function App() {
         return (
           <OffersPage
             onAddToCart={handleAddToCart}
-            onQuickView={(prod) => setQuickViewProduct(prod)}
+            onQuickView={(prod) => setProductDetailModal(prod)}
             wishlistIds={wishlistIds}
             onToggleWishlist={handleToggleWishlist}
           />
@@ -223,7 +268,7 @@ export default function App() {
           <ViewAllProducts
             onBack={() => setActiveTab('home')}
             onAddToCart={handleAddToCart}
-            onQuickView={(prod) => setQuickViewProduct(prod)}
+            onQuickView={(prod) => setProductDetailModal(prod)}
             selectedCategory={selectedCategoryFilter}
             wishlistIds={wishlistIds}
             onToggleWishlist={handleToggleWishlist}
@@ -242,13 +287,27 @@ export default function App() {
             {/* Quick Category Cards */}
             <CategoryCards onSelectCategory={handleSelectCategory} />
 
+            {/* Promo Slider Banner */}
+            <PromoSliderBanner
+              onViewOffers={() => setActiveTab('offers')}
+              onSelectCategory={handleSelectCategory}
+            />
+
             {/* Featured Deals Section */}
             <FeaturedDeals
               onAddToCart={handleAddToCart}
-              onQuickView={(prod) => setQuickViewProduct(prod)}
+              onQuickView={(prod) => setProductDetailModal(prod)}
               onViewAll={() => setActiveTab('offers')}
               wishlistIds={wishlistIds}
               onToggleWishlist={handleToggleWishlist}
+            />
+
+            {/* How To Order Instructions Section */}
+            <HowToOrderSection
+              onStartShopping={() => {
+                setActiveTab('view-all');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
             />
 
             {/* Value Proposition */}
@@ -289,6 +348,9 @@ export default function App() {
           setActiveTab(tabId);
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
+        user={user}
+        onOpenProfile={() => setIsProfileModalOpen(true)}
+        onOpenAuthModal={handleOpenAuthModal}
       />
 
       {/* Main Content Body */}
@@ -304,7 +366,7 @@ export default function App() {
         }}
       />
 
-      {/* Cart Drawer */}
+      {/* Shopping Cart & Checkout Drawer */}
       <CartDrawer
         isOpen={isCartOpen}
         onClose={() => setIsCartOpen(false)}
@@ -312,6 +374,25 @@ export default function App() {
         onUpdateQuantity={handleUpdateQuantity}
         onRemoveItem={handleRemoveItem}
         onClearCart={handleClearCart}
+        user={user}
+        onOpenAuthModal={handleOpenAuthModal}
+      />
+
+      {/* Customer Login / Registration Auth Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        initialMode={authModalMode}
+        onClose={() => setIsAuthModalOpen(false)}
+        onSuccess={(loggedUser) => setUser(loggedUser)}
+      />
+
+      {/* Customer Profile & Order History Modal */}
+      <CustomerProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        user={user}
+        onLogout={handleLogout}
+        onUpdateUser={(updated) => setUser(updated)}
       />
 
       {/* Floating Toast Notification */}
@@ -323,11 +404,14 @@ export default function App() {
         onClose={() => setIsWhatsAppOpen(false)}
       />
 
-      {/* Product Quick View Modal */}
-      <QuickViewModal
-        product={quickViewProduct}
-        onClose={() => setQuickViewProduct(null)}
+      {/* Product Detail Modal (1-5 Image Gallery + Specs) */}
+      <ProductDetailModal
+        product={productDetailModal}
+        onClose={() => setProductDetailModal(null)}
         onAddToCart={handleAddToCart}
+        allProducts={ALL_PRODUCTS}
+        wishlistIds={wishlistIds}
+        onToggleWishlist={handleToggleWishlist}
       />
 
       {/* Mobile Sticky Bottom Navigation Bar */}
@@ -340,6 +424,9 @@ export default function App() {
         cartCount={cartCount}
         onOpenCart={() => setIsCartOpen(true)}
         onOpenWhatsApp={() => setIsWhatsAppOpen(true)}
+        user={user}
+        onOpenProfile={() => setIsProfileModalOpen(true)}
+        onOpenAuthModal={handleOpenAuthModal}
       />
 
     </div>
