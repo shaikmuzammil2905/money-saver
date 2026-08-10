@@ -1,8 +1,9 @@
 import React from 'react';
 import { ALL_PRODUCTS } from '../data/products';
-import { Flame, Star, ShoppingCart, Eye, Tag, Zap, Clock } from 'lucide-react';
+import { Flame, Zap } from 'lucide-react';
+import ProductCard from '../components/ProductCard';
 
-export default function OffersPage({ onAddToCart, onQuickView }) {
+export default function OffersPage({ onAddToCart, onQuickView, wishlistIds = [], onToggleWishlist }) {
   // Sort products by highest discount
   const topDiscountProducts = [...ALL_PRODUCTS].sort((a, b) => {
     const discA = parseInt(a.discount) || 0;
@@ -33,76 +34,17 @@ export default function OffersPage({ onAddToCart, onQuickView }) {
           <Zap className="w-6 h-6 text-[#e50914] fill-red-500" /> Today's Highest Discount Deals
         </h2>
 
-        {/* Product Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
+        {/* Product Grid: side-by-side layout */}
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4 lg:gap-5">
           {topDiscountProducts.map((product) => (
-            <div
+            <ProductCard
               key={product.id}
-              className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-sm hover:shadow-lg transition-all duration-200 flex flex-col justify-between group relative"
-            >
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
-                    {product.category}
-                  </span>
-                  <span className="text-[10px] font-black text-[#e50914] bg-red-50 border border-red-200 px-2 py-0.5 rounded-md flex items-center gap-0.5">
-                    <Flame className="w-3 h-3 fill-current" /> {product.discount}
-                  </span>
-                </div>
-
-                <h3 className="font-extrabold text-sm text-slate-900 line-clamp-1 group-hover:text-[#e50914] transition-colors">
-                  {product.title}
-                </h3>
-                <p className="text-xs text-slate-500 font-normal line-clamp-1 mt-0.5">
-                  {product.subtitle}
-                </p>
-
-                <div className="relative w-full h-44 my-3 rounded-xl bg-slate-50 flex items-center justify-center p-3 overflow-hidden">
-                  <img
-                    src={product.image}
-                    alt={product.title}
-                    className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-200"
-                    loading="lazy"
-                  />
-                  <button
-                    onClick={() => onQuickView(product)}
-                    className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 text-white text-xs font-bold rounded-xl backdrop-blur-[1px]"
-                  >
-                    <Eye className="w-4 h-4" /> Quick View
-                  </button>
-                </div>
-
-                <div className="flex items-center gap-1.5 mb-3 text-xs">
-                  <div className="flex items-center gap-1 text-amber-500 font-extrabold">
-                    <Star className="w-3.5 h-3.5 fill-current" />
-                    <span>{product.rating}</span>
-                  </div>
-                  <span className="text-slate-400 font-medium">({product.reviewsCount?.toLocaleString() || '1,256'})</span>
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between gap-2 mb-3">
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-xs text-slate-400 line-through font-medium">
-                      ₹{product.originalPrice.toLocaleString()}
-                    </span>
-                    <span className="text-base sm:text-lg font-black text-slate-900">
-                      ₹{product.price.toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => onAddToCart(product)}
-                  className="w-full py-2.5 px-3 rounded-xl bg-[#008744] hover:bg-[#007038] text-white font-bold text-xs shadow-md shadow-emerald-700/20 transition-colors flex items-center justify-center gap-2 group/btn"
-                >
-                  <ShoppingCart className="w-4 h-4 stroke-[2.5]" />
-                  <span>Add to Cart</span>
-                </button>
-              </div>
-
-            </div>
+              product={product}
+              onAddToCart={onAddToCart}
+              onQuickView={onQuickView}
+              isWishlisted={wishlistIds.includes(product.id)}
+              onToggleWishlist={onToggleWishlist}
+            />
           ))}
         </div>
 

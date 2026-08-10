@@ -15,6 +15,7 @@ import WhatsAppModal from './components/WhatsAppModal';
 import QuickViewModal from './components/QuickViewModal';
 import MobileBottomNav from './components/MobileBottomNav';
 import ViewAllProducts from './components/ViewAllProducts';
+import ProductCard from './components/ProductCard';
 
 // Dedicated Page Views
 import OttPlansPage from './pages/OttPlansPage';
@@ -48,6 +49,7 @@ export default function App() {
     }
   ]);
 
+  const [wishlistIds, setWishlistIds] = useState(['boat-550']);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [toast, setToast] = useState(null);
   const [quickViewProduct, setQuickViewProduct] = useState(null);
@@ -59,6 +61,15 @@ export default function App() {
   const cartCount = useMemo(() => {
     return cartItems.reduce((acc, item) => acc + item.quantity, 0);
   }, [cartItems]);
+
+  const handleToggleWishlist = (product) => {
+    setWishlistIds((prev) => {
+      if (prev.includes(product.id)) {
+        return prev.filter((id) => id !== product.id);
+      }
+      return [...prev, product.id];
+    });
+  };
 
   const handleAddToCart = (product) => {
     setCartItems((prevItems) => {
@@ -140,31 +151,16 @@ export default function App() {
                 No products or plans found matching "{searchQuery}".
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4 lg:gap-5">
                 {searchResults.map((product) => (
-                  <div
+                  <ProductCard
                     key={product.id}
-                    className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm hover:shadow-lg transition-all flex flex-col justify-between"
-                  >
-                    <img
-                      src={product.image}
-                      alt={product.title}
-                      className="w-full h-40 object-contain mb-3"
-                    />
-                    <div>
-                      <h3 className="font-bold text-sm text-slate-900">{product.title}</h3>
-                      <p className="text-xs text-slate-500">{product.subtitle}</p>
-                      <div className="text-base font-black text-slate-900 mt-2">
-                        ₹{product.price.toLocaleString()}
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => handleAddToCart(product)}
-                      className="w-full mt-3 py-2.5 bg-[#008744] hover:bg-[#007038] text-white font-bold text-xs rounded-xl transition-colors"
-                    >
-                      Add to Cart
-                    </button>
-                  </div>
+                    product={product}
+                    onAddToCart={handleAddToCart}
+                    onQuickView={(prod) => setQuickViewProduct(prod)}
+                    isWishlisted={wishlistIds.includes(product.id)}
+                    onToggleWishlist={handleToggleWishlist}
+                  />
                 ))}
               </div>
             )}
@@ -194,6 +190,8 @@ export default function App() {
           <MobilesGadgetsPage
             onAddToCart={handleAddToCart}
             onQuickView={(prod) => setQuickViewProduct(prod)}
+            wishlistIds={wishlistIds}
+            onToggleWishlist={handleToggleWishlist}
           />
         );
       case 'electronics':
@@ -201,6 +199,8 @@ export default function App() {
           <ElectronicsPage
             onAddToCart={handleAddToCart}
             onQuickView={(prod) => setQuickViewProduct(prod)}
+            wishlistIds={wishlistIds}
+            onToggleWishlist={handleToggleWishlist}
           />
         );
       case 'offers':
@@ -208,6 +208,8 @@ export default function App() {
           <OffersPage
             onAddToCart={handleAddToCart}
             onQuickView={(prod) => setQuickViewProduct(prod)}
+            wishlistIds={wishlistIds}
+            onToggleWishlist={handleToggleWishlist}
           />
         );
       case 'contact':
@@ -223,6 +225,8 @@ export default function App() {
             onAddToCart={handleAddToCart}
             onQuickView={(prod) => setQuickViewProduct(prod)}
             selectedCategory={selectedCategoryFilter}
+            wishlistIds={wishlistIds}
+            onToggleWishlist={handleToggleWishlist}
           />
         );
       case 'home':
@@ -243,6 +247,8 @@ export default function App() {
               onAddToCart={handleAddToCart}
               onQuickView={(prod) => setQuickViewProduct(prod)}
               onViewAll={() => setActiveTab('offers')}
+              wishlistIds={wishlistIds}
+              onToggleWishlist={handleToggleWishlist}
             />
 
             {/* Value Proposition */}

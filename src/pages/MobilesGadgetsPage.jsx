@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { ALL_PRODUCTS } from '../data/products';
-import { Smartphone, Headphones, Star, ShoppingCart, Eye, Search, SlidersHorizontal, Flame } from 'lucide-react';
+import { Smartphone, Search } from 'lucide-react';
+import ProductCard from '../components/ProductCard';
 
-export default function MobilesGadgetsPage({ onAddToCart, onQuickView }) {
+export default function MobilesGadgetsPage({ onAddToCart, onQuickView, wishlistIds = [], onToggleWishlist }) {
   const [selectedSubCat, setSelectedSubCat] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('featured');
@@ -96,74 +97,17 @@ export default function MobilesGadgetsPage({ onAddToCart, onQuickView }) {
           </div>
         </div>
 
-        {/* Product Cards Grid matching image copy 5.png */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
+        {/* Product Cards Grid: side-by-side layout */}
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4 lg:gap-5">
           {filtered.map((product) => (
-            <div
+            <ProductCard
               key={product.id}
-              className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-sm hover:shadow-lg transition-all duration-200 flex flex-col justify-between group relative"
-            >
-              <div>
-                <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full inline-block mb-1">
-                  {product.category}
-                </span>
-
-                <h3 className="font-extrabold text-sm text-slate-900 line-clamp-1 group-hover:text-emerald-700 transition-colors">
-                  {product.title}
-                </h3>
-                <p className="text-xs text-slate-500 font-normal line-clamp-1 mt-0.5">
-                  {product.subtitle}
-                </p>
-
-                <div className="relative w-full h-44 my-3 rounded-xl bg-slate-50 flex items-center justify-center p-3 overflow-hidden">
-                  <img
-                    src={product.image}
-                    alt={product.title}
-                    className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-200"
-                    loading="lazy"
-                  />
-                  <button
-                    onClick={() => onQuickView(product)}
-                    className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 text-white text-xs font-bold rounded-xl backdrop-blur-[1px]"
-                  >
-                    <Eye className="w-4 h-4" /> Quick View
-                  </button>
-                </div>
-
-                <div className="flex items-center gap-1.5 mb-3 text-xs">
-                  <div className="flex items-center gap-1 text-amber-500 font-extrabold">
-                    <Star className="w-3.5 h-3.5 fill-current" />
-                    <span>{product.rating}</span>
-                  </div>
-                  <span className="text-slate-400 font-medium">({product.reviewsCount?.toLocaleString() || '982'})</span>
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between gap-2 mb-3">
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-xs text-slate-400 line-through font-medium">
-                      ₹{product.originalPrice.toLocaleString()}
-                    </span>
-                    <span className="text-base sm:text-lg font-black text-slate-900">
-                      ₹{product.price.toLocaleString()}
-                    </span>
-                  </div>
-                  <span className="text-[10px] font-extrabold text-white bg-[#e50914] px-2 py-0.5 rounded-md">
-                    {product.discount}
-                  </span>
-                </div>
-
-                <button
-                  onClick={() => onAddToCart(product)}
-                  className="w-full py-2.5 px-3 rounded-xl bg-[#008744] hover:bg-[#007038] text-white font-bold text-xs shadow-md shadow-emerald-700/20 transition-colors flex items-center justify-center gap-2 group/btn"
-                >
-                  <ShoppingCart className="w-4 h-4 stroke-[2.5]" />
-                  <span>Add to Cart</span>
-                </button>
-              </div>
-
-            </div>
+              product={product}
+              onAddToCart={onAddToCart}
+              onQuickView={onQuickView}
+              isWishlisted={wishlistIds.includes(product.id)}
+              onToggleWishlist={onToggleWishlist}
+            />
           ))}
         </div>
 
