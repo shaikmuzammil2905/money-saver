@@ -14,10 +14,11 @@ import Toast from './components/Toast';
 import WhatsAppModal from './components/WhatsAppModal';
 import QuickViewModal from './components/QuickViewModal';
 import MobileBottomNav from './components/MobileBottomNav';
-import { ALL_PRODUCTS, FEATURED_DEALS } from './data/products';
+import ViewAllProducts from './components/ViewAllProducts';
+import { ALL_PRODUCTS } from './data/products';
 
 export default function App() {
-  // Initial cart starts with 2 default items as shown in reference screenshots
+  // Initial cart with items
   const [cartItems, setCartItems] = useState([
     {
       id: 'boat-550',
@@ -45,7 +46,8 @@ export default function App() {
   const [isWhatsAppOpen, setIsWhatsAppOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('home');
-  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState(null);
+  const [isViewAllOpen, setIsViewAllOpen] = useState(false);
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('All');
 
   // Calculate total badge count
   const cartCount = useMemo(() => {
@@ -64,7 +66,6 @@ export default function App() {
       return [...prevItems, { ...product, quantity: 1 }];
     });
 
-    // Trigger toast notification
     setToast(product);
   };
 
@@ -87,11 +88,16 @@ export default function App() {
   };
 
   const handleSelectCategory = (catIdOrName) => {
-    setSelectedCategoryFilter(catIdOrName);
-    const element = document.getElementById('offers') || document.getElementById('mobiles');
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
+    let catName = 'All';
+    if (catIdOrName === 'ott') catName = 'OTT Platforms';
+    else if (catIdOrName === 'fiber') catName = 'Fiber Internet';
+    else if (catIdOrName === 'mobiles') catName = 'Smartphones';
+    else if (catIdOrName === 'gadgets') catName = 'Headphones';
+    else if (catIdOrName === 'electronics') catName = 'Laptops';
+    else if (typeof catIdOrName === 'string') catName = catIdOrName;
+
+    setSelectedCategoryFilter(catName);
+    setIsViewAllOpen(true);
   };
 
   // Filtered search products if user types in search bar
@@ -117,12 +123,19 @@ export default function App() {
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={(tabId) => {
+          setActiveTab(tabId);
+          if (tabId === 'offers' || tabId === 'mobiles' || tabId === 'electronics') {
+            setIsViewAllOpen(true);
+          } else {
+            setIsViewAllOpen(false);
+          }
+        }}
       />
 
       {/* Main Content Body */}
       <main>
-        {/* Search Filter Banner overlay if user searches */}
+        {/* Search Results Overlay */}
         {searchResults !== null ? (
           <section className="py-12 bg-slate-50 min-h-[60vh]">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -163,7 +176,7 @@ export default function App() {
                       </div>
                       <button
                         onClick={() => handleAddToCart(product)}
-                        className="w-full mt-3 py-2 bg-brand-green text-white font-bold text-xs rounded-xl hover:bg-brand-greenHover transition-colors"
+                        className="w-full mt-3 py-2.5 bg-[#008744] hover:bg-[#007038] text-white font-bold text-xs rounded-xl transition-colors"
                       >
                         Add to Cart
                       </button>
@@ -173,51 +186,54 @@ export default function App() {
               )}
             </div>
           </section>
+        ) : isViewAllOpen ? (
+          /* View All Products Page / Catalog View */
+          <ViewAllProducts
+            onBack={() => setIsViewAllOpen(false)}
+            onAddToCart={handleAddToCart}
+            onQuickView={(prod) => setQuickViewProduct(prod)}
+            selectedCategory={selectedCategoryFilter}
+          />
         ) : (
+          /* Standard Home View */
           <>
-            {/* Hero Section with Anti-Gravity Zero-Gravity Canvas */}
+            {/* Dual Animated Banner Carousel (Slide 1 Red & Slide 2 Cyberpunk Neon) */}
             <HeroSection
               onExploreDeals={() => {
-                const el = document.getElementById('offers');
-                if (el) el.scrollIntoView({ behavior: 'smooth' });
+                setIsViewAllOpen(true);
               }}
               onShopNow={() => {
-                const el = document.getElementById('mobiles');
-                if (el) el.scrollIntoView({ behavior: 'smooth' });
+                setIsViewAllOpen(true);
               }}
             />
 
-            {/* Quick Category Cards (6-Grid) */}
+            {/* Quick Category Cards matching reference design */}
             <CategoryCards onSelectCategory={handleSelectCategory} />
 
-            {/* Featured Deals Section */}
+            {/* Featured Deals Section matching image copy 5.png */}
             <FeaturedDeals
               onAddToCart={handleAddToCart}
               onQuickView={(prod) => setQuickViewProduct(prod)}
-              onViewAll={() => {
-                const el = document.getElementById('offers');
-                if (el) el.scrollIntoView({ behavior: 'smooth' });
-              }}
+              onViewAll={() => setIsViewAllOpen(true)}
             />
 
-            {/* Value Proposition Section (4-Grid) */}
+            {/* Value Proposition Section */}
             <ValueProposition />
 
-            {/* OTT & Internet Plans Banner (Dark theme) */}
+            {/* OTT & Internet Plans Banner */}
             <OttInternetBanner
               onExplorePlans={() => {
                 setIsWhatsAppOpen(true);
               }}
             />
 
-            {/* Shop By Category Carousel / Grid */}
+            {/* Shop By Category Carousel */}
             <CategoryCarousel onSelectCategory={handleSelectCategory} />
 
             {/* Red/Orange Promotional Discount Banner */}
             <PromoBanner
               onViewOffers={() => {
-                const el = document.getElementById('offers');
-                if (el) el.scrollIntoView({ behavior: 'smooth' });
+                setIsViewAllOpen(true);
               }}
             />
 
@@ -230,9 +246,13 @@ export default function App() {
       {/* Footer */}
       <Footer
         onNavClick={(id) => {
-          setActiveTab(id);
-          const el = document.getElementById(id);
-          if (el) el.scrollIntoView({ behavior: 'smooth' });
+          if (id === 'offers' || id === 'mobiles' || id === 'electronics') {
+            setIsViewAllOpen(true);
+          } else {
+            setIsViewAllOpen(false);
+            const el = document.getElementById(id);
+            if (el) el.scrollIntoView({ behavior: 'smooth' });
+          }
         }}
       />
 
@@ -265,7 +285,14 @@ export default function App() {
       {/* Mobile Sticky Bottom Navigation Bar */}
       <MobileBottomNav
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={(tab) => {
+          setActiveTab(tab);
+          if (tab === 'offers' || tab === 'categories') {
+            setIsViewAllOpen(true);
+          } else {
+            setIsViewAllOpen(false);
+          }
+        }}
         cartCount={cartCount}
         onOpenCart={() => setIsCartOpen(true)}
         onOpenWhatsApp={() => setIsWhatsAppOpen(true)}
