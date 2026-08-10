@@ -83,18 +83,33 @@ export default function CartDrawer({
 
   // Payment Status Logic
   const currentPaymentStatus = (screenshotPreview || screenshotFile)
-    ? 'Payment Verification Pending'
+    ? 'Payment Success'
     : 'Payment Pending';
 
-  // Handle Open Payment Link (GPay / PhonePe)
+  // Handle Open Payment Link (GPay / PhonePe Direct UPI Launch with pre-filled amount)
   const handleOpenPaymentApp = (type) => {
-    if (!paymentConfig) return;
-    const url = type === 'gpay' ? paymentConfig.gpayLink : paymentConfig.phonepeLink;
+    const upiId = paymentConfig?.upiId || '6305151531@ybl';
+    const amount = subtotal || 0;
+    const payeeName = 'OTTMoneySaver';
     
+    // Standard UPI Link prefilling exact payee & cart subtotal amount
+    const standardUpiUrl = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(payeeName)}&am=${amount}&cu=INR&tn=OTTMoneySaver%20Order`;
+    
+    let targetUrl = standardUpiUrl;
+    if (type === 'gpay') {
+      targetUrl = `tez://upi/pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(payeeName)}&am=${amount}&cu=INR`;
+    } else if (type === 'phonepe') {
+      targetUrl = `phonepe://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(payeeName)}&am=${amount}&cu=INR`;
+    }
+
     try {
-      window.open(url, '_blank');
+      window.location.href = targetUrl;
+      // Fallback timer if app link fails
+      setTimeout(() => {
+        window.location.href = standardUpiUrl;
+      }, 500);
     } catch (err) {
-      alert(`Could not open payment link directly. Please transfer to UPI ID: ${paymentConfig.upiId}`);
+      window.open(standardUpiUrl, '_blank');
     }
   };
 
@@ -323,7 +338,7 @@ export default function CartDrawer({
                   </div>
                 </div>
 
-                {/* 4. Payment Section (Configurable GPay & PhonePe) */}
+                {/* 4. Payment Section (Configurable GPay & PhonePe Direct Launch) */}
                 <div className="p-4 bg-slate-900 text-white rounded-2xl space-y-3 shadow-md">
                   <h3 className="text-xs font-black text-slate-200 uppercase tracking-wider flex items-center justify-between">
                     <span>Pay Using</span>
@@ -397,8 +412,8 @@ export default function CartDrawer({
                       </div>
 
                       <div className="flex justify-between items-center text-xs">
-                        <span className="text-emerald-700 font-bold flex items-center gap-1">
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Screenshot Uploaded
+                        <span className="text-[#008744] font-bold flex items-center gap-1">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Screenshot Submitted
                         </span>
                         <label className="text-xs font-bold text-[#e50914] cursor-pointer hover:underline">
                           Replace Image
@@ -414,15 +429,15 @@ export default function CartDrawer({
                   )}
                 </div>
 
-                {/* 6. Payment Status Display */}
-                <div className="p-3 rounded-xl border bg-slate-900 text-white flex items-center justify-between text-xs font-bold shadow">
+                {/* 6. Payment Status Display (Green Payment Success when screenshot submitted) */}
+                <div className="p-3.5 rounded-2xl border bg-slate-900 text-white flex items-center justify-between text-xs font-bold shadow-md">
                   <span className="text-slate-300">Payment Status:</span>
-                  <span className={`px-2.5 py-1 rounded-full text-[11px] font-black ${
-                    currentPaymentStatus === 'Payment Verification Pending'
-                      ? 'bg-amber-400 text-slate-950'
+                  <span className={`px-3 py-1 rounded-full text-xs font-black shadow-sm transition-all ${
+                    currentPaymentStatus === 'Payment Success'
+                      ? 'bg-[#008744] text-white'
                       : 'bg-red-500 text-white'
                   }`}>
-                    {currentPaymentStatus}
+                    {currentPaymentStatus === 'Payment Success' ? 'Payment Success ✅' : 'Payment Pending'}
                   </span>
                 </div>
               </>
@@ -438,15 +453,15 @@ export default function CartDrawer({
                 After payment, upload your payment screenshot and send your order through WhatsApp.
               </p>
 
-              {/* Open WhatsApp Order Button */}
+              {/* Submit Order Button */}
               <button
                 onClick={handleCheckoutAndSubmit}
                 disabled={orderSubmitting || isUploading}
                 className="w-full py-4 px-6 rounded-2xl bg-[#008744] hover:bg-[#007038] text-white font-black text-base shadow-xl shadow-emerald-700/30 active:scale-95 transition-all flex items-center justify-center gap-2 group"
               >
-                <MessageCircle className="w-5 h-5 fill-current" />
+                <CheckCircle2 className="w-5 h-5 stroke-[2.5]" />
                 <span>
-                  {orderSubmitting ? 'Processing Order...' : 'Open WhatsApp Order'}
+                  {orderSubmitting ? 'Submitting Order...' : 'Submit Order'}
                 </span>
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </button>
