@@ -5,28 +5,25 @@ export default function Header({ cartCount, onOpenCart, onOpenWhatsApp, searchQu
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navLinks = [
-    { name: 'Home', href: '#home', id: 'home' },
-    { name: 'OTT Plans', href: '#ott-plans', id: 'ott-plans' },
-    { name: 'Fiber Internet', href: '#fiber', id: 'fiber' },
-    { name: 'Mobiles & Gadgets', href: '#mobiles', id: 'mobiles' },
-    { name: 'Electronics', href: '#electronics', id: 'electronics' },
-    { name: 'Offers', href: '#offers', id: 'offers' },
-    { name: 'Contact', href: '#contact', id: 'contact' },
+    { name: 'Home', id: 'home' },
+    { name: 'OTT Plans', id: 'ott-plans' },
+    { name: 'Fiber Internet', id: 'fiber' },
+    { name: 'Mobiles & Gadgets', id: 'mobiles' },
+    { name: 'Electronics', id: 'electronics' },
+    { name: 'Offers', id: 'offers' },
+    { name: 'Contact', id: 'contact' },
   ];
 
   const handleNavClick = (id) => {
     setActiveTab(id);
     setMobileMenuOpen(false);
-    const element = document.getElementById(id);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
     <header className="sticky top-0 z-40 w-full bg-slate-950 text-white shadow-xl font-sans">
       {/* Top Announcement Bar */}
-      <div className="bg-brand-red text-white py-1.5 px-4 text-xs md:text-sm font-medium flex flex-wrap items-center justify-between gap-2 shadow-inner">
+      <div className="bg-[#e50914] text-white py-1.5 px-4 text-xs md:text-sm font-medium flex flex-wrap items-center justify-between gap-2 shadow-inner">
         <div className="flex items-center gap-2 max-w-full overflow-hidden whitespace-nowrap">
           <span className="bg-white/20 px-2.5 py-0.5 rounded-full text-[10px] md:text-xs font-extrabold uppercase tracking-wider flex items-center gap-1">
             <Flame className="w-3.5 h-3.5 text-amber-300 animate-pulse" /> BIG SAVINGS!
@@ -51,7 +48,7 @@ export default function Header({ cartCount, onOpenCart, onOpenWhatsApp, searchQu
       {/* Main Header Navbar */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
         
-        {/* Brand Logo with Reduced Tight Gap to Brand Name */}
+        {/* Brand Logo */}
         <div className="flex items-center gap-2 cursor-pointer group" onClick={() => handleNavClick('home')}>
           <div className="h-9 md:h-11 w-auto flex items-center shrink-0">
             <img 
@@ -65,9 +62,9 @@ export default function Header({ cartCount, onOpenCart, onOpenWhatsApp, searchQu
             />
           </div>
           <span className="text-xl md:text-2xl font-black tracking-tight text-white flex items-center gap-1 font-sans">
-            <span className="text-brand-red">OTT</span>
+            <span className="text-[#e50914]">OTT</span>
             <span className="text-white">Money</span>
-            <span className="text-brand-green">Saver</span>
+            <span className="text-[#008744]">Saver</span>
           </span>
         </div>
 
@@ -78,18 +75,18 @@ export default function Header({ cartCount, onOpenCart, onOpenWhatsApp, searchQu
               key={link.id}
               onClick={() => handleNavClick(link.id)}
               className={`transition-colors duration-200 py-1 relative ${
-                activeTab === link.id ? 'text-brand-green font-extrabold' : 'text-slate-200 hover:text-brand-red'
+                activeTab === link.id ? 'text-[#008744] font-extrabold' : 'text-slate-200 hover:text-[#e50914]'
               }`}
             >
               {link.name}
               {activeTab === link.id && (
-                <span className="absolute bottom-0 left-0 w-full h-0.5 bg-brand-green rounded-full"></span>
+                <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[#008744] rounded-full"></span>
               )}
             </button>
           ))}
         </nav>
 
-        {/* Header Right Actions (Search & Cart) */}
+        {/* Header Right Actions */}
         <div className="flex items-center gap-3">
           {/* Search Bar Input */}
           <div className="relative hidden md:block w-48 lg:w-60">
@@ -98,12 +95,12 @@ export default function Header({ cartCount, onOpenCart, onOpenWhatsApp, searchQu
               placeholder="Search products, plans..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-900 text-white placeholder-slate-400 text-xs rounded-full py-2 pl-9 pr-4 border border-slate-800 focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red transition-all"
+              className="w-full bg-slate-900 text-white placeholder-slate-400 text-xs rounded-full py-2 pl-9 pr-4 border border-slate-800 focus:outline-none focus:border-[#e50914] focus:ring-1 focus:ring-[#e50914] transition-all"
             />
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
           </div>
 
-          {/* WhatsApp Direct Header Icon for Mobile/Tablet */}
+          {/* WhatsApp Direct Header Icon */}
           <button 
             onClick={onOpenWhatsApp}
             className="sm:hidden p-2 text-emerald-400 hover:bg-slate-900 rounded-full transition-colors"
@@ -112,14 +109,14 @@ export default function Header({ cartCount, onOpenCart, onOpenWhatsApp, searchQu
             <MessageCircle className="w-5 h-5" />
           </button>
 
-          {/* Cart Icon with Live Badge */}
+          {/* Cart Icon with Badge */}
           <button
             onClick={onOpenCart}
             className="relative p-2 text-slate-200 hover:text-white hover:bg-slate-900 rounded-full transition-colors flex items-center gap-1 group"
             aria-label="Open Shopping Cart"
           >
             <ShoppingCart className="w-6 h-6 group-hover:scale-110 transition-transform" />
-            <span className="absolute -top-1 -right-1 bg-brand-red text-white text-[11px] font-extrabold w-5 h-5 rounded-full flex items-center justify-center border-2 border-slate-950 animate-bounce">
+            <span className="absolute -top-1 -right-1 bg-[#e50914] text-white text-[11px] font-extrabold w-5 h-5 rounded-full flex items-center justify-center border-2 border-slate-950 animate-bounce">
               {cartCount}
             </span>
           </button>
@@ -145,7 +142,7 @@ export default function Header({ cartCount, onOpenCart, onOpenWhatsApp, searchQu
               placeholder="Search products, plans..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-950 text-white placeholder-slate-400 text-sm rounded-lg py-2.5 pl-9 pr-4 border border-slate-800 focus:outline-none focus:border-brand-red"
+              className="w-full bg-slate-950 text-white placeholder-slate-400 text-sm rounded-lg py-2.5 pl-9 pr-4 border border-slate-800 focus:outline-none focus:border-[#e50914]"
             />
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
           </div>
@@ -157,7 +154,7 @@ export default function Header({ cartCount, onOpenCart, onOpenWhatsApp, searchQu
                 key={link.id}
                 onClick={() => handleNavClick(link.id)}
                 className={`flex items-center justify-between text-left py-2.5 px-3 rounded-lg text-sm font-semibold transition-colors ${
-                  activeTab === link.id ? 'bg-slate-800 text-brand-green font-bold' : 'text-slate-200 hover:bg-slate-800/50'
+                  activeTab === link.id ? 'bg-slate-800 text-[#008744] font-bold' : 'text-slate-200 hover:bg-slate-800/50'
                 }`}
               >
                 <span>{link.name}</span>
