@@ -342,9 +342,9 @@ export const ALL_PRODUCTS = [
     category: 'Power Banks',
     categoryGroup: 'Mobile / Gadgets',
     inStock: true,
-    image: 'https://images.unsplash.com/photo-1609592424089-98048f07a049?w=800&auto=format&fit=crop&q=80',
+    image: '/powerbank.png',
     images: [
-      'https://images.unsplash.com/photo-1609592424089-98048f07a049?w=800&auto=format&fit=crop&q=80'
+      '/powerbank.png'
     ],
     badge: 'Fast Charge',
     description: 'Charge iPhone 15 up to 50% in just 30 minutes with 20W Power Delivery USB-C output and PowerIQ protection.'
