@@ -172,7 +172,11 @@ export default function CartDrawer({
       msg += `*Payment Details*\n`;
       msg += `Payment Status: *${currentPaymentStatus}*\n`;
       if (uploadedScreenshotUrl) {
-        msg += `Payment Proof: ${uploadedScreenshotUrl.substring(0, 80)}...\n`;
+        if (uploadedScreenshotUrl.startsWith('data:')) {
+          msg += `Payment Proof: *[Payment Screenshot Uploaded & Attached ✅]*\n`;
+        } else {
+          msg += `Payment Proof: ${uploadedScreenshotUrl}\n`;
+        }
       }
 
       const whatsappNumber = paymentConfig?.whatsappNumber || '916305151531';

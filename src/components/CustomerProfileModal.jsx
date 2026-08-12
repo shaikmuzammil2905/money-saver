@@ -164,16 +164,24 @@ export default function CustomerProfileModal({ isOpen, onClose, user, onLogout, 
                       </div>
 
                       {ord.paymentScreenshotUrl && (
-                        <div className="pt-1">
-                          <a
-                            href={ord.paymentScreenshotUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-[11px] font-bold text-[#e50914] hover:underline flex items-center gap-1"
+                        <div className="pt-2">
+                          <p className="text-[11px] font-bold text-slate-700 mb-1 flex items-center gap-1">
+                            <span>📷 Payment Screenshot Proof:</span>
+                          </p>
+                          <div 
+                            className="relative w-full max-w-xs h-36 bg-slate-900 rounded-xl overflow-hidden border border-slate-300 shadow-sm cursor-pointer group"
+                            onClick={() => window.open(ord.paymentScreenshotUrl, '_blank')}
+                            title="Click to view full size"
                           >
-                            <span>📷 View Payment Proof Screenshot</span>
-                            <ChevronRight className="w-3.5 h-3.5" />
-                          </a>
+                            <img
+                              src={ord.paymentScreenshotUrl}
+                              alt="Payment Proof Screenshot"
+                              className="w-full h-full object-contain group-hover:scale-105 transition-transform"
+                            />
+                            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold">
+                              Click to view full size 🔍
+                            </div>
+                          </div>
                         </div>
                       )}
 

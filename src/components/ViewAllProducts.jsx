@@ -47,53 +47,29 @@ export default function ViewAllProducts({ onBack, onAddToCart, onQuickView, sele
     <section className="min-h-screen bg-slate-50 py-6 sm:py-8 font-sans">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         
-        {/* Top Header Section with Back Button */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
-          
-          <div className="flex items-center gap-3">
-            {/* Top-Left Back Button */}
+        {/* Top Header Section with Back Icon & Search Bar */}
+        <div className="bg-white p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="flex items-center gap-2.5 sm:gap-3 w-full">
+            {/* Prominent Top-Left Back Button Icon */}
             <button
               onClick={onBack}
-              className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-800 transition-all flex items-center gap-2 text-xs sm:text-sm font-bold shadow-sm"
+              className="p-3 sm:p-3.5 rounded-xl bg-[#e50914] hover:bg-red-700 active:scale-95 text-white transition-all flex items-center justify-center shadow-md shrink-0"
               aria-label="Back to Home"
+              title="Back to Home"
             >
-              <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 text-slate-700" />
-              <span>Back</span>
+              <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.5]" />
             </button>
 
-            {/* Clean Explorer Title */}
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              Explorer
-            </h1>
-          </div>
-
-          {/* Search & Sort Controls */}
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Search Input */}
-            <div className="relative flex-1 sm:w-64">
+            {/* Full-Width Search Input Bar */}
+            <div className="relative flex-1">
               <input
                 type="text"
                 placeholder="Search products, fiber, OTT..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-slate-50 text-slate-900 placeholder-slate-400 text-xs sm:text-sm rounded-xl py-2.5 pl-9 pr-4 border border-slate-200 focus:outline-none focus:border-[#e50914]"
+                className="w-full bg-slate-50 text-slate-900 placeholder-slate-400 text-xs sm:text-sm rounded-xl py-2.5 sm:py-3 pl-9 sm:pl-10 pr-4 border border-slate-200 focus:outline-none focus:border-[#e50914] focus:bg-white transition-colors"
               />
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-            </div>
-
-            {/* Sort Dropdown (Without "Featured") */}
-            <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700">
-              <SlidersHorizontal className="w-4 h-4 text-slate-500" />
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="bg-transparent focus:outline-none cursor-pointer"
-              >
-                <option value="default">Default Sort</option>
-                <option value="price-low">Price: Low to High</option>
-                <option value="price-high">Price: High to Low</option>
-                <option value="rating">Highest Rated</option>
-              </select>
+              <Search className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400 absolute left-3 sm:left-3.5 top-3 sm:top-3.5" />
             </div>
           </div>
         </div>

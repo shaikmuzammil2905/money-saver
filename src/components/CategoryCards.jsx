@@ -1,35 +1,35 @@
 import React from 'react';
 import { Tv, Globe, Smartphone, Headphones, Laptop, Flame } from 'lucide-react';
-import { QUICK_CATEGORIES } from '../data/products';
 
 export default function CategoryCards({ onSelectCategory }) {
-  const iconMap = {
-    Tv: <Tv className="w-7 h-7 text-[#e50914]" />,
-    Wifi: <Globe className="w-7 h-7 text-blue-600" />,
-    Smartphone: <Smartphone className="w-7 h-7 text-sky-500" />,
-    Headphones: <Headphones className="w-7 h-7 text-slate-800" />,
-    Laptop: <Laptop className="w-7 h-7 text-blue-600" />,
-    Flame: <Flame className="w-7 h-7 text-[#e50914] fill-red-500/20" />,
-  };
+  const categories = [
+    { id: 'ott', name: 'OTT Platforms', icon: <Tv className="w-6 h-6 text-[#e50914]" /> },
+    { id: 'fiber', name: 'Fiber Internet', icon: <Globe className="w-6 h-6 text-blue-600" /> },
+    { id: 'mobiles', name: 'Mobiles Smartphones', icon: <Smartphone className="w-6 h-6 text-sky-500" /> },
+    { id: 'gadgets', name: 'Mobile Gadgets', icon: <Headphones className="w-6 h-6 text-slate-800" /> },
+    { id: 'electronics', name: 'Electronics Devices', icon: <Laptop className="w-6 h-6 text-blue-600" /> },
+    { id: 'offers', name: 'Today\'s Offers', icon: <Flame className="w-6 h-6 text-[#e50914] fill-red-500/20" /> },
+  ];
 
   return (
-    <section className="py-6 bg-slate-50 border-b border-slate-200 font-sans">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 sm:gap-4">
-          {QUICK_CATEGORIES.map((cat) => (
-            <div
+    <section className="py-3 sm:py-4 bg-slate-50 border-b border-slate-200 font-sans">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+        {/* Single-line horizontal scroll container for mobile & grid for desktop */}
+        <div className="flex items-center gap-2.5 sm:gap-4 overflow-x-auto scrollbar-none py-1 sm:grid sm:grid-cols-6">
+          {categories.map((cat) => (
+            <button
               key={cat.id}
               onClick={() => onSelectCategory(cat.id)}
-              className="group bg-white rounded-2xl p-3 sm:p-4 border border-slate-200/90 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col items-center text-center justify-between hover:-translate-y-0.5"
+              className="group bg-white rounded-2xl p-2.5 sm:p-3.5 border border-slate-200/90 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col items-center text-center justify-center shrink-0 w-[105px] sm:w-auto hover:-translate-y-0.5"
             >
-              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-slate-50 border border-slate-200/80 flex items-center justify-center mb-2 group-hover:scale-105 transition-transform shadow-inner">
-                {iconMap[cat.iconName] || <Flame className="w-7 h-7 text-brand-red" />}
+              <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-full bg-slate-50 border border-slate-200/80 flex items-center justify-center mb-1.5 group-hover:scale-105 transition-transform shadow-inner">
+                {cat.icon}
               </div>
 
-              <h3 className="text-xs font-bold text-slate-900 line-clamp-2 leading-tight">
+              <h3 className="text-[11px] sm:text-xs font-bold text-slate-900 line-clamp-2 leading-tight">
                 {cat.name}
               </h3>
-            </div>
+            </button>
           ))}
         </div>
       </div>
