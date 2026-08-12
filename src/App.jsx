@@ -334,7 +334,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 font-sans pb-20 md:pb-0">
+    <div className="min-h-screen bg-white text-slate-900 font-sans pb-20 md:pb-0 overflow-x-hidden w-full max-w-full">
       
       {/* Header Navigation */}
       <Header
@@ -354,7 +354,7 @@ export default function App() {
       />
 
       {/* Main Content Body */}
-      <main>
+      <main className="overflow-x-hidden w-full max-w-full">
         {renderActivePage()}
       </main>
 

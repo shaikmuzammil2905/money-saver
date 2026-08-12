@@ -32,16 +32,16 @@ export default function Header({
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-slate-950 text-white shadow-xl font-sans">
+    <header className="sticky top-0 z-40 w-full bg-slate-950 text-white shadow-xl font-sans overflow-x-hidden">
       {/* Top Announcement Bar */}
-      <div className="bg-[#e50914] text-white py-1.5 px-4 text-xs md:text-sm font-medium flex flex-wrap items-center justify-between gap-2 shadow-inner">
-        <div className="flex items-center gap-2 max-w-full overflow-hidden whitespace-nowrap">
-          <span className="bg-white/20 px-2.5 py-0.5 rounded-full text-[10px] md:text-xs font-extrabold uppercase tracking-wider flex items-center gap-1">
-            <Flame className="w-3.5 h-3.5 text-amber-300 animate-pulse" /> BIG SAVINGS!
+      <div className="bg-[#e50914] text-white py-1 px-2.5 sm:px-4 text-xs md:text-sm font-medium flex items-center justify-between gap-2 shadow-inner overflow-hidden w-full">
+        <div className="flex items-center gap-1.5 max-w-full overflow-hidden whitespace-nowrap">
+          <span className="bg-white/20 px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] md:text-xs font-extrabold uppercase tracking-wider flex items-center gap-1 shrink-0">
+            <Flame className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-300 animate-pulse" /> BIG SAVINGS!
           </span>
-          <span className="truncate font-semibold">Save More. Get More. Spend Smart.</span>
+          <span className="truncate font-semibold text-[11px] sm:text-xs md:text-sm">Save More. Get More. Spend Smart.</span>
         </div>
-        <div className="hidden sm:flex items-center gap-4 text-xs text-slate-100">
+        <div className="hidden sm:flex items-center gap-4 text-xs text-slate-100 shrink-0">
           <span className="flex items-center gap-1 font-medium">
             <MapPin className="w-3.5 h-3.5 text-amber-300" /> Hyderabad, Telangana, India
           </span>
@@ -57,13 +57,13 @@ export default function Header({
       </div>
 
       {/* Main Header Navbar */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-6">
+      <div className="max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8 py-2.5 sm:py-3 flex items-center justify-between gap-2 sm:gap-6 overflow-hidden">
         
-        {/* Brand Logo & Nav Links Container with ample spacing */}
-        <div className="flex items-center gap-8 lg:gap-12 shrink-0">
+        {/* Brand Logo & Nav Links Container */}
+        <div className="flex items-center gap-4 lg:gap-12 shrink-0">
           {/* Brand Logo */}
-          <div className="flex items-center gap-2 cursor-pointer group shrink-0" onClick={() => handleNavClick('home')}>
-            <div className="h-9 md:h-11 w-auto flex items-center shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 cursor-pointer group shrink-0" onClick={() => handleNavClick('home')}>
+            <div className="h-7 sm:h-9 md:h-11 w-auto flex items-center shrink-0">
               <img 
                 src="/image.png" 
                 alt="OTTMoneySaver Logo" 
@@ -74,7 +74,7 @@ export default function Header({
                 }}
               />
             </div>
-            <span className="text-xl md:text-2xl font-black tracking-tight text-white flex items-center gap-1 font-sans">
+            <span className="text-base sm:text-xl md:text-2xl font-black tracking-tight text-white flex items-center gap-0.5 sm:gap-1 font-sans">
               <span className="text-[#e50914]">OTT</span>
               <span className="text-white">Money</span>
               <span className="text-[#008744]">Saver</span>

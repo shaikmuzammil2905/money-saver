@@ -38,9 +38,9 @@ export default function HeroSection({ onExploreDeals, onShopNow }) {
       id="home"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
-      className="relative bg-[#020510] text-white overflow-hidden py-1 sm:py-5 font-sans select-none"
+      className="relative bg-[#020510] text-white overflow-hidden py-2 sm:py-5 font-sans select-none w-full max-w-full"
     >
-      <div className="max-w-7xl mx-auto px-1.5 sm:px-4 lg:px-8 relative">
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 relative overflow-hidden">
         <AnimatePresence mode="wait">
           
           {/* SLIDE 1: EXACT TARGET DESIGN MATCHING REFERENCE IMAGE 2 */}
@@ -51,55 +51,55 @@ export default function HeroSection({ onExploreDeals, onShopNow }) {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.98 }}
               transition={{ duration: 0.6, ease: 'easeOut' }}
-              className="relative bg-gradient-to-br from-[#050b1e] via-[#090518] to-[#02040c] rounded-xl sm:rounded-3xl border border-purple-500/30 hover:border-purple-500/60 p-2 sm:p-6 lg:p-7 shadow-[0_8px_32px_rgba(168,85,247,0.25)] transition-all duration-500 max-w-6xl mx-auto overflow-hidden"
+              className="relative bg-gradient-to-br from-[#050b1e] via-[#090518] to-[#02040c] rounded-2xl sm:rounded-3xl border border-purple-500/30 hover:border-purple-500/60 p-3 sm:p-6 lg:p-7 shadow-[0_8px_32px_rgba(168,85,247,0.25)] transition-all duration-500 max-w-6xl mx-auto overflow-hidden w-full"
             >
               {/* Futuristic Cyberpunk Background Neon Glow Rays */}
               <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(168,85,247,0.3),transparent_70%)] pointer-events-none" />
               <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_center,rgba(59,130,246,0.25),transparent_60%)] pointer-events-none" />
 
               {/* Compact Top Announcement Bar */}
-              <div className="relative z-10 bg-gradient-to-r from-[#e50914] via-red-600 to-rose-600 text-white py-1 sm:py-2 px-2.5 sm:px-5 rounded-lg sm:rounded-2xl flex items-center justify-between shadow-md mb-1.5 sm:mb-6">
-                <div className="flex items-center gap-1 sm:gap-2 font-bold text-[10px] sm:text-sm tracking-wide">
-                  <span className="bg-amber-400 text-black px-1.5 py-0.5 rounded-full text-[9px] sm:text-xs font-black flex items-center gap-1 shrink-0">
-                    <Flame className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 fill-current" /> BIG SAVINGS!
+              <div className="relative z-10 bg-gradient-to-r from-[#e50914] via-red-600 to-rose-600 text-white py-1.5 sm:py-2 px-3 sm:px-5 rounded-xl sm:rounded-2xl flex items-center justify-between shadow-md mb-2.5 sm:mb-6 w-full overflow-hidden">
+                <div className="flex items-center gap-1.5 sm:gap-2 font-bold text-[11px] sm:text-sm tracking-wide overflow-hidden">
+                  <span className="bg-amber-400 text-black px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-black flex items-center gap-1 shrink-0">
+                    <Flame className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-current" /> BIG SAVINGS!
                   </span>
                   <span className="truncate">Save More. Get More. Spend Smart.</span>
                 </div>
                 <button 
                   onClick={onExploreDeals}
-                  className="w-5 h-5 sm:w-7 sm:h-7 rounded-full bg-white text-[#e50914] flex items-center justify-center font-bold hover:scale-110 transition-transform shadow shrink-0"
+                  className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-white text-[#e50914] flex items-center justify-center font-bold hover:scale-110 transition-transform shadow shrink-0"
                 >
-                  <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[3]" />
+                  <ChevronRight className="w-4 h-4 stroke-[3]" />
                 </button>
               </div>
 
               {/* Main Grid Layout */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-1.5 sm:gap-6 items-center relative z-10">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-2.5 sm:gap-6 items-center relative z-10 w-full overflow-hidden">
                 
                 {/* Left Column: Heading & CTA */}
-                <div className="lg:col-span-5 space-y-1 sm:space-y-5 text-center lg:text-left">
-                  <div className="space-y-0">
-                    <h1 className="text-xl sm:text-4xl md:text-5xl lg:text-6xl font-black uppercase tracking-tight leading-none font-sans">
+                <div className="lg:col-span-5 space-y-2 sm:space-y-5 text-center lg:text-left">
+                  <div className="space-y-0.5">
+                    <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-black uppercase tracking-tight leading-none font-sans">
                       <span className="text-[#e50914] block drop-shadow-[0_2px_10px_rgba(229,9,20,0.5)]">SAVE MONEY.</span>
                       <span className="text-white block drop-shadow-[0_2px_10px_rgba(255,255,255,0.4)]">ENJOY MORE.</span>
                     </h1>
                   </div>
 
-                  <p className="text-slate-300 text-[11px] sm:text-base font-normal leading-tight sm:leading-relaxed max-w-md mx-auto lg:mx-0">
+                  <p className="text-slate-300 text-xs sm:text-base font-normal leading-snug sm:leading-relaxed max-w-md mx-auto lg:mx-0">
                     OTT subscriptions, high-speed fiber internet, mobiles &amp; gadgets — <span className="font-semibold text-white">all at smart prices.</span>
                   </p>
 
-                  <div className="flex items-center justify-center lg:justify-start gap-2 sm:gap-4 pt-0.5 sm:pt-1">
+                  <div className="flex items-center justify-center lg:justify-start gap-2.5 sm:gap-4 pt-1">
                     <button
                       onClick={onExploreDeals}
-                      className="px-3.5 sm:px-7 py-1.5 sm:py-3.5 rounded-lg sm:rounded-xl bg-gradient-to-r from-[#e50914] to-red-600 hover:from-red-600 hover:to-red-700 text-white font-extrabold text-[11px] sm:text-sm md:text-base shadow-md shadow-red-600/40 hover:scale-105 transition-all flex items-center gap-1"
+                      className="px-5 py-2.5 sm:px-7 sm:py-3.5 rounded-xl bg-gradient-to-r from-[#e50914] to-red-600 hover:from-red-600 hover:to-red-700 text-white font-extrabold text-xs sm:text-sm md:text-base shadow-lg shadow-red-600/40 hover:scale-105 transition-all flex items-center gap-1.5"
                     >
                       <span>Explore Deals</span>
                     </button>
 
                     <button
                       onClick={onShopNow}
-                      className="px-3.5 sm:px-7 py-1.5 sm:py-3.5 rounded-lg sm:rounded-xl bg-white hover:bg-slate-100 text-slate-950 font-extrabold text-[11px] sm:text-sm md:text-base shadow-md hover:scale-105 transition-all"
+                      className="px-5 py-2.5 sm:px-7 sm:py-3.5 rounded-xl bg-white hover:bg-slate-100 text-slate-950 font-extrabold text-xs sm:text-sm md:text-base shadow-lg hover:scale-105 transition-all"
                     >
                       Shop Now
                     </button>
@@ -107,53 +107,53 @@ export default function HeroSection({ onExploreDeals, onShopNow }) {
                 </div>
 
                 {/* Right Column: Top OTT Cards + Centered Products Showcase */}
-                <div className="lg:col-span-7 flex flex-col items-center justify-center relative pt-1 sm:pt-2 lg:pt-0">
+                <div className="lg:col-span-7 flex flex-col items-center justify-center relative pt-1 sm:pt-2 lg:pt-0 w-full overflow-hidden">
                   
                   {/* Top OTT Cards */}
-                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-1 sm:gap-2.5 w-full max-w-xl mb-1 sm:mb-4">
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 sm:gap-2.5 w-full max-w-xl mb-2 sm:mb-4">
                     {/* NETFLIX */}
-                    <div className="bg-black/80 border border-red-600/40 rounded-md sm:rounded-xl p-1 sm:p-2.5 flex items-center justify-center h-7 sm:h-12 shadow-sm">
-                      <span className="text-red-600 font-black text-[10px] sm:text-sm tracking-wider">NETFLIX</span>
+                    <div className="bg-black/80 border border-red-600/40 rounded-lg sm:rounded-xl p-1 sm:p-2.5 flex items-center justify-center h-8.5 sm:h-12 shadow-sm">
+                      <span className="text-red-600 font-black text-xs sm:text-sm tracking-wider">NETFLIX</span>
                     </div>
                     {/* prime video */}
-                    <div className="bg-[#000511] border border-sky-500/40 rounded-md sm:rounded-xl p-1 sm:p-2.5 flex items-center justify-center h-7 sm:h-12 shadow-sm">
-                      <span className="text-sky-400 font-bold text-[9px] sm:text-xs">prime video</span>
+                    <div className="bg-[#000511] border border-sky-500/40 rounded-lg sm:rounded-xl p-1 sm:p-2.5 flex items-center justify-center h-8.5 sm:h-12 shadow-sm">
+                      <span className="text-sky-400 font-bold text-[10px] sm:text-xs">prime video</span>
                     </div>
                     {/* Disney+ hotstar */}
-                    <div className="bg-[#05112e] border border-blue-500/40 rounded-md sm:rounded-xl p-1 sm:p-2 flex items-center justify-center h-7 sm:h-12 text-center shadow-sm">
-                      <span className="text-white font-black text-[8px] sm:text-xs">Disney+ <span className="text-sky-400 font-normal">hotstar</span></span>
+                    <div className="bg-[#05112e] border border-blue-500/40 rounded-lg sm:rounded-xl p-1 sm:p-2 flex items-center justify-center h-8.5 sm:h-12 text-center shadow-sm">
+                      <span className="text-white font-black text-[9px] sm:text-xs">Disney+ <span className="text-sky-400 font-normal">hotstar</span></span>
                     </div>
                     {/* ZEE5 */}
-                    <div className="bg-black/80 border border-purple-500/40 rounded-md sm:rounded-xl p-1 sm:p-2 flex items-center justify-center h-7 sm:h-12 shadow-sm">
-                      <div className="flex items-center gap-0.5">
-                        <div className="w-3.5 h-3.5 rounded-full border border-purple-500 border-t-amber-400 flex items-center justify-center text-[6px] font-black">5</div>
-                        <span className="text-white font-bold text-[9px] sm:text-xs">ZEE5</span>
+                    <div className="bg-black/80 border border-purple-500/40 rounded-lg sm:rounded-xl p-1 sm:p-2 flex items-center justify-center h-8.5 sm:h-12 shadow-sm">
+                      <div className="flex items-center gap-1">
+                        <div className="w-4 h-4 rounded-full border-2 border-purple-500 border-t-amber-400 flex items-center justify-center text-[7px] font-black">5</div>
+                        <span className="text-white font-bold text-[10px] sm:text-xs">ZEE5</span>
                       </div>
                     </div>
                     {/* SONY liv */}
-                    <div className="bg-[#020914] border border-amber-500/40 rounded-md sm:rounded-xl p-0.5 sm:p-2 flex flex-col items-center justify-center h-7 sm:h-12 shadow-sm">
-                      <span className="text-[6px] sm:text-[8px] font-bold text-white tracking-widest leading-none">SONY</span>
-                      <span className="text-[9px] sm:text-xs font-black text-amber-400 leading-none">liv</span>
+                    <div className="bg-[#020914] border border-amber-500/40 rounded-lg sm:rounded-xl p-1 sm:p-2 flex flex-col items-center justify-center h-8.5 sm:h-12 shadow-sm">
+                      <span className="text-[7px] sm:text-[8px] font-bold text-white tracking-widest leading-none">SONY</span>
+                      <span className="text-[10px] sm:text-xs font-black text-amber-400 leading-none">liv</span>
                     </div>
                     {/* voot */}
-                    <div className="bg-[#3e1388] border border-purple-400/40 rounded-md sm:rounded-xl p-1 sm:p-2 flex items-center justify-center h-7 sm:h-12 shadow-sm">
-                      <span className="text-white font-black text-[10px] sm:text-sm lowercase">voot</span>
+                    <div className="bg-[#3e1388] border border-purple-400/40 rounded-lg sm:rounded-xl p-1 sm:p-2 flex items-center justify-center h-8.5 sm:h-12 shadow-sm">
+                      <span className="text-white font-black text-xs sm:text-sm lowercase">voot</span>
                     </div>
                   </div>
 
                   {/* Primary Target Product Showcase */}
-                  <div className="relative w-full max-w-xl flex items-center justify-center py-0.5 sm:py-2">
+                  <div className="relative w-full max-w-xl flex items-center justify-center py-1 sm:py-2">
                     <motion.div 
-                      className="relative w-full h-28 sm:h-60 md:h-64 flex items-center justify-center"
-                      animate={{ y: [0, -5, 0] }}
+                      className="relative w-full h-36 sm:h-60 md:h-64 flex items-center justify-center"
+                      animate={{ y: [0, -6, 0] }}
                       transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
                     >
                       <img 
                         src="/hero-products-showcase.png" 
                         alt="Hero Products Showcase Platform"
-                        className="w-full h-full object-contain filter drop-shadow-[0_10px_20px_rgba(168,85,247,0.5)]"
+                        className="w-full h-full object-contain filter drop-shadow-[0_12px_24px_rgba(168,85,247,0.5)]"
                       />
-                      <div className="absolute inset-x-4 bottom-0 h-4 sm:h-6 bg-purple-600/30 rounded-full blur-lg animate-pulse pointer-events-none" />
+                      <div className="absolute inset-x-4 bottom-0 h-5 sm:h-6 bg-purple-600/30 rounded-full blur-lg animate-pulse pointer-events-none" />
                     </motion.div>
                   </div>
 
@@ -161,7 +161,7 @@ export default function HeroSection({ onExploreDeals, onShopNow }) {
 
               </div>
 
-              {/* Bottom Feature Badges (Visible on Desktop / Tablet, Hidden on Mobile for compact view) */}
+              {/* Bottom Feature Badges (Desktop & Tablet) */}
               <div className="hidden sm:grid sm:grid-cols-5 gap-2 mt-4 pt-4 border-t border-purple-900/40 text-xs text-slate-300 font-medium">
                 <div className="flex items-center gap-1.5">
                   <div className="w-7 h-7 rounded-full bg-purple-950/80 border border-purple-500/40 flex items-center justify-center text-pink-400 shrink-0">
@@ -210,32 +210,32 @@ export default function HeroSection({ onExploreDeals, onShopNow }) {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.98 }}
               transition={{ duration: 0.6, ease: 'easeOut' }}
-              className="relative bg-gradient-to-br from-[#0c051a] via-[#120626] to-[#04010d] rounded-xl sm:rounded-3xl border border-pink-500/40 p-2 sm:p-6 lg:p-7 shadow-[0_8px_32px_rgba(236,72,153,0.3)] transition-all duration-500 max-w-6xl mx-auto overflow-hidden"
+              className="relative bg-gradient-to-br from-[#0c051a] via-[#120626] to-[#04010d] rounded-2xl sm:rounded-3xl border border-pink-500/40 p-3 sm:p-6 lg:p-7 shadow-[0_8px_32px_rgba(236,72,153,0.3)] transition-all duration-500 max-w-6xl mx-auto overflow-hidden w-full"
             >
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_50%,rgba(217,70,239,0.25),transparent_70%)] pointer-events-none" />
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,rgba(249,115,22,0.2),transparent_60%)] pointer-events-none" />
 
               {/* Announcement Bar */}
-              <div className="relative z-10 bg-gradient-to-r from-orange-500 via-rose-500 to-pink-600 text-white py-1 sm:py-2 px-2.5 sm:px-5 rounded-lg sm:rounded-2xl flex items-center justify-between shadow-lg shadow-pink-500/20 mb-1.5 sm:mb-6">
-                <div className="flex items-center gap-1 sm:gap-2 font-bold text-[10px] sm:text-sm tracking-wide">
-                  <span className="bg-white text-pink-600 px-1.5 py-0.5 rounded-full text-[9px] sm:text-xs font-black flex items-center gap-1 shrink-0">
-                    <Flame className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 fill-current" /> MEGA DEALS!
+              <div className="relative z-10 bg-gradient-to-r from-orange-500 via-rose-500 to-pink-600 text-white py-1.5 sm:py-2 px-3 sm:px-5 rounded-xl sm:rounded-2xl flex items-center justify-between shadow-lg shadow-pink-500/20 mb-2.5 sm:mb-6 w-full overflow-hidden">
+                <div className="flex items-center gap-1.5 sm:gap-2 font-bold text-[11px] sm:text-sm tracking-wide overflow-hidden">
+                  <span className="bg-white text-pink-600 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-black flex items-center gap-1 shrink-0">
+                    <Flame className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-current" /> MEGA DEALS!
                   </span>
                   <span className="truncate">Up to 75% Off Premium Electronics &amp; OTT</span>
                 </div>
                 <button 
                   onClick={onExploreDeals}
-                  className="w-5 h-5 sm:w-7 sm:h-7 rounded-full bg-white text-pink-600 flex items-center justify-center font-bold hover:scale-110 transition-transform shadow shrink-0"
+                  className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-white text-pink-600 flex items-center justify-center font-bold hover:scale-110 transition-transform shadow shrink-0"
                 >
-                  <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[3]" />
+                  <ChevronRight className="w-4 h-4 stroke-[3]" />
                 </button>
               </div>
 
               {/* Main Content */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-1.5 sm:gap-6 items-center relative z-10">
-                <div className="lg:col-span-5 space-y-1 sm:space-y-5 text-center lg:text-left">
-                  <div className="space-y-0">
-                    <h1 className="text-xl sm:text-4xl md:text-5xl lg:text-6xl font-black uppercase tracking-tight leading-none font-sans">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-2.5 sm:gap-6 items-center relative z-10 w-full overflow-hidden">
+                <div className="lg:col-span-5 space-y-2 sm:space-y-5 text-center lg:text-left">
+                  <div className="space-y-0.5">
+                    <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-black uppercase tracking-tight leading-none font-sans">
                       <span className="bg-gradient-to-r from-orange-400 via-rose-400 to-pink-500 bg-clip-text text-transparent italic block drop-shadow-[0_0_20px_rgba(244,63,94,0.5)]">
                         SAVE MORE.
                       </span>
@@ -245,32 +245,32 @@ export default function HeroSection({ onExploreDeals, onShopNow }) {
                     </h1>
                   </div>
 
-                  <p className="text-slate-300 text-[11px] sm:text-base font-normal leading-tight sm:leading-relaxed max-w-md mx-auto lg:mx-0">
+                  <p className="text-slate-300 text-xs sm:text-base font-normal leading-snug sm:leading-relaxed max-w-md mx-auto lg:mx-0">
                     OTT subscriptions, high-speed fiber internet, mobiles &amp; gadgets — <span className="font-semibold text-pink-400">all at smart prices.</span>
                   </p>
 
-                  <div className="flex items-center justify-center lg:justify-start gap-2 sm:gap-4 pt-0.5 sm:pt-1">
+                  <div className="flex items-center justify-center lg:justify-start gap-2.5 sm:gap-4 pt-1">
                     <button
                       onClick={onExploreDeals}
-                      className="px-3.5 sm:px-7 py-1.5 sm:py-3.5 rounded-lg sm:rounded-xl bg-gradient-to-r from-orange-500 via-rose-500 to-pink-600 text-white font-extrabold text-[11px] sm:text-sm md:text-base shadow-lg shadow-pink-500/50 hover:scale-105 transition-all border border-pink-400/50"
+                      className="px-5 py-2.5 sm:px-7 sm:py-3.5 rounded-xl bg-gradient-to-r from-orange-500 via-rose-500 to-pink-600 text-white font-extrabold text-xs sm:text-sm md:text-base shadow-lg shadow-pink-500/50 hover:scale-105 transition-all border border-pink-400/50"
                     >
                       Explore Deals
                     </button>
 
                     <button
                       onClick={onShopNow}
-                      className="px-3.5 sm:px-7 py-1.5 sm:py-3.5 rounded-lg sm:rounded-xl bg-slate-950/90 text-white font-extrabold text-[11px] sm:text-sm md:text-base border-2 border-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:scale-105 transition-all"
+                      className="px-5 py-2.5 sm:px-7 sm:py-3.5 rounded-xl bg-slate-950/90 text-white font-extrabold text-xs sm:text-sm md:text-base border-2 border-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:scale-105 transition-all"
                     >
                       Shop Now
                     </button>
                   </div>
                 </div>
 
-                <div className="lg:col-span-7 flex flex-col items-center justify-center relative pt-1 sm:pt-2 lg:pt-0">
-                  <div className="relative w-full max-w-xl flex items-center justify-center py-0.5 sm:py-2">
+                <div className="lg:col-span-7 flex flex-col items-center justify-center relative pt-1 sm:pt-2 lg:pt-0 w-full overflow-hidden">
+                  <div className="relative w-full max-w-xl flex items-center justify-center py-1 sm:py-2">
                     <motion.div 
-                      className="relative w-full h-28 sm:h-60 md:h-64 flex items-center justify-center"
-                      animate={{ y: [0, -5, 0] }}
+                      className="relative w-full h-36 sm:h-60 md:h-64 flex items-center justify-center"
+                      animate={{ y: [0, -6, 0] }}
                       transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
                     >
                       <img 
@@ -278,7 +278,7 @@ export default function HeroSection({ onExploreDeals, onShopNow }) {
                         alt="Cyberpunk Hero Stage"
                         className="w-full h-full object-contain filter drop-shadow-[0_12px_28px_rgba(236,72,153,0.55)]"
                       />
-                      <div className="absolute inset-x-4 bottom-0 h-4 sm:h-6 bg-pink-600/30 rounded-full blur-lg animate-pulse pointer-events-none" />
+                      <div className="absolute inset-x-4 bottom-0 h-5 sm:h-6 bg-pink-600/30 rounded-full blur-lg animate-pulse pointer-events-none" />
                     </motion.div>
                   </div>
                 </div>
@@ -326,10 +326,10 @@ export default function HeroSection({ onExploreDeals, onShopNow }) {
 
         </AnimatePresence>
 
-        {/* Navigation Arrows */}
+        {/* Navigation Arrows (Contained inside slide boundary) */}
         <button
           onClick={handlePrev}
-          className="absolute left-1.5 sm:left-4 top-1/2 -translate-y-1/2 z-20 w-6 h-6 sm:w-10 sm:h-10 rounded-full bg-slate-950/80 hover:bg-slate-900 text-white border border-slate-700 flex items-center justify-center shadow-lg backdrop-blur-sm transition-all hover:scale-110"
+          className="absolute left-1 sm:left-4 top-1/2 -translate-y-1/2 z-20 w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-slate-950/80 hover:bg-slate-900 text-white border border-slate-700 flex items-center justify-center shadow-lg backdrop-blur-sm transition-all hover:scale-110"
           aria-label="Previous Slide"
         >
           <ChevronLeft className="w-4 h-4 sm:w-6 sm:h-6" />
@@ -337,20 +337,20 @@ export default function HeroSection({ onExploreDeals, onShopNow }) {
 
         <button
           onClick={handleNext}
-          className="absolute right-1.5 sm:right-4 top-1/2 -translate-y-1/2 z-20 w-6 h-6 sm:w-10 sm:h-10 rounded-full bg-slate-950/80 hover:bg-slate-900 text-white border border-slate-700 flex items-center justify-center shadow-lg backdrop-blur-sm transition-all hover:scale-110"
+          className="absolute right-1 sm:right-4 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-slate-950/80 hover:bg-slate-900 text-white border border-slate-700 flex items-center justify-center shadow-lg backdrop-blur-sm transition-all hover:scale-110"
           aria-label="Next Slide"
         >
           <ChevronRight className="w-4 h-4 sm:w-6 sm:h-6" />
         </button>
 
         {/* Carousel Pagination Dots */}
-        <div className="flex items-center justify-center gap-1.5 mt-1 sm:mt-4">
+        <div className="flex items-center justify-center gap-2 mt-2 sm:mt-4">
           <button
             onClick={() => setCurrentSlide(0)}
             className={`transition-all duration-300 rounded-full ${
               currentSlide === 0 
-                ? 'w-5 sm:w-8 h-2 sm:h-3 bg-[#e50914] shadow-[0_0_10px_rgba(229,9,20,0.8)]' 
-                : 'w-2 sm:w-3 h-2 sm:h-3 bg-slate-600 hover:bg-slate-400'
+                ? 'w-6 sm:w-8 h-2.5 sm:h-3 bg-[#e50914] shadow-[0_0_10px_rgba(229,9,20,0.8)]' 
+                : 'w-2.5 sm:w-3 h-2.5 sm:h-3 bg-slate-600 hover:bg-slate-400'
             }`}
             aria-label="Go to slide 1"
           />
@@ -358,8 +358,8 @@ export default function HeroSection({ onExploreDeals, onShopNow }) {
             onClick={() => setCurrentSlide(1)}
             className={`transition-all duration-300 rounded-full ${
               currentSlide === 1 
-                ? 'w-5 sm:w-8 h-2 sm:h-3 bg-pink-500 shadow-[0_0_10px_rgba(236,72,153,0.8)]' 
-                : 'w-2 sm:w-3 h-2 sm:h-3 bg-slate-600 hover:bg-slate-400'
+                ? 'w-6 sm:w-8 h-2.5 sm:h-3 bg-pink-500 shadow-[0_0_10px_rgba(236,72,153,0.8)]' 
+                : 'w-2.5 sm:w-3 h-2.5 sm:h-3 bg-slate-600 hover:bg-slate-400'
             }`}
             aria-label="Go to slide 2"
           />
