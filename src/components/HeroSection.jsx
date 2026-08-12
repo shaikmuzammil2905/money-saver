@@ -145,20 +145,24 @@ export default function HeroSection({ onExploreDeals, onShopNow }) {
                     </div>
                   </div>
 
-                  {/* Primary Target Product Showcase: Router | Controller | Speaker | Phone | Watch | Earbuds standing on Glowing Neon Platform */}
-                  <div className="relative w-full max-w-xl rounded-2xl overflow-hidden bg-slate-950/40 border border-purple-500/30 p-1 sm:p-2 shadow-[0_0_30px_rgba(168,85,247,0.3)]">
+                  {/* Primary Target Product Showcase (image copy 16.png): Router | Controller | Speaker | Phone | Watch | Earbuds standing on Glowing Neon Platform */}
+                  <div className="relative w-full max-w-xl flex items-center justify-center py-1 sm:py-2">
                     
-                    {/* Image Render of Reference Design Platform (image copy 14.png) */}
-                    <div className="relative w-full h-36 sm:h-56 md:h-64 rounded-xl overflow-hidden flex items-center justify-center">
+                    {/* Animated Product Showcase Image (image copy 16.png) */}
+                    <motion.div 
+                      className="relative w-full h-40 sm:h-60 md:h-64 flex items-center justify-center"
+                      animate={{ y: [0, -7, 0] }}
+                      transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+                    >
                       <img 
                         src="/hero-products-showcase.png" 
-                        alt="Target Hero Showcase Platform"
-                        className="w-full h-full object-contain filter drop-shadow-[0_10px_20px_rgba(168,85,247,0.4)]"
+                        alt="Hero Products Showcase Platform"
+                        className="w-full h-full object-contain filter drop-shadow-[0_12px_28px_rgba(168,85,247,0.5)]"
                       />
                       
-                      {/* Subtle Ambient Neon Purple/Magenta Edge Ring Overlay */}
-                      <div className="absolute inset-0 rounded-xl pointer-events-none border border-purple-500/40 shadow-[inset_0_0_20px_rgba(236,72,153,0.3)]" />
-                    </div>
+                      {/* Subtle Ambient Pulse Glow underneath platform */}
+                      <div className="absolute inset-x-4 bottom-1 h-6 bg-purple-600/30 rounded-full blur-xl animate-pulse pointer-events-none" />
+                    </motion.div>
 
                   </div>
 
@@ -272,14 +276,19 @@ export default function HeroSection({ onExploreDeals, onShopNow }) {
                 </div>
 
                 <div className="lg:col-span-7 flex flex-col items-center justify-center relative pt-1 sm:pt-2 lg:pt-0">
-                  <div className="relative w-full max-w-xl rounded-2xl overflow-hidden bg-slate-950/60 border border-pink-500/40 p-1 sm:p-2 shadow-[0_0_35px_rgba(236,72,153,0.35)]">
-                    <div className="relative w-full h-36 sm:h-56 md:h-64 rounded-xl overflow-hidden flex items-center justify-center">
+                  <div className="relative w-full max-w-xl flex items-center justify-center py-1 sm:py-2">
+                    <motion.div 
+                      className="relative w-full h-40 sm:h-60 md:h-64 flex items-center justify-center"
+                      animate={{ y: [0, -7, 0] }}
+                      transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+                    >
                       <img 
                         src="/hero-products-showcase.png" 
                         alt="Cyberpunk Hero Stage"
-                        className="w-full h-full object-contain filter drop-shadow-[0_10px_25px_rgba(236,72,153,0.5)]"
+                        className="w-full h-full object-contain filter drop-shadow-[0_12px_28px_rgba(236,72,153,0.55)]"
                       />
-                    </div>
+                      <div className="absolute inset-x-4 bottom-1 h-6 bg-pink-600/30 rounded-full blur-xl animate-pulse pointer-events-none" />
+                    </motion.div>
                   </div>
                 </div>
               </div>
