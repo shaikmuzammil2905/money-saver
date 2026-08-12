@@ -57,45 +57,48 @@ export default function Header({
       </div>
 
       {/* Main Header Navbar */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-6">
         
-        {/* Brand Logo */}
-        <div className="flex items-center gap-2 cursor-pointer group" onClick={() => handleNavClick('home')}>
-          <div className="h-9 md:h-11 w-auto flex items-center shrink-0">
-            <img 
-              src="/image.png" 
-              alt="OTTMoneySaver Logo" 
-              className="h-full object-contain max-h-11 rounded shadow-sm group-hover:scale-105 transition-transform duration-200" 
-              onError={(e) => {
-                e.target.onerror = null;
-                e.target.style.display = 'none';
-              }}
-            />
+        {/* Brand Logo & Nav Links Container with ample spacing */}
+        <div className="flex items-center gap-8 lg:gap-12 shrink-0">
+          {/* Brand Logo */}
+          <div className="flex items-center gap-2 cursor-pointer group shrink-0" onClick={() => handleNavClick('home')}>
+            <div className="h-9 md:h-11 w-auto flex items-center shrink-0">
+              <img 
+                src="/image.png" 
+                alt="OTTMoneySaver Logo" 
+                className="h-full object-contain max-h-11 rounded shadow-sm group-hover:scale-105 transition-transform duration-200" 
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.style.display = 'none';
+                }}
+              />
+            </div>
+            <span className="text-xl md:text-2xl font-black tracking-tight text-white flex items-center gap-1 font-sans">
+              <span className="text-[#e50914]">OTT</span>
+              <span className="text-white">Money</span>
+              <span className="text-[#008744]">Saver</span>
+            </span>
           </div>
-          <span className="text-xl md:text-2xl font-black tracking-tight text-white flex items-center gap-1 font-sans">
-            <span className="text-[#e50914]">OTT</span>
-            <span className="text-white">Money</span>
-            <span className="text-[#008744]">Saver</span>
-          </span>
-        </div>
 
-        {/* Desktop Nav Links */}
-        <nav className="hidden lg:flex items-center gap-6 text-sm font-semibold">
-          {navLinks.map((link) => (
-            <button
-              key={link.id}
-              onClick={() => handleNavClick(link.id)}
-              className={`transition-colors duration-200 py-1 relative ${
-                activeTab === link.id ? 'text-[#008744] font-extrabold' : 'text-slate-200 hover:text-[#e50914]'
-              }`}
-            >
-              {link.name}
-              {activeTab === link.id && (
-                <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[#008744] rounded-full"></span>
-              )}
-            </button>
-          ))}
-        </nav>
+          {/* Desktop Nav Links */}
+          <nav className="hidden lg:flex items-center gap-5 xl:gap-7 text-sm font-semibold">
+            {navLinks.map((link) => (
+              <button
+                key={link.id}
+                onClick={() => handleNavClick(link.id)}
+                className={`transition-colors duration-200 py-1 relative ${
+                  activeTab === link.id ? 'text-[#008744] font-extrabold' : 'text-slate-200 hover:text-[#e50914]'
+                }`}
+              >
+                {link.name}
+                {activeTab === link.id && (
+                  <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[#008744] rounded-full"></span>
+                )}
+              </button>
+            ))}
+          </nav>
+        </div>
 
         {/* Header Right Actions */}
         <div className="flex items-center gap-3">
