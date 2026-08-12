@@ -334,7 +334,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 font-sans pb-16 md:pb-0">
+    <div className="min-h-screen bg-white text-slate-900 font-sans pb-20 md:pb-0">
       
       {/* Header Navigation */}
       <Header
@@ -421,12 +421,6 @@ export default function App() {
           setActiveTab(tab);
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
-        cartCount={cartCount}
-        onOpenCart={() => setIsCartOpen(true)}
-        onOpenWhatsApp={() => setIsWhatsAppOpen(true)}
-        user={user}
-        onOpenProfile={() => setIsProfileModalOpen(true)}
-        onOpenAuthModal={handleOpenAuthModal}
       />
 
     </div>

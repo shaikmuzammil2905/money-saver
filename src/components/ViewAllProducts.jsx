@@ -1,14 +1,13 @@
 import React, { useState, useMemo } from 'react';
-import { ALL_PRODUCTS, PRIMARY_CATEGORIES } from '../data/products';
-import { ArrowLeft, Search, Filter, SlidersHorizontal, Flame, Sparkles } from 'lucide-react';
+import { ALL_PRODUCTS } from '../data/products';
+import { ArrowLeft, Search, Filter, SlidersHorizontal } from 'lucide-react';
 import ProductCard from './ProductCard';
 
 export default function ViewAllProducts({ onBack, onAddToCart, onQuickView, selectedCategory = 'All', wishlistIds = [], onToggleWishlist }) {
   const [activeGroup, setActiveGroup] = useState('All');
   const [activeSubCategory, setActiveSubCategory] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState('featured'); // 'featured', 'price-low', 'price-high', 'rating'
-  const [onlyInStock, setOnlyInStock] = useState(false);
+  const [sortBy, setSortBy] = useState('default'); // 'default', 'price-low', 'price-high', 'rating'
 
   // Extract unique category names
   const subCategories = useMemo(() => {
@@ -30,44 +29,42 @@ export default function ViewAllProducts({ onBack, onAddToCart, onQuickView, sele
     return ALL_PRODUCTS.filter((product) => {
       const matchesGroup = activeGroup === 'All' || product.categoryGroup === activeGroup;
       const matchesSubCat = activeSubCategory === 'All' || product.category === activeSubCategory;
-      const matchesStock = !onlyInStock || product.inStock !== false;
       const matchesSearch = 
         product.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         product.subtitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         product.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         product.categoryGroup?.toLowerCase().includes(searchTerm.toLowerCase());
-      return matchesGroup && matchesSubCat && matchesStock && matchesSearch;
+      return matchesGroup && matchesSubCat && matchesSearch;
     }).sort((a, b) => {
       if (sortBy === 'price-low') return a.price - b.price;
       if (sortBy === 'price-high') return b.price - a.price;
       if (sortBy === 'rating') return b.rating - a.rating;
       return 0;
     });
-  }, [activeGroup, activeSubCategory, onlyInStock, searchTerm, sortBy]);
+  }, [activeGroup, activeSubCategory, searchTerm, sortBy]);
 
   return (
-    <section className="min-h-screen bg-slate-50 py-8 font-sans">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="min-h-screen bg-slate-50 py-6 sm:py-8 font-sans">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         
-        {/* Top Header Bar with Back Button */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm">
+        {/* Top Header Section with Back Button */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
+          
           <div className="flex items-center gap-3">
+            {/* Top-Left Back Button */}
             <button
               onClick={onBack}
-              className="p-2 sm:p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 transition-colors flex items-center gap-1.5 text-xs sm:text-sm font-bold"
+              className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-800 transition-all flex items-center gap-2 text-xs sm:text-sm font-bold shadow-sm"
+              aria-label="Back to Home"
             >
-              <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span>Back to Home</span>
+              <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 text-slate-700" />
+              <span>Back</span>
             </button>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2">
-                <Flame className="w-6 h-6 text-[#e50914] fill-red-500" />
-                Category Directory &amp; Smart Deals
-              </h1>
-              <p className="text-xs text-slate-500 font-medium">
-                Showing {filteredProducts.length} items across 4 primary category groups
-              </p>
-            </div>
+
+            {/* Clean Explorer Title */}
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              Explorer
+            </h1>
           </div>
 
           {/* Search & Sort Controls */}
@@ -84,18 +81,7 @@ export default function ViewAllProducts({ onBack, onAddToCart, onQuickView, sele
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
             </div>
 
-            {/* In-Stock Filter Checkbox */}
-            <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={onlyInStock}
-                onChange={(e) => setOnlyInStock(e.target.checked)}
-                className="rounded border-slate-300 text-[#008744] focus:ring-[#008744]"
-              />
-              <span>In Stock Only</span>
-            </label>
-
-            {/* Sort Dropdown */}
+            {/* Sort Dropdown (Without "Featured") */}
             <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700">
               <SlidersHorizontal className="w-4 h-4 text-slate-500" />
               <select
@@ -103,7 +89,7 @@ export default function ViewAllProducts({ onBack, onAddToCart, onQuickView, sele
                 onChange={(e) => setSortBy(e.target.value)}
                 className="bg-transparent focus:outline-none cursor-pointer"
               >
-                <option value="featured">Featured</option>
+                <option value="default">Default Sort</option>
                 <option value="price-low">Price: Low to High</option>
                 <option value="price-high">Price: High to Low</option>
                 <option value="rating">Highest Rated</option>
@@ -113,7 +99,7 @@ export default function ViewAllProducts({ onBack, onAddToCart, onQuickView, sele
         </div>
 
         {/* Primary Category Group Tabs */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-3 scrollbar-none">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
           {groupButtons.map((grp) => (
             <button
               key={grp.id}
@@ -130,7 +116,7 @@ export default function ViewAllProducts({ onBack, onAddToCart, onQuickView, sele
         </div>
 
         {/* Subcategory Pills Bar */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-6 scrollbar-none">
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
           {subCategories.map((sub) => (
             <button
               key={sub}
@@ -146,21 +132,20 @@ export default function ViewAllProducts({ onBack, onAddToCart, onQuickView, sele
           ))}
         </div>
 
-        {/* Empty State */}
+        {/* Product Cards Grid */}
         {filteredProducts.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center my-8">
+          <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center my-4">
             <Filter className="w-12 h-12 text-slate-300 mx-auto mb-3" />
             <h3 className="text-lg font-bold text-slate-800">No products found</h3>
             <p className="text-xs text-slate-500 mt-1 mb-4">Try adjusting your category filter or search term.</p>
             <button
-              onClick={() => { setActiveGroup('All'); setActiveSubCategory('All'); setSearchTerm(''); setOnlyInStock(false); }}
+              onClick={() => { setActiveGroup('All'); setActiveSubCategory('All'); setSearchTerm(''); }}
               className="px-5 py-2.5 bg-[#e50914] text-white rounded-xl text-xs font-bold shadow hover:bg-red-700 transition-colors"
             >
-              Reset All Filters
+              Reset Filters
             </button>
           </div>
         ) : (
-          /* Products Grid side-by-side */
           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4 lg:gap-5">
             {filteredProducts.map((product) => (
               <ProductCard
@@ -179,3 +164,4 @@ export default function ViewAllProducts({ onBack, onAddToCart, onQuickView, sele
     </section>
   );
 }
+

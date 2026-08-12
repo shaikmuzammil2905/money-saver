@@ -35,14 +35,17 @@ export async function saveUserProfile(userData) {
 
     // 2. Sync to Supabase if available
     if (supabase) {
+      const payload = {
+        full_name: userData.fullName,
+        mobile_number: userData.mobileNumber || null,
+        email: userData.email || null,
+        location: userData.location || null,
+        updated_at: new Date().toISOString()
+      };
+
       const { error } = await supabase.from('users').upsert(
-        {
-          full_name: userData.fullName,
-          mobile_number: userData.mobileNumber,
-          location: userData.location,
-          updated_at: new Date().toISOString()
-        },
-        { onConflict: 'mobile_number' }
+        payload,
+        { onConflict: userData.mobileNumber ? 'mobile_number' : 'email' }
       );
       if (error) console.warn('Supabase user upsert warning:', error.message);
     }

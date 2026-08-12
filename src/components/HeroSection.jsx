@@ -56,11 +56,11 @@ export default function HeroSection({ onExploreDeals, onShopNow }) {
           {currentSlide === 0 && (
             <motion.div
               key="slide-red"
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -50 }}
-              transition={{ duration: 0.5 }}
-              className="relative bg-black rounded-3xl overflow-hidden border border-slate-800 p-4 sm:p-6 lg:p-8 shadow-2xl"
+              initial={{ opacity: 0, scale: 0.98, x: 20 }}
+              animate={{ opacity: 1, scale: 1, x: 0 }}
+              exit={{ opacity: 0, scale: 0.98, x: -20 }}
+              transition={{ duration: 0.75, ease: [0.25, 0.1, 0.25, 1] }}
+              className="relative bg-slate-950 rounded-3xl overflow-hidden border-2 border-[#e50914]/40 hover:border-[#e50914]/70 p-4 sm:p-6 lg:p-7 shadow-[0_12px_40px_rgba(229,9,20,0.25)] transition-all duration-500 max-w-6xl mx-auto"
             >
               {/* Background ambient red glow */}
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_40%,rgba(229,9,20,0.25),transparent_60%)] pointer-events-none" />
@@ -250,11 +250,11 @@ export default function HeroSection({ onExploreDeals, onShopNow }) {
           {currentSlide === 1 && (
             <motion.div
               key="slide-neon"
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -50 }}
-              transition={{ duration: 0.5 }}
-              className="relative bg-slate-950 rounded-3xl overflow-hidden border border-purple-900/60 p-4 sm:p-6 lg:p-8 shadow-[0_0_50px_rgba(168,85,247,0.2)]"
+              initial={{ opacity: 0, scale: 0.98, x: 20 }}
+              animate={{ opacity: 1, scale: 1, x: 0 }}
+              exit={{ opacity: 0, scale: 0.98, x: -20 }}
+              transition={{ duration: 0.75, ease: [0.25, 0.1, 0.25, 1] }}
+              className="relative bg-slate-950 rounded-3xl overflow-hidden border-2 border-orange-500/40 hover:border-pink-500/70 p-4 sm:p-6 lg:p-7 shadow-[0_12px_40px_rgba(249,115,22,0.25)] transition-all duration-500 max-w-6xl mx-auto"
             >
               {/* Laser beam particle background */}
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_50%,rgba(217,70,239,0.2),transparent_70%)] pointer-events-none" />
