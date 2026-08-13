@@ -361,7 +361,7 @@ export default function CartDrawer({
 
       // Plan 3: Launch WhatsApp with Prefilled Text Message Fallback
       setSubmitButtonText('Opening WhatsApp...');
-      const whatsappNumber = paymentConfig?.whatsappNumber || DEFAULT_PAYMENT_CONFIG.whatsappNumber;
+      const whatsappNumber = '916305151531';
       const encodedMsg = encodeURIComponent(msg);
       const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodedMsg}`;
 
