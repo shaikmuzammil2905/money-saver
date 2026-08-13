@@ -711,7 +711,7 @@ export default function CartDrawer({
                 <span>
                   {orderSubmitting 
                     ? (submitButtonText || 'Preparing Order...') 
-                    : 'Confirm & Send on WhatsApp'}
+                    : 'Submit Order'}
                 </span>
                 {!orderSubmitting && <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />}
               </button>
