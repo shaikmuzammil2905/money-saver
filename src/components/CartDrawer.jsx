@@ -284,46 +284,7 @@ export default function CartDrawer({
       msg += `---\n\n`;
       msg += `*Total:* ₹${subtotal.toLocaleString()}\n\n`;
 
-      // 4. Progressive Enhancement Sharing
-      let sharedNatively = false;
-
-      // Plan 1: Web Share API (File Sharing)
-      if (navigator.share && navigator.canShare && navigator.canShare({ files: [screenshotFile] })) {
-        try {
-          setSubmitButtonText('Opening WhatsApp...');
-          const shareMsg = msg + `Payment Screenshot:\nAttached separately\n\nThank you,\nOTTMoneySaver`;
-          await navigator.share({
-            files: [screenshotFile],
-            title: `OTTMoneySaver Order ${orderId}`,
-            text: shareMsg
-          });
-          sharedNatively = true;
-        } catch (shareErr) {
-          console.warn('Native Web Share failed or cancelled:', shareErr);
-        }
-      }
-
-      if (sharedNatively) {
-        const orderPayload = {
-          orderId,
-          customerName,
-          mobileNumber: customerPhone,
-          location: customerLocation,
-          items: cartItems,
-          subtotal,
-          totalOriginal,
-          totalSavings,
-          totalAmount: subtotal,
-          paymentStatus: 'Payment Success',
-          paymentScreenshotUrl: 'Shared via Web Share API'
-        };
-        await createOrder(orderPayload);
-        setOrderSubmitting(false);
-        setSubmitButtonText('');
-        return;
-      }
-
-      // Plan 2: Upload to Supabase Storage and get Public URL
+      // 4. Upload to Supabase Storage and get Public URL
       let uploadedScreenshotUrl = null;
       setIsUploading(true);
       try {
