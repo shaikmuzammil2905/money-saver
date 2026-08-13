@@ -218,7 +218,7 @@ export default function CustomerProfileModal({ isOpen, onClose, user, onLogout, 
                       </div>
 
                       <div>
-                        <span className="text-slate-400 block font-medium">Delivery Address / Location</span>
+                        <span className="text-slate-400 block font-medium">Location / Address</span>
                         <span className="text-slate-900 font-semibold leading-relaxed block mt-0.5">{user?.location}</span>
                       </div>
                     </div>
@@ -239,7 +239,7 @@ export default function CustomerProfileModal({ isOpen, onClose, user, onLogout, 
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">Delivery Address</label>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Location / Address</label>
                       <textarea
                         rows={3}
                         required

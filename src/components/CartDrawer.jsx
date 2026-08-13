@@ -17,6 +17,7 @@ import {
   QrCode
 } from 'lucide-react';
 import { getPaymentConfig } from '../services/paymentConfig';
+import { DEFAULT_PAYMENT_CONFIG } from '../config/payment';
 import { createOrder, uploadPaymentScreenshot } from '../services/orderService';
 
 export default function CartDrawer({
@@ -30,22 +31,141 @@ export default function CartDrawer({
   onOpenAuthModal
 }) {
   const [paymentConfig, setPaymentConfig] = useState(null);
+  
+  // Independent fields state
+  const [customerName, setCustomerName] = useState(() => {
+    return localStorage.getItem('customerName') || '';
+  });
+  const [customerPhone, setCustomerPhone] = useState(() => {
+    return localStorage.getItem('customerPhone') || '';
+  });
+  const [customerLocation, setCustomerLocation] = useState(() => {
+    return localStorage.getItem('customerLocation') || '';
+  });
+  const [customerEmail, setCustomerEmail] = useState(() => {
+    return localStorage.getItem('customerEmail') || '';
+  });
+
+  const [detectingLocation, setDetectingLocation] = useState(false);
+  const [locationError, setLocationError] = useState('');
+
   const [screenshotFile, setScreenshotFile] = useState(null);
   const [screenshotPreview, setScreenshotPreview] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
+  
   const [orderSubmitting, setOrderSubmitting] = useState(false);
+  const [submitButtonText, setSubmitButtonText] = useState('');
   const [createdOrder, setCreatedOrder] = useState(null);
 
   useEffect(() => {
     getPaymentConfig().then((cfg) => setPaymentConfig(cfg));
   }, []);
 
+  // Autofill fields when user logs in/registers, but only if they are currently empty
+  useEffect(() => {
+    if (user) {
+      if (user.fullName && !customerName) {
+        setCustomerName(user.fullName);
+        localStorage.setItem('customerName', user.fullName);
+      }
+      if (user.mobileNumber && !customerPhone) {
+        setCustomerPhone(user.mobileNumber);
+        localStorage.setItem('customerPhone', user.mobileNumber);
+      }
+      if (user.location && !customerLocation) {
+        setCustomerLocation(user.location);
+        localStorage.setItem('customerLocation', user.location);
+      }
+      if (user.email && !customerEmail) {
+        setCustomerEmail(user.email);
+        localStorage.setItem('customerEmail', user.email);
+      }
+    }
+  }, [user]);
+
   if (!isOpen) return null;
 
   const subtotal = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
   const totalOriginal = cartItems.reduce((acc, item) => acc + (item.originalPrice || item.price) * item.quantity, 0);
   const totalSavings = totalOriginal - subtotal;
+
+  const handleNameChange = (val) => {
+    setCustomerName(val);
+    localStorage.setItem('customerName', val);
+  };
+  const handlePhoneChange = (val) => {
+    setCustomerPhone(val);
+    localStorage.setItem('customerPhone', val);
+  };
+  const handleLocationChange = (val) => {
+    setCustomerLocation(val);
+    localStorage.setItem('customerLocation', val);
+  };
+  const handleEmailChange = (val) => {
+    setCustomerEmail(val);
+    localStorage.setItem('customerEmail', val);
+  };
+
+  // Location Auto-Detection via Browser Geolocation API + Nominatim Reverse Geocoding
+  const handleDetectLocation = () => {
+    setDetectingLocation(true);
+    setLocationError('');
+
+    if (!navigator.geolocation) {
+      setLocationError('Geolocation is not supported by your browser. Please enter location manually.');
+      setDetectingLocation(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
+            {
+              headers: {
+                'Accept-Language': 'en',
+                'User-Agent': 'OTTMoneySaver/1.0'
+              }
+            }
+          );
+          if (!response.ok) throw new Error('Geocoding request failed');
+          const data = await response.json();
+          
+          if (data && data.address) {
+            const addr = data.address;
+            const area = addr.suburb || addr.neighbourhood || addr.residential || addr.road || addr.village || '';
+            const city = addr.city || addr.town || addr.city_district || addr.county || '';
+            const state = addr.state || '';
+            
+            const parts = [area, city, state].map(p => p.trim()).filter(Boolean);
+            const readableAddress = parts.join(', ');
+            
+            if (readableAddress) {
+              handleLocationChange(readableAddress);
+            } else {
+              handleLocationChange(`${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+            }
+          } else {
+            handleLocationChange(`${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+          }
+        } catch (err) {
+          console.error('Reverse geocoding error:', err);
+          setLocationError('Unable to detect your location. Please enter your location manually.');
+        } finally {
+          setDetectingLocation(false);
+        }
+      },
+      (error) => {
+        console.error('Geolocation error:', error);
+        setLocationError('Unable to detect your location. Please enter your location manually.');
+        setDetectingLocation(false);
+      },
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  };
 
   // Handle Screenshot File Selection
   const handleFileChange = (e) => {
@@ -88,7 +208,7 @@ export default function CartDrawer({
 
   // Handle Open Payment Link (GPay / PhonePe Direct UPI Launch with pre-filled amount)
   const handleOpenPaymentApp = (type) => {
-    const upiId = paymentConfig?.upiId || '6305151531@ybl';
+    const upiId = paymentConfig?.upiId || DEFAULT_PAYMENT_CONFIG.upiId;
     const amount = subtotal || 0;
     const payeeName = 'OTTMoneySaver';
     
@@ -104,7 +224,6 @@ export default function CartDrawer({
 
     try {
       window.location.href = targetUrl;
-      // Fallback timer if app link fails
       setTimeout(() => {
         window.location.href = standardUpiUrl;
       }, 500);
@@ -113,30 +232,122 @@ export default function CartDrawer({
     }
   };
 
-  // Submit Order & Open WhatsApp
+  // Submit Order & Open WhatsApp (Progressive Enhancement Flow)
   const handleCheckoutAndSubmit = async () => {
-    // 1. Enforce Authentication Gate
-    if (!user) {
-      onOpenAuthModal('login');
+    // 1. Validation Checks
+    if (cartItems.length === 0) {
+      alert('Your cart is empty.');
+      return;
+    }
+    if (!customerName.trim()) {
+      alert('Please enter your name.');
+      return;
+    }
+    const phoneTrimmed = customerPhone.trim();
+    if (!phoneTrimmed || !/^\d{10}$/.test(phoneTrimmed)) {
+      alert('Please enter a valid 10-digit mobile number.');
+      return;
+    }
+    if (!customerLocation.trim()) {
+      alert('Please enter your location.');
+      return;
+    }
+    if (!screenshotFile) {
+      alert('Please upload your payment screenshot before sending the order.');
       return;
     }
 
     setOrderSubmitting(true);
+    setSubmitButtonText('Preparing Order...');
 
     try {
-      // Upload screenshot if present
+      // 2. Generate unique Order ID
+      const orderDate = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+      const orderId = `OMS-${orderDate}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+      // 3. Generate Automated WhatsApp Order Message Content
+      let productsText = '';
+      cartItems.forEach((item, index) => {
+        productsText += `${index + 1}. *${item.title}*\n   Qty: ${item.quantity}\n   Price: ₹${item.price.toLocaleString()}\n\n`;
+      });
+
+      let msg = `🛒 *OTTMoneySaver Order*\n`;
+      msg += `Order ID: *${orderId}*\n\n`;
+      msg += `## *Customer Details*\n\n`;
+      msg += `Name: ${customerName.trim()}\n`;
+      msg += `Mobile: ${customerPhone.trim()}\n`;
+      msg += `Location: ${customerLocation.trim()}\n`;
+      if (customerEmail.trim()) {
+        msg += `Email: ${customerEmail.trim()}\n`;
+      }
+      msg += `\n## *Products*\n\n${productsText}`;
+      msg += `---\n\n`;
+      msg += `*Total:* ₹${subtotal.toLocaleString()}\n\n`;
+
+      // 4. Progressive Enhancement Sharing
+      let sharedNatively = false;
+
+      // Plan 1: Web Share API (File Sharing)
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [screenshotFile] })) {
+        try {
+          setSubmitButtonText('Opening WhatsApp...');
+          const shareMsg = msg + `Payment Screenshot:\nAttached separately\n\nThank you,\nOTTMoneySaver`;
+          await navigator.share({
+            files: [screenshotFile],
+            title: `OTTMoneySaver Order ${orderId}`,
+            text: shareMsg
+          });
+          sharedNatively = true;
+        } catch (shareErr) {
+          console.warn('Native Web Share failed or cancelled:', shareErr);
+        }
+      }
+
+      if (sharedNatively) {
+        const orderPayload = {
+          orderId,
+          customerName,
+          mobileNumber: customerPhone,
+          location: customerLocation,
+          items: cartItems,
+          subtotal,
+          totalOriginal,
+          totalSavings,
+          totalAmount: subtotal,
+          paymentStatus: 'Payment Success',
+          paymentScreenshotUrl: 'Shared via Web Share API'
+        };
+        await createOrder(orderPayload);
+        setOrderSubmitting(false);
+        setSubmitButtonText('');
+        return;
+      }
+
+      // Plan 2: Upload to Supabase Storage and get Public URL
       let uploadedScreenshotUrl = null;
-      if (screenshotFile) {
-        setIsUploading(true);
+      setIsUploading(true);
+      try {
         uploadedScreenshotUrl = await uploadPaymentScreenshot(screenshotFile);
+      } catch (uploadErr) {
+        console.warn('Supabase storage upload failed:', uploadErr);
+      } finally {
         setIsUploading(false);
       }
 
-      // Create Order Record via orderService
+      // Build WhatsApp URL with the image URL link if available
+      if (uploadedScreenshotUrl && !uploadedScreenshotUrl.startsWith('data:')) {
+        msg += `Payment Screenshot:\n${uploadedScreenshotUrl}\n\n`;
+      } else {
+        msg += `Payment Screenshot:\nAttached separately (please attach manually in chat)\n\n`;
+      }
+      msg += `Thank you,\nOTTMoneySaver`;
+
+      // Create local Order Record
       const orderPayload = {
-        customerName: user.fullName,
-        mobileNumber: user.mobileNumber,
-        location: user.location,
+        orderId,
+        customerName: customerName.trim(),
+        mobileNumber: customerPhone.trim(),
+        location: customerLocation.trim(),
         items: cartItems,
         subtotal,
         totalOriginal,
@@ -145,52 +356,28 @@ export default function CartDrawer({
         paymentStatus: currentPaymentStatus,
         paymentScreenshotUrl: uploadedScreenshotUrl
       };
-
       const savedOrder = await createOrder(orderPayload);
       setCreatedOrder(savedOrder);
 
-      // Generate Automated WhatsApp Order Message
-      let msg = `*OTTMoneySaver Order*\n`;
-      msg += `Order ID: *${savedOrder.orderId}*\n\n`;
-      
-      msg += `*Customer Details*\n`;
-      msg += `Name: ${user.fullName}\n`;
-      msg += `Mobile: ${user.mobileNumber}\n`;
-      msg += `Location: ${user.location}\n\n`;
-
-      msg += `*Order Summary*\n`;
-      cartItems.forEach((item, index) => {
-        msg += `${index + 1}. *${item.title}*\n   Qty: ${item.quantity} x ₹${item.price.toLocaleString()} = ₹${(item.price * item.quantity).toLocaleString()}\n`;
-      });
-
-      msg += `\nSubtotal: ₹${subtotal.toLocaleString()}\n`;
-      if (totalSavings > 0) {
-        msg += `Total Savings: ₹${totalSavings.toLocaleString()}\n`;
-      }
-      msg += `*Total Amount:* ₹${subtotal.toLocaleString()}\n\n`;
-
-      msg += `*Payment Details*\n`;
-      msg += `Payment Status: *${currentPaymentStatus}*\n`;
-      if (uploadedScreenshotUrl) {
-        if (uploadedScreenshotUrl.startsWith('data:')) {
-          msg += `Payment Proof: *[Payment Screenshot Uploaded & Attached ✅]*\n`;
-        } else {
-          msg += `Payment Proof: ${uploadedScreenshotUrl}\n`;
-        }
-      }
-
-      const whatsappNumber = paymentConfig?.whatsappNumber || '916305151531';
+      // Plan 3: Launch WhatsApp with Prefilled Text Message Fallback
+      setSubmitButtonText('Opening WhatsApp...');
+      const whatsappNumber = paymentConfig?.whatsappNumber || DEFAULT_PAYMENT_CONFIG.whatsappNumber;
       const encodedMsg = encodeURIComponent(msg);
       const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodedMsg}`;
 
       setTimeout(() => {
         window.open(whatsappUrl, '_blank');
         setOrderSubmitting(false);
+        setSubmitButtonText('');
+        if (!uploadedScreenshotUrl || uploadedScreenshotUrl.startsWith('data:')) {
+          alert('We opened WhatsApp with your order details. Since file sharing is not supported by your browser, please attach your payment screenshot manually in the chat!');
+        }
       }, 1000);
 
     } catch (err) {
       console.error('Order submission error:', err);
       setOrderSubmitting(false);
+      setSubmitButtonText('');
       alert('Order created, but encountered an issue opening WhatsApp. Please contact support.');
     }
   };
@@ -285,15 +472,15 @@ export default function CartDrawer({
                 </div>
 
                 {/* 2. Customer Details Section */}
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
-                  <div className="flex items-center justify-between">
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-200/60 pb-1.5">
                     <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider">Customer Details</h3>
                     {!user ? (
                       <button
                         onClick={() => onOpenAuthModal('register')}
-                        className="text-xs font-bold text-[#e50914] hover:underline flex items-center gap-1"
+                        className="text-[11px] font-bold text-[#e50914] hover:underline flex items-center gap-1"
                       >
-                        <Lock className="w-3 h-3" /> Login / Register
+                        <Lock className="w-3.5 h-3.5" /> Login / Register
                       </button>
                     ) : (
                       <span className="text-[10px] font-extrabold text-[#008744] bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
@@ -302,17 +489,77 @@ export default function CartDrawer({
                     )}
                   </div>
 
-                  {user ? (
-                    <div className="text-xs text-slate-600 space-y-1">
-                      <p><span className="font-bold text-slate-800">Name:</span> {user.fullName}</p>
-                      <p><span className="font-bold text-slate-800">Mobile:</span> {user.mobileNumber}</p>
-                      <p><span className="font-bold text-slate-800">Location:</span> {user.location}</p>
+                  <div className="space-y-3 text-xs">
+                    {/* Full Name Input */}
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        Full Name <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Enter your full name"
+                        value={customerName}
+                        onChange={(e) => handleNameChange(e.target.value)}
+                        className="w-full bg-white text-xs rounded-xl py-2.5 px-3 border border-slate-200 focus:outline-none focus:border-[#008744] transition-all"
+                      />
                     </div>
-                  ) : (
-                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs font-semibold">
-                      Please login or register to complete your order details.
+
+                    {/* Phone Input */}
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        Mobile Number <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="tel"
+                        maxLength={10}
+                        placeholder="Enter 10-digit mobile number"
+                        value={customerPhone}
+                        onChange={(e) => handlePhoneChange(e.target.value.replace(/\D/g, ''))}
+                        className="w-full bg-white text-xs rounded-xl py-2.5 px-3 border border-slate-200 focus:outline-none focus:border-[#008744] transition-all"
+                      />
                     </div>
-                  )}
+
+                    {/* Location Input with Auto-detection Option */}
+                    <div>
+                      <div className="flex justify-between items-center mb-1">
+                        <label className="block text-[11px] font-bold text-slate-700">
+                          Location / Address <span className="text-red-500">*</span>
+                        </label>
+                        <button
+                          type="button"
+                          onClick={handleDetectLocation}
+                          disabled={detectingLocation}
+                          className="text-[10px] font-bold text-[#008744] hover:underline flex items-center gap-1 active:scale-95 transition-all"
+                        >
+                          📍 {detectingLocation ? 'Detecting...' : 'Use My Current Location'}
+                        </button>
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Area, City, State"
+                        value={customerLocation}
+                        onChange={(e) => handleLocationChange(e.target.value)}
+                        className="w-full bg-white text-xs rounded-xl py-2.5 px-3 border border-slate-200 focus:outline-none focus:border-[#008744] transition-all"
+                      />
+                      {locationError && (
+                        <p className="text-[10px] text-red-600 font-bold mt-1">{locationError}</p>
+                      )}
+                    </div>
+
+                    {/* Email Input */}
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        Email Address <span className="text-slate-400 font-normal">(Optional)</span>
+                      </label>
+                      <input
+                        type="email"
+                        placeholder="Enter email address"
+                        value={customerEmail}
+                        onChange={(e) => handleEmailChange(e.target.value)}
+                        className="w-full bg-white text-xs rounded-xl py-2.5 px-3 border border-slate-200 focus:outline-none focus:border-[#008744] transition-all"
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 {/* 3. Order Summary & Price Breakdown */}
@@ -331,10 +578,7 @@ export default function CartDrawer({
                       <span>Subtotal</span>
                       <span className="font-bold text-slate-900">₹{subtotal.toLocaleString()}</span>
                     </div>
-                    <div className="flex justify-between text-[#008744]">
-                      <span>Delivery Charge</span>
-                      <span className="font-extrabold">FREE</span>
-                    </div>
+                    {/* Delivery details completely removed */}
                     <div className="flex justify-between text-base font-black text-slate-900 pt-2 border-t border-slate-200">
                       <span>Final Amount</span>
                       <span className="text-[#008744] text-lg">₹{subtotal.toLocaleString()}</span>
@@ -346,7 +590,7 @@ export default function CartDrawer({
                 <div className="p-4 bg-slate-900 text-white rounded-2xl space-y-3 shadow-md">
                   <h3 className="text-xs font-black text-slate-200 uppercase tracking-wider flex items-center justify-between">
                     <span>Pay Using</span>
-                    <span className="text-[10px] text-amber-400 font-mono">UPI ID: {paymentConfig?.upiId || '6305151531@ybl'}</span>
+                    <span className="text-[10px] text-amber-400 font-mono">UPI ID: {paymentConfig?.upiId || DEFAULT_PAYMENT_CONFIG.upiId}</span>
                   </h3>
 
                   <div className="grid grid-cols-2 gap-2">
@@ -376,7 +620,7 @@ export default function CartDrawer({
                 {/* 5. Payment Screenshot Upload */}
                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
                   <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center justify-between">
-                    <span>Upload Payment Screenshot</span>
+                    <span>Upload Payment Screenshot <span className="text-red-500">*</span></span>
                     <span className="text-[10px] text-slate-500 font-normal">JPG, PNG, WEBP</span>
                   </h3>
 
@@ -390,7 +634,7 @@ export default function CartDrawer({
                     <label className="border-2 border-dashed border-slate-300 hover:border-[#008744] bg-white rounded-xl p-4 flex flex-col items-center justify-center text-center cursor-pointer transition-colors">
                       <Upload className="w-6 h-6 text-slate-400 mb-1" />
                       <span className="text-xs font-bold text-slate-700">Click to Upload Payment Proof</span>
-                      <span className="text-[10px] text-slate-400 mt-0.5">Proof image for faster verification</span>
+                      <span className="text-[10px] text-slate-400 mt-0.5">Proof image for faster verification (Max 5MB)</span>
                       <input
                         type="file"
                         accept="image/jpeg,image/png,image/webp"
@@ -417,7 +661,7 @@ export default function CartDrawer({
 
                       <div className="flex justify-between items-center text-xs">
                         <span className="text-[#008744] font-bold flex items-center gap-1">
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Screenshot Submitted
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Screenshot Selected
                         </span>
                         <label className="text-xs font-bold text-[#e50914] cursor-pointer hover:underline">
                           Replace Image
@@ -433,7 +677,7 @@ export default function CartDrawer({
                   )}
                 </div>
 
-                {/* 6. Payment Status Display (Green Payment Success when screenshot submitted) */}
+                {/* 6. Payment Status Display */}
                 <div className="p-3.5 rounded-2xl border bg-slate-900 text-white flex items-center justify-between text-xs font-bold shadow-md">
                   <span className="text-slate-300">Payment Status:</span>
                   <span className={`px-3 py-1 rounded-full text-xs font-black shadow-sm transition-all ${
@@ -454,20 +698,22 @@ export default function CartDrawer({
             <div className="p-4 sm:p-6 bg-slate-50 border-t border-slate-200 space-y-3 shrink-0">
               
               <p className="text-[11px] text-slate-500 text-center font-medium">
-                After payment, upload your payment screenshot and send your order through WhatsApp.
+                After payment, verify details, upload payment screenshot, and click the button to send your order on WhatsApp.
               </p>
 
               {/* Submit Order Button */}
               <button
                 onClick={handleCheckoutAndSubmit}
                 disabled={orderSubmitting || isUploading}
-                className="w-full py-4 px-6 rounded-2xl bg-[#008744] hover:bg-[#007038] text-white font-black text-base shadow-xl shadow-emerald-700/30 active:scale-95 transition-all flex items-center justify-center gap-2 group"
+                className="w-full py-4 px-6 rounded-2xl bg-[#008744] hover:bg-[#007038] disabled:bg-emerald-800 disabled:opacity-85 text-white font-black text-base shadow-xl shadow-emerald-700/30 active:scale-95 transition-all flex items-center justify-center gap-2 group"
               >
-                <CheckCircle2 className="w-5 h-5 stroke-[2.5]" />
+                <MessageCircle className="w-5 h-5 stroke-[2.5]" />
                 <span>
-                  {orderSubmitting ? 'Submitting Order...' : 'Submit Order'}
+                  {orderSubmitting 
+                    ? (submitButtonText || 'Preparing Order...') 
+                    : 'Confirm & Send on WhatsApp'}
                 </span>
-                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                {!orderSubmitting && <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />}
               </button>
 
               <button

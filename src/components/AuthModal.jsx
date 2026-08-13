@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Lock, User, Phone, Mail, MapPin, ArrowRight, ShieldCheck } from 'lucide-react';
 import { saveUserProfile } from '../services/orderService';
+import { supabase } from '../services/supabase';
 
 export default function AuthModal({ isOpen, onClose, onSuccess, initialMode = 'login' }) {
   const [mode, setMode] = useState(initialMode); // 'login' or 'register'
@@ -52,7 +53,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess, initialMode = 'l
         return;
       }
       if (!location.trim()) {
-        setErrorMsg('Please enter your Location / Delivery Address.');
+        setErrorMsg('Please enter your Location.');
         return;
       }
     }
@@ -60,18 +61,96 @@ export default function AuthModal({ isOpen, onClose, onSuccess, initialMode = 'l
     setLoading(true);
 
     try {
-      const displayName = fullName.trim() || 
-        (cleanMobile ? `Customer (${cleanMobile.slice(-4)})` : cleanEmail.split('@')[0]);
+      let displayName = fullName.trim();
+      let userLocation = location.trim();
+
+      // If logging in, attempt to fetch user from Supabase or localStorage
+      if (mode === 'login') {
+        let foundUser = null;
+
+        // Try Supabase first
+        if (supabase) {
+          try {
+            let query = supabase.from('users').select('*');
+            if (loginMethod === 'mobile') {
+              query = query.eq('mobile_number', cleanMobile);
+            } else {
+              query = query.eq('email', cleanEmail);
+            }
+            const { data, error } = await query.single();
+            if (!error && data) {
+              foundUser = {
+                fullName: data.full_name,
+                mobileNumber: data.mobile_number,
+                email: data.email,
+                location: data.location || 'Hyderabad, Telangana'
+              };
+            }
+          } catch (err) {
+            console.warn('Supabase users lookup failed:', err.message);
+          }
+        }
+
+        // If found in Supabase, use it
+        if (foundUser) {
+          await saveUserProfile(foundUser);
+          if (foundUser.fullName) localStorage.setItem('customerName', foundUser.fullName);
+          if (foundUser.mobileNumber) localStorage.setItem('customerPhone', foundUser.mobileNumber);
+          if (foundUser.location) localStorage.setItem('customerLocation', foundUser.location);
+          if (foundUser.email) localStorage.setItem('customerEmail', foundUser.email);
+
+          setLoading(false);
+          onSuccess(foundUser);
+          onClose();
+          return;
+        }
+
+        // Fallback: Check local storage for existing details
+        try {
+          const saved = localStorage.getItem('ott_user');
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            const matchesMobile = cleanMobile && parsed.mobileNumber === cleanMobile;
+            const matchesEmail = cleanEmail && parsed.email === cleanEmail;
+            if (matchesMobile || matchesEmail) {
+              foundUser = parsed;
+            }
+          }
+        } catch (e) {}
+
+        if (foundUser) {
+          displayName = foundUser.fullName || localStorage.getItem('customerName') || '';
+          userLocation = foundUser.location || localStorage.getItem('customerLocation') || '';
+        } else {
+          displayName = localStorage.getItem('customerName') || '';
+          userLocation = localStorage.getItem('customerLocation') || '';
+        }
+      }
+
+      // Final fallbacks for new users
+      if (!displayName) {
+        displayName = cleanMobile ? `Customer (${cleanMobile.slice(-4)})` : cleanEmail.split('@')[0];
+      }
+      if (!userLocation) {
+        userLocation = 'Hyderabad, Telangana';
+      }
 
       const userPayload = {
         fullName: displayName,
         mobileNumber: cleanMobile || null,
         email: cleanEmail || null,
         loginType: loginMethod,
-        location: location.trim() || 'Hyderabad, Telangana'
+        location: userLocation
       };
 
       await saveUserProfile(userPayload);
+      
+      // Sync local storage fields
+      localStorage.setItem('customerName', userPayload.fullName);
+      if (userPayload.mobileNumber) localStorage.setItem('customerPhone', userPayload.mobileNumber);
+      if (userPayload.location) localStorage.setItem('customerLocation', userPayload.location);
+      if (userPayload.email) localStorage.setItem('customerEmail', userPayload.email);
+
       setLoading(false);
       onSuccess(userPayload);
       onClose();

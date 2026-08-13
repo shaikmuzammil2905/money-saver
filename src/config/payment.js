@@ -10,11 +10,13 @@ export const DEFAULT_PAYMENT_CONFIG = {
   // Fallback UPI ID for copy-paste
   upiId: '6305151531@ybl',
 
-  // Official WhatsApp Order Number (without + symbol, e.g. 916305151531)
-  whatsappNumber: '916305151531',
+  // Official WhatsApp Order Numbers (without + symbol)
+  whatsappNumber: '916305151531',           // Primary WhatsApp
+  whatsappNumberSecondary: '917013931261',  // Secondary WhatsApp
 
-  // Contact Phone Number
-  phoneNumber: '6305151531',
+  // Contact Phone Numbers
+  phoneNumber: '6305151531',                // Primary Phone
+  phoneNumberSecondary: '7013931261',       // Secondary Phone
 
   // Location / Address
   businessLocation: 'Hyderabad, Telangana, India'

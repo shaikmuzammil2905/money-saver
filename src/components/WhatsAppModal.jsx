@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { X, MessageCircle, Phone, Send } from 'lucide-react';
+import { DEFAULT_PAYMENT_CONFIG } from '../config/payment';
 
 export default function WhatsAppModal({ isOpen, onClose }) {
   const [message, setMessage] = useState('Hi OTTMoneySaver team, I would like to inquire about your OTT plans and deals!');
 
   if (!isOpen) return null;
 
-  const handleSend = (phoneNum) => {
+  const handleSend = (whatsappNum) => {
     const encoded = encodeURIComponent(message);
-    window.open(`https://wa.me/91${phoneNum}?text=${encoded}`, '_blank');
+    window.open(`https://wa.me/${whatsappNum}?text=${encoded}`, '_blank');
   };
 
   return (
@@ -41,21 +42,21 @@ export default function WhatsAppModal({ isOpen, onClose }) {
           <span className="text-xs font-bold text-slate-500 block">Select Contact Number:</span>
           
           <button
-            onClick={() => handleSend('6305151531')}
+            onClick={() => handleSend(DEFAULT_PAYMENT_CONFIG.whatsappNumber)}
             className="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-between shadow-md transition-colors"
           >
             <span className="flex items-center gap-2">
-              <Phone className="w-4 h-4" /> 6305151531 (Primary Support)
+              <Phone className="w-4 h-4" /> {DEFAULT_PAYMENT_CONFIG.phoneNumber} (Primary Support)
             </span>
             <Send className="w-4 h-4" />
           </button>
 
           <button
-            onClick={() => handleSend('7013931261')}
+            onClick={() => handleSend(DEFAULT_PAYMENT_CONFIG.whatsappNumberSecondary)}
             className="w-full py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center justify-between shadow-md transition-colors"
           >
             <span className="flex items-center gap-2">
-              <Phone className="w-4 h-4 text-emerald-400" /> 7013931261 (Secondary Support)
+              <Phone className="w-4 h-4 text-emerald-400" /> {DEFAULT_PAYMENT_CONFIG.phoneNumberSecondary} (Secondary Support)
             </span>
             <Send className="w-4 h-4" />
           </button>
