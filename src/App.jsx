@@ -29,12 +29,17 @@ import ElectronicsPage from './pages/ElectronicsPage';
 import OffersPage from './pages/OffersPage';
 import ContactPage from './pages/ContactPage';
 
-import { ALL_PRODUCTS } from './data/products';
+// Admin CMS Panel
+import AdminApp from './admin/AdminApp';
+
+import { CMSProvider, useCMS } from './context/CMSContext';
 import { getUserProfile } from './services/orderService';
 
 const CART_STORAGE_KEY = 'ott_cart';
 
-export default function App() {
+function PublicWebsite() {
+  const { activePublicProducts, loading } = useCMS();
+
   // Load Cart from LocalStorage or default items
   const [cartItems, setCartItems] = useState(() => {
     try {
@@ -74,7 +79,7 @@ export default function App() {
 
   // Search & Navigation
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState('home'); // 'home', 'ott-plans', 'fiber', 'mobiles', 'electronics', 'offers', 'contact', 'view-all'
+  const [activeTab, setActiveTab] = useState('home');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('All');
 
   // Persist Cart
@@ -160,18 +165,18 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Search Results
+  // Search Results against live CMS products
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return null;
     const query = searchQuery.toLowerCase();
-    return ALL_PRODUCTS.filter(
+    return activePublicProducts.filter(
       (p) =>
         p.title.toLowerCase().includes(query) ||
         p.subtitle?.toLowerCase().includes(query) ||
         p.category?.toLowerCase().includes(query) ||
         p.categoryGroup?.toLowerCase().includes(query)
     );
-  }, [searchQuery]);
+  }, [searchQuery, activePublicProducts]);
 
   // Page Component Switcher
   const renderActivePage = () => {
@@ -404,12 +409,12 @@ export default function App() {
         onClose={() => setIsWhatsAppOpen(false)}
       />
 
-      {/* Product Detail Modal (1-5 Image Gallery + Specs) */}
+      {/* Product Detail Modal */}
       <ProductDetailModal
         product={productDetailModal}
         onClose={() => setProductDetailModal(null)}
         onAddToCart={handleAddToCart}
-        allProducts={ALL_PRODUCTS}
+        allProducts={activePublicProducts}
         wishlistIds={wishlistIds}
         onToggleWishlist={handleToggleWishlist}
       />
@@ -424,5 +429,16 @@ export default function App() {
       />
 
     </div>
+  );
+}
+
+export default function App() {
+  const currentPath = window.location.pathname;
+  const isAdminRoute = currentPath === '/admin' || currentPath.startsWith('/admin/');
+
+  return (
+    <CMSProvider>
+      {isAdminRoute ? <AdminApp /> : <PublicWebsite />}
+    </CMSProvider>
   );
 }

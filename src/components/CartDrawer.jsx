@@ -19,6 +19,7 @@ import {
 import { getPaymentConfig } from '../services/paymentConfig';
 import { DEFAULT_PAYMENT_CONFIG } from '../config/payment';
 import { createOrder, uploadPaymentScreenshot } from '../services/orderService';
+import { useCMS } from '../context/CMSContext';
 
 export default function CartDrawer({
   isOpen,
@@ -30,7 +31,9 @@ export default function CartDrawer({
   user,
   onOpenAuthModal
 }) {
-  const [paymentConfig, setPaymentConfig] = useState(null);
+  const { cartSettings, whatsAppTemplate } = useCMS();
+  const [paymentConfig, setPaymentConfig] = useState(cartSettings || null);
+
   
   // Independent fields state
   const [customerName, setCustomerName] = useState(() => {
@@ -271,19 +274,6 @@ export default function CartDrawer({
         productsText += `${index + 1}. *${item.title}*\n   Qty: ${item.quantity}\n   Price: ₹${item.price.toLocaleString()}\n\n`;
       });
 
-      let msg = `🛒 *OTTMoneySaver Order*\n`;
-      msg += `Order ID: *${orderId}*\n\n`;
-      msg += `## *Customer Details*\n\n`;
-      msg += `Name: ${customerName.trim()}\n`;
-      msg += `Mobile: ${customerPhone.trim()}\n`;
-      msg += `Location: ${customerLocation.trim()}\n`;
-      if (customerEmail.trim()) {
-        msg += `Email: ${customerEmail.trim()}\n`;
-      }
-      msg += `\n## *Products*\n\n${productsText}`;
-      msg += `---\n\n`;
-      msg += `*Total:* ₹${subtotal.toLocaleString()}\n\n`;
-
       // 4. Upload to Supabase Storage and get Public URL
       let uploadedScreenshotUrl = null;
       setIsUploading(true);
@@ -295,13 +285,24 @@ export default function CartDrawer({
         setIsUploading(false);
       }
 
-      // Build WhatsApp URL with the image URL link if available
-      if (uploadedScreenshotUrl && !uploadedScreenshotUrl.startsWith('data:')) {
-        msg += `Payment Screenshot:\n${uploadedScreenshotUrl}\n\n`;
+      const screenshotText = (uploadedScreenshotUrl && !uploadedScreenshotUrl.startsWith('data:'))
+        ? uploadedScreenshotUrl
+        : 'Attached separately (please attach manually in chat)';
+
+      let msg = '';
+      if (whatsAppTemplate) {
+        msg = whatsAppTemplate
+          .replace(/{PRODUCTS}/g, productsText.trim())
+          .replace(/{CUSTOMER_NAME}/g, customerName.trim())
+          .replace(/{CUSTOMER_PHONE}/g, customerPhone.trim())
+          .replace(/{CUSTOMER_LOCATION}/g, customerLocation.trim())
+          .replace(/{CUSTOMER_EMAIL}/g, customerEmail.trim() || 'N/A')
+          .replace(/{TOTAL}/g, subtotal.toLocaleString())
+          .replace(/{ORDER_ID}/g, orderId)
+          .replace(/{PAYMENT_SCREENSHOT}/g, screenshotText);
       } else {
-        msg += `Payment Screenshot:\nAttached separately (please attach manually in chat)\n\n`;
+        msg = `🛒 *OTTMoneySaver Order*\nOrder ID: *${orderId}*\n\nName: ${customerName.trim()}\nMobile: ${customerPhone.trim()}\nLocation: ${customerLocation.trim()}\n\n*Products:*\n${productsText}\n*Total:* ₹${subtotal.toLocaleString()}\n\nPayment Screenshot:\n${screenshotText}`;
       }
-      msg += `Thank you,\nOTTMoneySaver`;
 
       // Create local Order Record
       const orderPayload = {
@@ -320,11 +321,11 @@ export default function CartDrawer({
       const savedOrder = await createOrder(orderPayload);
       setCreatedOrder(savedOrder);
 
-      // Plan 3: Launch WhatsApp with Prefilled Text Message Fallback
+      // Launch WhatsApp with Prefilled Text Message
       setSubmitButtonText('Opening WhatsApp...');
-      const whatsappNumber = '916305151531';
+      const targetWhatsappNum = cartSettings?.whatsapp_number || paymentConfig?.whatsappNumber || '916305151531';
       const encodedMsg = encodeURIComponent(msg);
-      const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodedMsg}`;
+      const whatsappUrl = `https://wa.me/${targetWhatsappNum}?text=${encodedMsg}`;
 
       setTimeout(() => {
         window.open(whatsappUrl, '_blank');

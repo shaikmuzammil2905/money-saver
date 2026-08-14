@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Tv, Flame, CheckCircle, ShieldCheck, Zap, Star, ShoppingCart, Eye, ArrowRight, MessageCircle } from 'lucide-react';
+import { useCMS } from '../context/CMSContext';
 
 const OTT_PLANS_LIST = [
   {

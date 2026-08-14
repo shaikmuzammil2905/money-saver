@@ -1,19 +1,28 @@
 import React from 'react';
-import { ShoppingBag, ArrowRight, CheckCircle2, MessageCircle, CreditCard, ShieldCheck } from 'lucide-react';
+import { ShoppingBag, ArrowRight, CheckCircle2, MessageCircle } from 'lucide-react';
+import { useCMS } from '../context/CMSContext';
 
 export default function HowToOrderSection({ onStartShopping }) {
-  const steps = [
-    { num: 1, title: 'Select Product', desc: 'Browse Internet Fiber, OTT Plans, Mobiles or Gadgets.' },
-    { num: 2, title: 'Add to Cart', desc: 'Click Add to Cart / Quick Add on your chosen item.' },
-    { num: 3, title: 'Open Cart', desc: 'Click the shopping cart icon at the top or bottom nav.' },
-    { num: 4, title: 'Login or Register', desc: 'Enter your Full Name, Mobile Number & Address.' },
-    { num: 5, title: 'Customer Details', desc: 'Verify your delivery location and contact number.' },
-    { num: 6, title: 'Order Summary', desc: 'Review your product list, subtotals and smart savings.' },
-    { num: 7, title: 'Pay via GPay/PhonePe', desc: 'Click Pay with Google Pay or PhonePe to transfer funds.' },
-    { num: 8, title: 'Upload Screenshot', desc: 'Upload your payment receipt image for verification.' },
-    { num: 9, title: 'Click "Open WhatsApp"', desc: 'Click the green WhatsApp button at checkout.' },
-    { num: 10, title: 'Send Order Message', desc: 'Send the auto-generated order details on WhatsApp!' }
-  ];
+  const { homeSteps } = useCMS();
+
+  const stepsToRender = (homeSteps && homeSteps.length > 0)
+    ? homeSteps.filter(s => s.is_active !== false).map(s => ({
+        num: s.step_number,
+        title: s.title,
+        desc: s.description
+      }))
+    : [
+        { num: 1, title: 'Select Product', desc: 'Browse Internet Fiber, OTT Plans, Mobiles or Gadgets.' },
+        { num: 2, title: 'Add to Cart', desc: 'Click Add to Cart / Quick Add on your chosen item.' },
+        { num: 3, title: 'Open Cart', desc: 'Click the shopping cart icon at the top or bottom nav.' },
+        { num: 4, title: 'Login or Register', desc: 'Enter your Full Name, Mobile Number & Address.' },
+        { num: 5, title: 'Customer Details', desc: 'Verify your delivery location and contact number.' },
+        { num: 6, title: 'Order Summary', desc: 'Review your product list, subtotals and smart savings.' },
+        { num: 7, title: 'Pay via GPay/PhonePe', desc: 'Click Pay with Google Pay or PhonePe to transfer funds.' },
+        { num: 8, title: 'Upload Screenshot', desc: 'Upload your payment receipt image for verification.' },
+        { num: 9, title: 'Click "Open WhatsApp"', desc: 'Click the green WhatsApp button at checkout.' },
+        { num: 10, title: 'Send Order Message', desc: 'Send the auto-generated order details on WhatsApp!' }
+      ];
 
   return (
     <section className="py-10 bg-slate-900 text-white font-sans border-y border-slate-800">
@@ -22,7 +31,7 @@ export default function HowToOrderSection({ onStartShopping }) {
         {/* Section Header */}
         <div className="text-center max-w-2xl mx-auto mb-8 space-y-2">
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950 border border-emerald-500/50 text-emerald-400 text-xs font-black uppercase tracking-wider">
-            <CheckCircle2 className="w-3.5 h-3.5" /> Easy 10-Step Guide
+            <CheckCircle2 className="w-3.5 h-3.5" /> Easy Step Guide
           </span>
           <h2 className="text-2xl sm:text-4xl font-black uppercase tracking-tight text-white">
             How To Order <span className="text-[#008744]">On OTTMoneySaver</span>
@@ -34,7 +43,7 @@ export default function HowToOrderSection({ onStartShopping }) {
 
         {/* Step Cards Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
-          {steps.map((step) => (
+          {stepsToRender.map((step) => (
             <div
               key={step.num}
               className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800 flex flex-col justify-between hover:border-slate-700 transition-all group"

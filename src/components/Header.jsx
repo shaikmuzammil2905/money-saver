@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Search, ShoppingCart, MapPin, Phone, MessageCircle, Menu, X, Flame, ChevronRight } from 'lucide-react';
+import { Search, ShoppingCart, MapPin, Phone, MessageCircle, Menu, X, Flame, ChevronRight, Lock } from 'lucide-react';
+import { useCMS } from '../context/CMSContext';
 
 export default function Header({ 
   cartCount, 
@@ -14,6 +15,11 @@ export default function Header({
   onOpenAuthModal
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { siteSettings, contactDetails } = useCMS();
+
+  const phoneDisplay = contactDetails?.phone || '6305151531';
+  const locationDisplay = contactDetails?.address || 'Hyderabad, Telangana, India';
+  const logoUrl = siteSettings?.logo_url || '/image.png';
 
   const navLinks = [
     { name: 'Home', id: 'home' },
@@ -43,16 +49,23 @@ export default function Header({
         </div>
         <div className="hidden sm:flex items-center gap-4 text-xs text-slate-100 shrink-0">
           <span className="flex items-center gap-1 font-medium">
-            <MapPin className="w-3.5 h-3.5 text-amber-300" /> Hyderabad, Telangana, India
+            <MapPin className="w-3.5 h-3.5 text-amber-300" /> {locationDisplay}
           </span>
           <span className="text-slate-400">|</span>
-          <a href="tel:6305151531" className="flex items-center gap-1 hover:text-white transition-colors font-bold">
-            <Phone className="w-3.5 h-3.5 text-amber-300" /> 6305151531
+          <a href={`tel:${phoneDisplay}`} className="flex items-center gap-1 hover:text-white transition-colors font-bold">
+            <Phone className="w-3.5 h-3.5 text-amber-300" /> {phoneDisplay}
           </a>
           <span className="text-slate-400">|</span>
           <button onClick={onOpenWhatsApp} className="flex items-center gap-1 text-emerald-300 hover:text-emerald-200 transition-colors font-bold">
             <MessageCircle className="w-3.5 h-3.5 fill-current" /> WhatsApp
           </button>
+          <span className="text-slate-400">|</span>
+          <a
+            href="/admin"
+            className="flex items-center gap-1 bg-white/20 hover:bg-white/30 text-white font-bold px-2 py-0.5 rounded text-[11px] transition-colors"
+          >
+            <Lock className="w-3 h-3" /> Admin CMS
+          </a>
         </div>
       </div>
 
@@ -65,7 +78,7 @@ export default function Header({
           <div className="flex items-center gap-1.5 sm:gap-2 cursor-pointer group shrink-0" onClick={() => handleNavClick('home')}>
             <div className="h-7 sm:h-9 md:h-11 w-auto flex items-center shrink-0">
               <img 
-                src="/image.png" 
+                src={logoUrl} 
                 alt="OTTMoneySaver Logo" 
                 className="h-full object-contain max-h-11 rounded shadow-sm group-hover:scale-105 transition-transform duration-200" 
                 onError={(e) => {
@@ -100,101 +113,106 @@ export default function Header({
           </nav>
         </div>
 
-        {/* Header Right Actions */}
-        <div className="flex items-center gap-3">
-          {/* Search Bar Input */}
-          <div className="relative hidden md:block w-44 lg:w-56">
+        {/* Right Header Actions */}
+        <div className="flex items-center gap-2 sm:gap-4">
+          
+          {/* Search Bar */}
+          <div className="relative hidden md:block w-48 lg:w-64">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Search products, plans..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-900 text-white placeholder-slate-400 text-xs rounded-full py-2 pl-9 pr-4 border border-slate-800 focus:outline-none focus:border-[#e50914] focus:ring-1 focus:ring-[#e50914] transition-all"
+              placeholder="Search OTT, Fiber, Gadgets..."
+              className="w-full bg-slate-900 border border-slate-700 rounded-full py-1.5 pl-9 pr-4 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-[#008744] focus:ring-1 focus:ring-[#008744] transition-all"
             />
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 hover:text-white"
+              >
+                ✕
+              </button>
+            )}
           </div>
 
-          {/* User Account / Profile Button */}
-          {user ? (
-            <button
-              onClick={onOpenProfile}
-              className="p-1.5 sm:px-3 sm:py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-full sm:rounded-xl text-xs font-extrabold text-white flex items-center gap-1.5 transition-all"
-              title="Customer Profile"
-            >
-              <div className="w-6 h-6 rounded-full bg-[#008744] text-white flex items-center justify-center text-xs font-black shrink-0">
-                {user.fullName?.charAt(0)?.toUpperCase() || 'C'}
-              </div>
-              <span className="hidden sm:inline line-clamp-1 max-w-[80px]">{user.fullName?.split(' ')[0]}</span>
-            </button>
-          ) : (
-            <button
-              onClick={() => onOpenAuthModal('login')}
-              className="px-3 py-1.5 rounded-full sm:rounded-xl bg-[#e50914] hover:bg-red-700 text-white text-xs font-black transition-all shadow-sm flex items-center gap-1"
-            >
-              <span>Login</span>
-            </button>
-          )}
-
-          {/* Cart Icon with Badge */}
+          {/* Cart Icon */}
           <button
             onClick={onOpenCart}
-            className="relative p-2 text-slate-200 hover:text-white hover:bg-slate-900 rounded-full transition-colors flex items-center gap-1 group"
-            aria-label="Open Shopping Cart"
+            className="relative p-2 text-slate-200 hover:text-white hover:bg-slate-900 rounded-xl transition-colors shrink-0"
+            aria-label="Shopping Cart"
           >
-            <ShoppingCart className="w-6 h-6 group-hover:scale-110 transition-transform" />
-            <span className="absolute -top-1 -right-1 bg-[#e50914] text-white text-[11px] font-extrabold w-5 h-5 rounded-full flex items-center justify-center border-2 border-slate-950 animate-bounce">
-              {cartCount}
-            </span>
+            <ShoppingCart className="w-5 h-5 sm:w-6 sm:h-6" />
+            {cartCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-[#e50914] text-white text-[10px] sm:text-xs font-bold w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center border-2 border-slate-950 animate-bounce">
+                {cartCount}
+              </span>
+            )}
           </button>
 
-          {/* Mobile Menu Toggle */}
+          {/* Admin Login Link Mobile */}
+          <a
+            href="/admin"
+            className="sm:hidden p-2 text-slate-200 hover:text-white hover:bg-slate-900 rounded-xl transition-colors shrink-0"
+            title="Admin CMS"
+          >
+            <Lock className="w-5 h-5 text-amber-400" />
+          </a>
+
+          {/* Mobile Hamburger Toggle */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden p-2 text-slate-200 hover:text-white hover:bg-slate-900 rounded-lg transition-colors"
-            aria-label="Toggle menu"
+            className="lg:hidden p-2 text-slate-200 hover:text-white hover:bg-slate-900 rounded-xl transition-colors shrink-0"
+            aria-label="Toggle Menu"
           >
             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
+
         </div>
+
       </div>
 
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
-        <div className="lg:hidden bg-slate-900 border-t border-slate-800 px-4 pt-3 pb-6 space-y-3 animate-fadeIn">
-          {/* Mobile Search */}
-          <div className="relative mb-3">
+        <div className="lg:hidden bg-slate-900 border-t border-slate-800 px-4 pt-3 pb-6 space-y-3 font-sans shadow-2xl">
+          <div className="relative w-full">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Search products, plans..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-950 text-white placeholder-slate-400 text-sm rounded-lg py-2.5 pl-9 pr-4 border border-slate-800 focus:outline-none focus:border-[#e50914]"
+              placeholder="Search OTT plans, gadgets..."
+              className="w-full bg-slate-950 border border-slate-700 rounded-xl py-2 pl-9 pr-4 text-xs text-white"
             />
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
           </div>
 
-          {/* Mobile Nav Links */}
-          <div className="flex flex-col space-y-1">
+          <div className="space-y-1 pt-2">
             {navLinks.map((link) => (
               <button
                 key={link.id}
                 onClick={() => handleNavClick(link.id)}
-                className={`flex items-center justify-between text-left py-2.5 px-3 rounded-lg text-sm font-semibold transition-colors ${
-                  activeTab === link.id ? 'bg-slate-800 text-[#008744] font-bold' : 'text-slate-200 hover:bg-slate-800/50'
+                className={`w-full text-left py-2.5 px-3 rounded-lg text-sm font-bold flex items-center justify-between transition-colors ${
+                  activeTab === link.id ? 'bg-[#008744] text-white' : 'text-slate-200 hover:bg-slate-800'
                 }`}
               >
                 <span>{link.name}</span>
-                <ChevronRight className="w-4 h-4 text-slate-500" />
+                <ChevronRight className="w-4 h-4 opacity-70" />
               </button>
             ))}
-          </div>
-
-          <div className="pt-3 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
-            <span>📍 Hyderabad, Telangana</span>
-            <a href="tel:6305151531" className="text-amber-400 font-bold">📞 6305151531</a>
+            
+            <a
+              href="/admin"
+              className="w-full text-left py-2.5 px-3 rounded-lg text-sm font-bold flex items-center justify-between text-amber-300 hover:bg-slate-800 border border-amber-500/30 bg-amber-950/40 mt-2"
+            >
+              <span className="flex items-center gap-2">
+                <Lock className="w-4 h-4" /> Admin Panel CMS
+              </span>
+              <ChevronRight className="w-4 h-4" />
+            </a>
           </div>
         </div>
       )}
+
     </header>
   );
 }

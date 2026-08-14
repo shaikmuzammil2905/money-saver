@@ -1,58 +1,19 @@
 import React, { useState, useMemo } from 'react';
-import { ALL_PRODUCTS } from '../data/products';
 import { Laptop, Search } from 'lucide-react';
+import { useCMS } from '../context/CMSContext';
 import ProductCard from '../components/ProductCard';
 
-const ELECTRONICS_EXTRA_PRODUCTS = [
-  {
-    id: 'smart-tv-55-4k',
-    title: 'Xiaomi 55" 4K Ultra HD Smart TV',
-    subtitle: 'Dolby Vision & Atmos | Android TV 11',
-    price: 32999,
-    originalPrice: 49999,
-    discount: '34% OFF',
-    rating: 4.8,
-    reviewsCount: 1450,
-    category: 'Smart TVs',
-    image: 'https://images.unsplash.com/photo-1593784991095-a205069470b6?w=600&auto=format&fit=crop&q=80',
-    description: '4K HDR10+ Display, 30W Speakers with Dolby Audio, PatchWall 4 with IMDb integration.'
-  },
-  {
-    id: 'macbook-air-m2',
-    title: 'Apple MacBook Air M2',
-    subtitle: '8GB RAM | 256GB SSD (Starlight)',
-    price: 89900,
-    originalPrice: 99900,
-    discount: '10% OFF',
-    rating: 4.9,
-    reviewsCount: 3120,
-    category: 'Laptops',
-    image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=600&auto=format&fit=crop&q=80',
-    description: 'Supercharged by M2 chip. 13.6-inch Liquid Retina display, 18-hour battery life.'
-  },
-  {
-    id: 'asus-vivobook-15',
-    title: 'ASUS Vivobook 15 Intel i5',
-    subtitle: '16GB RAM | 512GB SSD',
-    price: 44990,
-    originalPrice: 62990,
-    discount: '28% OFF',
-    rating: 4.6,
-    reviewsCount: 940,
-    category: 'Laptops',
-    image: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600&auto=format&fit=crop&q=80',
-    description: '15.6" FHD display, 12th Gen Intel Core i5 processor, fingerprint scanner.'
-  }
-];
-
 export default function ElectronicsPage({ onAddToCart, onQuickView, wishlistIds = [], onToggleWishlist }) {
+  const { activePublicProducts } = useCMS();
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
 
   const electronicsList = useMemo(() => {
-    const existing = ALL_PRODUCTS.filter(p => ['Smart TVs', 'Laptops', 'Chargers', 'Power Banks'].includes(p.category));
-    return [...existing, ...ELECTRONICS_EXTRA_PRODUCTS];
-  }, []);
+    return activePublicProducts.filter(p => 
+      ['Smart TVs', 'Laptops', 'Chargers', 'Power Banks', 'Electronics'].includes(p.category) ||
+      p.categoryGroup === 'Other Products'
+    );
+  }, [activePublicProducts]);
 
   const categories = ['All', 'Smart TVs', 'Laptops', 'Chargers', 'Power Banks'];
 

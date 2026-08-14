@@ -1,19 +1,21 @@
 import React, { useState, useMemo } from 'react';
-import { ALL_PRODUCTS } from '../data/products';
 import { Smartphone, Search } from 'lucide-react';
+import { useCMS } from '../context/CMSContext';
 import ProductCard from '../components/ProductCard';
 
 export default function MobilesGadgetsPage({ onAddToCart, onQuickView, wishlistIds = [], onToggleWishlist }) {
+  const { activePublicProducts } = useCMS();
   const [selectedSubCat, setSelectedSubCat] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('featured');
 
   // Filter products relevant to Mobiles & Gadgets
   const mobileGadgetProducts = useMemo(() => {
-    return ALL_PRODUCTS.filter((p) => 
-      ['Smartphones', 'Headphones', 'Earbuds', 'Smart Watches', 'Bluetooth Speakers', 'Power Banks', 'Chargers'].includes(p.category)
+    return activePublicProducts.filter((p) => 
+      ['Smartphones', 'Headphones', 'Earbuds', 'Smart Watches', 'Bluetooth Speakers', 'Power Banks', 'Chargers'].includes(p.category) ||
+      p.categoryGroup === 'Mobile / Gadgets'
     );
-  }, []);
+  }, [activePublicProducts]);
 
   const subCategories = ['All', 'Smartphones', 'Headphones', 'Earbuds', 'Smart Watches', 'Bluetooth Speakers', 'Power Banks', 'Chargers'];
 

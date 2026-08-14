@@ -1,9 +1,15 @@
 import React, { useState } from 'react';
 import { Mail, Phone, MapPin, MessageCircle, Clock, Send, CheckCircle2, HelpCircle } from 'lucide-react';
+import { useCMS } from '../context/CMSContext';
 
 export default function ContactPage({ onOpenWhatsApp }) {
+  const { contactDetails } = useCMS();
   const [formData, setFormData] = useState({ name: '', phone: '', email: '', message: '' });
   const [submitted, setSubmitted] = useState(false);
+
+  const phoneDisplay = contactDetails?.phone || '6305151531';
+  const emailDisplay = contactDetails?.email || 'support@ottmoneysaver.com';
+  const addressDisplay = contactDetails?.address || 'Hyderabad, Telangana, India';
 
   const handleSubmit = (e) => {
     e.preventDefault();

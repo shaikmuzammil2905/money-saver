@@ -1,19 +1,20 @@
 import React, { useState, useMemo } from 'react';
-import { ALL_PRODUCTS } from '../data/products';
-import { ArrowLeft, Search, Filter, SlidersHorizontal } from 'lucide-react';
+import { ArrowLeft, Search, Filter } from 'lucide-react';
+import { useCMS } from '../context/CMSContext';
 import ProductCard from './ProductCard';
 
 export default function ViewAllProducts({ onBack, onAddToCart, onQuickView, selectedCategory = 'All', wishlistIds = [], onToggleWishlist }) {
+  const { activePublicProducts } = useCMS();
   const [activeGroup, setActiveGroup] = useState('All');
-  const [activeSubCategory, setActiveSubCategory] = useState('All');
+  const [activeSubCategory, setActiveSubCategory] = useState(selectedCategory || 'All');
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState('default'); // 'default', 'price-low', 'price-high', 'rating'
+  const [sortBy, setSortBy] = useState('default');
 
-  // Extract unique category names
+  // Extract unique category names from active products
   const subCategories = useMemo(() => {
-    const set = new Set(ALL_PRODUCTS.map((p) => p.category));
+    const set = new Set(activePublicProducts.map((p) => p.category));
     return ['All', ...Array.from(set)];
-  }, []);
+  }, [activePublicProducts]);
 
   // Primary Category Group Buttons
   const groupButtons = [
@@ -26,7 +27,7 @@ export default function ViewAllProducts({ onBack, onAddToCart, onQuickView, sele
 
   // Filter & Sort Products
   const filteredProducts = useMemo(() => {
-    return ALL_PRODUCTS.filter((product) => {
+    return activePublicProducts.filter((product) => {
       const matchesGroup = activeGroup === 'All' || product.categoryGroup === activeGroup;
       const matchesSubCat = activeSubCategory === 'All' || product.category === activeSubCategory;
       const matchesSearch = 
@@ -41,7 +42,7 @@ export default function ViewAllProducts({ onBack, onAddToCart, onQuickView, sele
       if (sortBy === 'rating') return b.rating - a.rating;
       return 0;
     });
-  }, [activeGroup, activeSubCategory, searchTerm, sortBy]);
+  }, [activePublicProducts, activeGroup, activeSubCategory, searchTerm, sortBy]);
 
   return (
     <section className="min-h-screen bg-slate-50 py-6 sm:py-8 font-sans">
