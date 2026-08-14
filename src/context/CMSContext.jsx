@@ -17,7 +17,7 @@ import {
   DEFAULT_WHATSAPP_TEMPLATE,
   DEFAULT_SITE_SETTINGS
 } from '../services/cmsService';
-import { ALL_PRODUCTS, PRIMARY_CATEGORIES, SHOP_BY_CATEGORIES } from '../data/products';
+import { ALL_PRODUCTS, PRIMARY_CATEGORIES, SHOP_BY_CATEGORIES, VALUE_PROPOSITIONS } from '../data/products';
 import { DEFAULT_PAYMENT_CONFIG } from '../config/payment';
 
 const CMSContext = createContext(null);
