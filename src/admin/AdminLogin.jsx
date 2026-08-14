@@ -51,12 +51,26 @@ export default function AdminLogin({ onLoginSuccess }) {
 
         {/* Error Alert */}
         {errorMsg && (
-          <div className="mb-6 p-4 rounded-xl bg-red-950/60 border border-red-800/80 text-red-200 text-xs sm:text-sm flex items-start gap-3">
-            <ShieldAlert className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
-            <div>
-              <span className="font-bold">Authentication Failed</span>
-              <p className="mt-0.5 text-red-300">{errorMsg}</p>
+          <div className="mb-6 p-4 rounded-xl bg-red-950/60 border border-red-800/80 text-red-200 text-xs sm:text-sm flex flex-col gap-2">
+            <div className="flex items-start gap-3">
+              <ShieldAlert className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold">Authentication Failed</span>
+                <p className="mt-0.5 text-red-300">{errorMsg}</p>
+              </div>
             </div>
+            
+            {errorMsg.toLowerCase().includes('confirm') && (
+              <div className="mt-2 pt-2 border-t border-red-800/50 text-[11px] text-slate-300 space-y-1.5">
+                <span className="font-bold text-amber-400">💡 How to fix this in 10 seconds:</span>
+                <ol className="list-decimal list-inside space-y-1 pl-1">
+                  <li>Go to your <a href="https://supabase.com/dashboard" target="_blank" rel="noreferrer" className="text-[#008744] hover:underline font-bold">Supabase Dashboard</a></li>
+                  <li>Go to <span className="font-semibold text-white">Authentication</span> → <span className="font-semibold text-white">Providers</span> → <span className="font-semibold text-white">Email</span></li>
+                  <li>Turn <span className="text-red-400 font-bold">OFF</span> the toggle for <span className="underline">"Confirm email"</span> and click <span className="font-bold text-white">Save</span></li>
+                  <li>Go to <span className="font-semibold text-white">Users</span>, delete <span className="font-mono text-white">admin@ottmoneysaver.com</span>, and sign in again!</li>
+                </ol>
+              </div>
+            )}
           </div>
         )}
 
