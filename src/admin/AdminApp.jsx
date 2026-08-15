@@ -18,6 +18,7 @@ import BannersManager from './pages/BannersManager';
 import BadgesManager from './pages/BadgesManager';
 import MembersManager from './pages/MembersManager';
 import AnalyticsManager from './pages/AnalyticsManager';
+import OrdersManager from './pages/OrdersManager';
 
 export default function AdminApp() {
   const [adminUser, setAdminUser] = useState(null);
@@ -59,6 +60,7 @@ export default function AdminApp() {
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'orders', label: 'Orders & Payments', icon: ShoppingCart },
     { id: 'banners', label: 'Banners Manager', icon: ImageIcon },
     { id: 'home', label: 'Home Page', icon: Home },
     { id: 'products', label: 'Products', icon: Package },
@@ -77,6 +79,8 @@ export default function AdminApp() {
     switch (activeTab) {
       case 'dashboard':
         return <Dashboard onNavigate={(tab) => setActiveTab(tab)} />;
+      case 'orders':
+        return <OrdersManager adminEmail={adminUser.email} />;
       case 'banners':
         return <BannersManager adminEmail={adminUser.email} />;
       case 'home':
