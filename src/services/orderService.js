@@ -55,13 +55,25 @@ export async function saveUserProfile(userData) {
   return userData;
 }
 
+import { uploadToCloudinary } from './cloudinary';
+
 /**
- * Upload Payment Proof Screenshot to Supabase Storage or convert to Data URL
+ * Upload Payment Proof Screenshot to Cloudinary or Supabase Storage
  */
 export async function uploadPaymentScreenshot(file) {
   if (!file) return null;
 
-  // If Supabase client & storage are available
+  // 1. Try Cloudinary Upload first (returns direct public HTTPS URL for WhatsApp & Admin)
+  try {
+    const res = await uploadToCloudinary(file, 'payment-screenshots');
+    if (res?.url) {
+      return res.url;
+    }
+  } catch (cloudinaryErr) {
+    console.warn('Cloudinary payment screenshot upload failed, trying Supabase Storage:', cloudinaryErr.message);
+  }
+
+  // 2. Try Supabase Storage
   if (supabase) {
     try {
       const fileExt = file.name.split('.').pop();
@@ -82,11 +94,11 @@ export async function uploadPaymentScreenshot(file) {
         }
       }
     } catch (err) {
-      console.warn('Supabase Storage upload fallback to Data URL:', err.message);
+      console.warn('Supabase Storage upload fallback:', err.message);
     }
   }
 
-  // Fallback: Read file as Data URL / Base64 string for local persistence & WhatsApp link preview
+  // 3. Fallback: Read file as Data URL
   return new Promise((resolve) => {
     const reader = new FileReader();
     reader.onloadend = () => resolve(reader.result);
