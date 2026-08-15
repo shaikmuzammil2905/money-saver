@@ -7,8 +7,9 @@ import {
   deleteCmsItem,
   updateDisplayOrder,
   logActivity,
-  DEFAULT_HOMEPAGE_SLIDES,
-  DEFAULT_HOMEPAGE_ITEMS,
+  DEFAULT_BANNERS,
+  DEFAULT_BADGES,
+  DEFAULT_BATCHES,
   DEFAULT_HOMEPAGE_STEPS,
   DEFAULT_CONTACT_DETAILS,
   DEFAULT_FOOTER_LINKS,
@@ -17,7 +18,7 @@ import {
   DEFAULT_WHATSAPP_TEMPLATE,
   DEFAULT_SITE_SETTINGS
 } from '../services/cmsService';
-import { ALL_PRODUCTS, PRIMARY_CATEGORIES, SHOP_BY_CATEGORIES, VALUE_PROPOSITIONS } from '../data/products';
+import { ALL_PRODUCTS, PRIMARY_CATEGORIES, VALUE_PROPOSITIONS } from '../data/products';
 import { DEFAULT_PAYMENT_CONFIG } from '../config/payment';
 
 const CMSContext = createContext(null);
@@ -25,10 +26,12 @@ const CMSContext = createContext(null);
 export function CMSProvider({ children }) {
   // --- CMS STATE ---
   const [products, setProducts] = useState([]);
+  const [banners, setBanners] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [homeSlides, setHomeSlides] = useState([]);
+  const [badges, setBadges] = useState([]);
+  const [batches, setBatches] = useState([]);
+  const [members, setMembers] = useState([]);
   const [homeItems, setHomeItems] = useState([]);
-  const [homeCategoryLayout, setHomeCategoryLayout] = useState({ columns: 4 });
   const [homeSteps, setHomeSteps] = useState([]);
   const [contactDetails, setContactDetails] = useState(DEFAULT_CONTACT_DETAILS);
   const [footerLinks, setFooterLinks] = useState([]);
@@ -46,12 +49,18 @@ export function CMSProvider({ children }) {
     try {
       setLoading(true);
 
-      // Convert local products to initial format if needed
+      // Convert local products to initial format if database is completely empty
       const mappedDefaultProducts = ALL_PRODUCTS.map((p, idx) => ({
         slug_id: p.id,
         title: p.title,
         subtitle: p.subtitle || '',
         description: p.description || '',
+        description_points: [
+          'High quality 4K UHD playback support',
+          'Instant digital activation via WhatsApp',
+          '24/7 dedicated customer support'
+        ],
+        custom_info: ['Instant Activation', 'WhatsApp Support Available', 'Payment via UPI'],
         price: p.price,
         original_price: p.originalPrice || p.price,
         discount: p.discount || '',
@@ -60,9 +69,15 @@ export function CMSProvider({ children }) {
         category: p.category,
         category_group: p.categoryGroup || p.category,
         badge: p.badge || '',
+        badges: p.badge ? [{ name: p.badge, text: p.badge, bg_color: '#e50914' }] : [],
+        batches: ['Best Seller'],
+        sections: ['Home', 'All OTTs'],
         in_stock: p.inStock !== false,
         is_featured: p.badge === 'Hot Deal' || p.badge === 'Top OTT Deal' || idx < 4,
         display_order: idx + 1,
+        home_order: idx + 1,
+        offers_order: idx + 1,
+        all_otts_order: idx + 1,
         is_active: true
       }));
 
@@ -75,12 +90,14 @@ export function CMSProvider({ children }) {
         is_active: true
       }));
 
-      // Parallel fetches from Supabase
+      // Parallel fetches from Supabase PostgreSQL tables
       const [
         prods,
+        bnrs,
         cats,
-        slides,
-        items,
+        bdgs,
+        btchs,
+        usersList,
         steps,
         contact,
         footer,
@@ -93,9 +110,11 @@ export function CMSProvider({ children }) {
         media
       ] = await Promise.all([
         getCmsTableData('products', mappedDefaultProducts),
+        getCmsTableData('banners', DEFAULT_BANNERS),
         getCmsTableData('categories', mappedDefaultCategories),
-        getCmsTableData('homepage_slides', DEFAULT_HOMEPAGE_SLIDES),
-        getCmsTableData('homepage_items', DEFAULT_HOMEPAGE_ITEMS),
+        getCmsTableData('badges', DEFAULT_BADGES),
+        getCmsTableData('product_batches', DEFAULT_BATCHES),
+        getCmsTableData('users', []),
         getCmsTableData('homepage_steps', DEFAULT_HOMEPAGE_STEPS),
         getCmsSingleRecord('contact_details', DEFAULT_CONTACT_DETAILS),
         getCmsTableData('footer_links', DEFAULT_FOOTER_LINKS),
@@ -108,20 +127,22 @@ export function CMSProvider({ children }) {
         getCmsTableData('media', [])
       ]);
 
-      setProducts(prods);
-      setCategories(cats);
-      setHomeSlides(slides);
-      setHomeItems(items);
-      setHomeSteps(steps);
+      setProducts(prods || []);
+      setBanners(bnrs || []);
+      setCategories(cats || []);
+      setBadges(bdgs || []);
+      setBatches(btchs || []);
+      setMembers(usersList || []);
+      setHomeSteps(steps || []);
       if (contact) setContactDetails(contact);
-      setFooterLinks(footer);
-      setOfferSlides(oSlides);
-      setOfferCategories(oCats);
-      setOfferItems(oItems);
+      setFooterLinks(footer || []);
+      setOfferSlides(oSlides || []);
+      setOfferCategories(oCats || []);
+      setOfferItems(oItems || []);
       if (cart) setCartSettings(cart);
       if (waTemp?.template_text) setWhatsAppTemplate(waTemp.template_text);
       if (sSettings?.value) setSiteSettings(sSettings.value);
-      setMediaList(media);
+      setMediaList(media || []);
 
     } catch (err) {
       console.error('Error refreshing CMS data:', err);
@@ -134,12 +155,12 @@ export function CMSProvider({ children }) {
     refreshAllData();
   }, [refreshAllData]);
 
-  // --- SUPABASE REALTIME LISTENER ---
+  // --- SUPABASE REALTIME LISTENER FOR ALL TABLES ---
   useEffect(() => {
     if (!supabase) return;
 
     const channel = supabase
-      .channel('cms-changes')
+      .channel('cms-realtime-sync')
       .on('postgres_changes', { event: '*', schema: 'public' }, () => {
         refreshAllData();
       })
@@ -150,8 +171,8 @@ export function CMSProvider({ children }) {
     };
   }, [refreshAllData]);
 
-  // --- PUBLIC ACTIVE PRODUCT HELPER ---
-  // Public site displays active products transformed back to UI props format
+  // --- PUBLIC ACTIVE PRODUCTS HELPER ---
+  // Public website consumes active products transformed into UI format
   const activePublicProducts = products
     .filter((p) => p.is_active !== false)
     .sort((a, b) => (a.display_order || 999) - (b.display_order || 999))
@@ -161,6 +182,12 @@ export function CMSProvider({ children }) {
       title: p.title,
       subtitle: p.subtitle,
       description: p.description,
+      descriptionPoints: Array.isArray(p.description_points) 
+        ? p.description_points 
+        : (p.description ? p.description.split('\n').filter(Boolean) : []),
+      customInfo: Array.isArray(p.custom_info) && p.custom_info.length > 0 
+        ? p.custom_info 
+        : ['Instant Activation', 'WhatsApp Support Available', 'Payment via UPI'],
       price: Number(p.price),
       originalPrice: Number(p.original_price || p.price),
       discount: p.discount,
@@ -169,8 +196,15 @@ export function CMSProvider({ children }) {
       category: p.category,
       categoryGroup: p.category_group || p.category,
       badge: p.badge,
+      badges: Array.isArray(p.badges) ? p.badges : (p.badge ? [{ name: p.badge, text: p.badge, bg_color: '#e50914' }] : []),
+      batches: Array.isArray(p.batches) ? p.batches : ['Best Seller'],
+      sections: Array.isArray(p.sections) ? p.sections : ['Home', 'All OTTs'],
       inStock: p.in_stock !== false,
       isFeatured: p.is_featured,
+      displayOrder: p.display_order || 1,
+      homeOrder: p.home_order || p.display_order || 1,
+      offersOrder: p.offers_order || p.display_order || 1,
+      allOttsOrder: p.all_otts_order || p.display_order || 1,
       rating: Number(p.rating || 4.5),
       reviewsCount: p.reviews_count || 100
     }));
@@ -183,14 +217,18 @@ export function CMSProvider({ children }) {
         products,
         setProducts,
         activePublicProducts,
+        banners,
+        setBanners,
         categories,
         setCategories,
-        homeSlides,
-        setHomeSlides,
+        badges,
+        setBadges,
+        batches,
+        setBatches,
+        members,
+        setMembers,
         homeItems,
         setHomeItems,
-        homeCategoryLayout,
-        setHomeCategoryLayout,
         homeSteps,
         setHomeSteps,
         contactDetails,

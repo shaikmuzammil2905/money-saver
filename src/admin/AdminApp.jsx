@@ -14,6 +14,11 @@ import MediaManager from './pages/MediaManager';
 import WebsiteSettingsManager from './pages/WebsiteSettingsManager';
 import ActivityLogPage from './pages/ActivityLogPage';
 
+import BannersManager from './pages/BannersManager';
+import BadgesManager from './pages/BadgesManager';
+import MembersManager from './pages/MembersManager';
+import AnalyticsManager from './pages/AnalyticsManager';
+
 export default function AdminApp() {
   const [adminUser, setAdminUser] = useState(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
@@ -54,10 +59,14 @@ export default function AdminApp() {
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'banners', label: 'Banners Manager', icon: ImageIcon },
     { id: 'home', label: 'Home Page', icon: Home },
-    { id: 'offers', label: 'Offers', icon: Tag },
     { id: 'products', label: 'Products', icon: Package },
+    { id: 'offers', label: 'Offers', icon: Tag },
     { id: 'categories', label: 'Categories', icon: Layers },
+    { id: 'badges', label: 'Badges & Batches', icon: Tag },
+    { id: 'members', label: 'Members', icon: User },
+    { id: 'analytics', label: 'Analytics', icon: Activity },
     { id: 'cart', label: 'Cart & WhatsApp', icon: ShoppingCart },
     { id: 'media', label: 'Media Library', icon: ImageIcon },
     { id: 'settings', label: 'Website Settings', icon: Globe },
@@ -68,14 +77,22 @@ export default function AdminApp() {
     switch (activeTab) {
       case 'dashboard':
         return <Dashboard onNavigate={(tab) => setActiveTab(tab)} />;
+      case 'banners':
+        return <BannersManager adminEmail={adminUser.email} />;
       case 'home':
         return <HomePageManager adminEmail={adminUser.email} />;
-      case 'offers':
-        return <OffersManager adminEmail={adminUser.email} />;
       case 'products':
         return <ProductsManager adminEmail={adminUser.email} />;
+      case 'offers':
+        return <OffersManager adminEmail={adminUser.email} />;
       case 'categories':
         return <CategoriesManager adminEmail={adminUser.email} />;
+      case 'badges':
+        return <BadgesManager adminEmail={adminUser.email} />;
+      case 'members':
+        return <MembersManager adminEmail={adminUser.email} />;
+      case 'analytics':
+        return <AnalyticsManager />;
       case 'cart':
         return <CartSettingsManager adminEmail={adminUser.email} />;
       case 'media':

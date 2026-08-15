@@ -34,17 +34,33 @@ export default function ProductCard({
           onClick={() => onQuickView && onQuickView(product)}
           className="relative w-full h-36 sm:h-44 rounded-xl sm:rounded-2xl bg-[#f8f9fa] group-hover:bg-[#f1f3f7] transition-colors flex items-center justify-center p-2.5 sm:p-3 overflow-hidden cursor-pointer"
         >
-          {/* Top Left Discount or Stock Badge */}
+          {/* Top Left Badges */}
           <div className="absolute top-2 left-2 z-10 flex flex-col gap-1">
             {!isAvailable ? (
               <span className="bg-slate-900 text-slate-200 text-[9px] sm:text-[10px] font-black uppercase px-2 py-0.5 rounded-md sm:rounded-lg shadow-sm tracking-wider flex items-center gap-1">
                 <Ban className="w-3 h-3 text-red-400" /> Out of Stock
               </span>
-            ) : calculatedDiscount ? (
-              <span className="bg-[#ff5200] text-white text-[9px] sm:text-[10px] font-black uppercase px-2 py-0.5 rounded-md sm:rounded-lg shadow-sm tracking-wider">
-                {calculatedDiscount}
-              </span>
-            ) : null}
+            ) : (
+              <>
+                {Array.isArray(product.badges) && product.badges.length > 0 ? (
+                  product.badges.map((bdg, idx) => (
+                    <span
+                      key={idx}
+                      style={{ backgroundColor: bdg.bg_color || '#e50914', color: bdg.text_color || '#ffffff' }}
+                      className="text-[9px] sm:text-[10px] font-black uppercase px-2 py-0.5 rounded-md sm:rounded-lg shadow-sm tracking-wider"
+                    >
+                      {bdg.text || bdg.name}
+                    </span>
+                  ))
+                ) : (
+                  calculatedDiscount && (
+                    <span className="bg-[#e50914] text-white text-[9px] sm:text-[10px] font-black uppercase px-2 py-0.5 rounded-md sm:rounded-lg shadow-sm tracking-wider">
+                      {calculatedDiscount}
+                    </span>
+                  )
+                )}
+              </>
+            )}
           </div>
 
           {/* Top Right Wishlist Heart Button */}
@@ -67,12 +83,6 @@ export default function ProductCard({
             className={`max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-300 pointer-events-none ${!isAvailable ? 'opacity-50 grayscale' : ''}`}
             loading="lazy"
           />
-
-          {/* Bottom Left Rating Overlay */}
-          <div className="absolute bottom-2 left-2 z-10 bg-white/95 backdrop-blur-sm px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-extrabold text-slate-800 flex items-center gap-1 shadow-sm border border-slate-100">
-            <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
-            <span>{product.rating || 4.9}</span>
-          </div>
 
           {/* Quick View Button on Hover (Desktop) */}
           {onQuickView && (

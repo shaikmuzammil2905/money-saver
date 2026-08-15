@@ -34,11 +34,17 @@ import AdminApp from './admin/AdminApp';
 
 import { CMSProvider, useCMS } from './context/CMSContext';
 import { getUserProfile } from './services/orderService';
+import { logPageView } from './services/cmsService';
 
 const CART_STORAGE_KEY = 'ott_cart';
 
 function PublicWebsite() {
   const { activePublicProducts, loading } = useCMS();
+  const [activeTab, setActiveTab] = useState('home');
+
+  useEffect(() => {
+    logPageView(`/${activeTab}`);
+  }, [activeTab]);
 
   // Load Cart from LocalStorage or default items
   const [cartItems, setCartItems] = useState(() => {
@@ -79,7 +85,6 @@ function PublicWebsite() {
 
   // Search & Navigation
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState('home');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('All');
 
   // Persist Cart

@@ -182,6 +182,23 @@ export default function OffersManager({ adminEmail }) {
       {/* ================================================== */}
       {activeTab === 'items' && (
         <div className="space-y-4">
+          
+          {/* OFFERS ITEM COUNT SUMMARY (Part 9) */}
+          <div className="grid grid-cols-3 gap-3 bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl">
+            <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 text-center">
+              <span className="text-[10px] font-bold text-slate-400 uppercase">Total Offer Items</span>
+              <div className="text-xl font-black text-white mt-0.5">{offerItems.length}</div>
+            </div>
+            <div className="bg-emerald-950/40 p-3 rounded-xl border border-emerald-800/60 text-center">
+              <span className="text-[10px] font-bold text-emerald-400 uppercase">Active (Publicly Visible)</span>
+              <div className="text-xl font-black text-emerald-300 mt-0.5">{offerItems.filter(i => i.is_active !== false).length}</div>
+            </div>
+            <div className="bg-red-950/40 p-3 rounded-xl border border-red-800/60 text-center">
+              <span className="text-[10px] font-bold text-red-400 uppercase">Inactive (Hidden)</span>
+              <div className="text-xl font-black text-red-300 mt-0.5">{offerItems.filter(i => i.is_active === false).length}</div>
+            </div>
+          </div>
+
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold text-white">Offer Items List</h2>
             <button

@@ -10,26 +10,55 @@ import {
   Headphones, 
   Truck 
 } from 'lucide-react';
+import { useCMS } from '../context/CMSContext';
 
 export default function HeroSection({ onExploreDeals, onShopNow }) {
+  const { banners } = useCMS();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
-  const slidesCount = 2;
+  const banner1 = banners.find(b => b.banner_key === 'home_main_1') || {
+    heading: 'SAVE MONEY. ENJOY MORE.',
+    subheading: 'BIG SAVINGS!',
+    description: 'OTT subscriptions, high-speed fiber internet, mobiles & gadgets — all at smart prices.',
+    button_text: 'Explore Deals',
+    button_link: 'offers',
+    image_url: '/hero-products-showcase.png',
+    is_active: true
+  };
+
+  const banner2 = banners.find(b => b.banner_key === 'home_main_2') || {
+    heading: 'SAVE MORE. ENJOY MORE.',
+    subheading: 'MEGA DEALS!',
+    description: 'Up to 75% Off Premium Electronics, OTT Subscriptions & High-Speed Fiber Internet.',
+    button_text: 'Shop Now',
+    button_link: 'mobiles',
+    image_url: '/hero-products-showcase.png',
+    is_active: true
+  };
+
+  const activeSlides = [banner1];
+  if (banner2.is_active !== false) {
+    activeSlides.push(banner2);
+  }
+
+  const slidesCount = activeSlides.length;
 
   useEffect(() => {
-    if (isPaused) return;
+    if (isPaused || slidesCount <= 1) return;
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % slidesCount);
     }, 6000);
     return () => clearInterval(interval);
-  }, [isPaused]);
+  }, [isPaused, slidesCount]);
 
   const handleNext = () => {
+    if (slidesCount <= 1) return;
     setCurrentSlide((prev) => (prev + 1) % slidesCount);
   };
 
   const handlePrev = () => {
+    if (slidesCount <= 1) return;
     setCurrentSlide((prev) => (prev - 1 + slidesCount) % slidesCount);
   };
 

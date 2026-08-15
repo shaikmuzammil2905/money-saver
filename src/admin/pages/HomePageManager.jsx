@@ -312,7 +312,53 @@ export default function HomePageManager({ adminEmail }) {
       {/* SUB TAB 1: HOME ITEMS */}
       {/* ================================================== */}
       {activeSubTab === 'items' && (
-        <div className="space-y-4">
+        <div className="space-y-6">
+          
+          {/* ITEM DISPLAY SETTINGS (Part 5) */}
+          <div className="bg-slate-900 border border-purple-500/30 rounded-2xl p-5 shadow-xl space-y-4">
+            <h2 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2 border-b border-slate-800 pb-3">
+              <Layers className="w-5 h-5 text-purple-400" /> Home Item Display Settings (Count &amp; Manual Selection)
+            </h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1">
+                  How many items should be displayed on Home?
+                </label>
+                <select
+                  value={siteSettings?.home_display_settings?.display_count || 8}
+                  onChange={async (e) => {
+                    const newCount = e.target.value === 'All' ? 'All' : parseInt(e.target.value);
+                    const updatedValue = {
+                      ...(siteSettings || {}),
+                      home_display_settings: {
+                        ...(siteSettings?.home_display_settings || {}),
+                        display_count: newCount
+                      }
+                    };
+                    await saveCmsItem('site_settings', { key: 'global_config', value: updatedValue });
+                    refreshAllData();
+                    showToast(`Home Display Count set to: ${newCount}`);
+                  }}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white text-xs font-black"
+                >
+                  <option value={4}>4 Items</option>
+                  <option value={6}>6 Items</option>
+                  <option value={8}>8 Items (Default)</option>
+                  <option value={10}>10 Items</option>
+                  <option value={12}>12 Items</option>
+                  <option value={20}>20 Items</option>
+                  <option value="All">All Active Selected Items</option>
+                </select>
+              </div>
+
+              <div className="text-xs text-slate-400">
+                <span className="font-bold text-white block mb-1">Display Rule:</span>
+                Items are rendered on the public Homepage strictly based on your selected count limit and active section assignment (`Home`). Disabled items are never counted or displayed.
+              </div>
+            </div>
+          </div>
+
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold text-white">Homepage Items ({homeItems.length})</h2>
             <div className="flex items-center gap-2">

@@ -4,11 +4,20 @@ import { useCMS } from '../context/CMSContext';
 import ProductCard from './ProductCard';
 
 export default function FeaturedDeals({ onAddToCart, onQuickView, onViewAll, wishlistIds = [], onToggleWishlist }) {
-  const { activePublicProducts, homeItems } = useCMS();
+  const { activePublicProducts, siteSettings } = useCMS();
 
-  const dealsToRender = activePublicProducts.filter(p => p.isFeatured || p.badge).length > 0
-    ? activePublicProducts.filter(p => p.isFeatured || p.badge)
-    : activePublicProducts.slice(0, 5);
+  const displayLimit = siteSettings?.home_display_settings?.display_count;
+  
+  // Filter active products assigned to Home section
+  let homeProducts = activePublicProducts
+    .filter((p) => Array.isArray(p.sections) ? p.sections.includes('Home') : p.isFeatured || p.show_on_home !== false)
+    .sort((a, b) => (a.homeOrder || a.displayOrder || 999) - (b.homeOrder || b.displayOrder || 999));
+
+  if (displayLimit && displayLimit !== 'All' && typeof displayLimit === 'number') {
+    homeProducts = homeProducts.slice(0, displayLimit);
+  }
+
+  const dealsToRender = homeProducts.length > 0 ? homeProducts : activePublicProducts.slice(0, displayLimit || 8);
 
   return (
     <section id="offers" className="py-8 sm:py-12 bg-white font-sans">

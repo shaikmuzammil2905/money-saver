@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS public.admin_profiles (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
--- 2. SITE SETTINGS (Logo, Business Name, Favicon, Meta, Title, etc.)
+-- 2. SITE SETTINGS (Logo, Business Name, Favicon, Meta, Title, Category Layout, Home Display Settings)
 CREATE TABLE IF NOT EXISTS public.site_settings (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     key TEXT UNIQUE NOT NULL,
@@ -22,7 +22,29 @@ CREATE TABLE IF NOT EXISTS public.site_settings (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
--- 3. HOMEPAGE SLIDES (2nd Slide, Hero slides)
+-- 3. BANNERS TABLE (Home Main 01/02, Small 01/02/03, Middle Big, Bottom Small, Offers Top)
+CREATE TABLE IF NOT EXISTS public.banners (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    banner_key TEXT UNIQUE NOT NULL, -- 'home_main_1', 'home_main_2', 'home_small_1', 'home_small_2', 'home_small_3', 'home_middle_big', 'home_bottom_small', 'offers_top'
+    title_name TEXT NOT NULL,
+    heading TEXT,
+    subheading TEXT,
+    description TEXT,
+    button_text TEXT DEFAULT 'Shop Now',
+    button_link TEXT DEFAULT '/all-otts',
+    image_url TEXT,
+    mobile_image_url TEXT,
+    text_color TEXT DEFAULT '#ffffff',
+    button_color TEXT DEFAULT '#e50914',
+    bg_color TEXT DEFAULT '#050b1e',
+    overlay_color TEXT DEFAULT 'rgba(0,0,0,0.3)',
+    display_order INT DEFAULT 1,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+-- Legacy Compatibility View/Table for Homepage Slides
 CREATE TABLE IF NOT EXISTS public.homepage_slides (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     slide_key TEXT UNIQUE DEFAULT 'second_slide',
@@ -55,63 +77,7 @@ CREATE TABLE IF NOT EXISTS public.homepage_items (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
--- 5. HOMEPAGE CATEGORIES & LAYOUT
-CREATE TABLE IF NOT EXISTS public.homepage_categories (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    title TEXT NOT NULL,
-    image_url TEXT,
-    link_url TEXT,
-    category_slug TEXT,
-    columns_count INT DEFAULT 4,
-    display_order INT DEFAULT 1,
-    is_active BOOLEAN DEFAULT true,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
-);
-
--- 6. EASY 10 STEP GUIDE
-CREATE TABLE IF NOT EXISTS public.homepage_steps (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    step_number INT NOT NULL,
-    title TEXT NOT NULL,
-    description TEXT NOT NULL,
-    icon_name TEXT DEFAULT 'HelpCircle',
-    image_url TEXT,
-    display_order INT DEFAULT 1,
-    is_active BOOLEAN DEFAULT true,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
-);
-
--- 7. CONTACT DETAILS
-CREATE TABLE IF NOT EXISTS public.contact_details (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    business_name TEXT DEFAULT 'OTTMoneySaver',
-    phone TEXT DEFAULT '6305151531',
-    secondary_phone TEXT DEFAULT '7013931261',
-    whatsapp TEXT DEFAULT '916305151531',
-    secondary_whatsapp TEXT DEFAULT '917013931261',
-    email TEXT DEFAULT 'support@ottmoneysaver.com',
-    address TEXT DEFAULT 'Hyderabad, Telangana, India',
-    city TEXT DEFAULT 'Hyderabad',
-    state TEXT DEFAULT 'Telangana',
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
-);
-
--- 8. FOOTER LINKS
-CREATE TABLE IF NOT EXISTS public.footer_links (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    section_name TEXT NOT NULL, -- 'Quick Links', 'Customer Support', 'Contact Us'
-    heading TEXT,
-    link_text TEXT NOT NULL,
-    link_url TEXT NOT NULL,
-    display_order INT DEFAULT 1,
-    is_active BOOLEAN DEFAULT true,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
-);
-
--- 9. CATEGORIES
+-- 5. CATEGORIES
 CREATE TABLE IF NOT EXISTS public.categories (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name TEXT NOT NULL,
@@ -125,13 +91,37 @@ CREATE TABLE IF NOT EXISTS public.categories (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
--- 10. PRODUCTS
+-- 6. PRODUCT BADGES / TAGS
+CREATE TABLE IF NOT EXISTS public.badges (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name TEXT NOT NULL,
+    text TEXT NOT NULL,
+    bg_color TEXT DEFAULT '#e50914',
+    text_color TEXT DEFAULT '#ffffff',
+    position TEXT DEFAULT 'top-right',
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+-- 7. PRODUCT BATCHES / GROUPS (Best Seller, Trending, Top Picks, etc.)
+CREATE TABLE IF NOT EXISTS public.product_batches (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name TEXT NOT NULL,
+    slug TEXT UNIQUE NOT NULL,
+    display_order INT DEFAULT 1,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+-- 8. PRODUCTS (Full Schema with Multi-Section Assignment & Per-Section Orders)
 CREATE TABLE IF NOT EXISTS public.products (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     slug_id TEXT UNIQUE,
     title TEXT NOT NULL,
     subtitle TEXT,
     description TEXT,
+    description_points JSONB DEFAULT '[]'::jsonb, -- Array of vertical points
+    custom_info JSONB DEFAULT '["Instant Activation", "WhatsApp Support Available", "Payment via UPI"]'::jsonb,
     price DECIMAL(10,2) NOT NULL,
     original_price DECIMAL(10,2),
     discount TEXT,
@@ -144,15 +134,21 @@ CREATE TABLE IF NOT EXISTS public.products (
     rating DECIMAL(3,2) DEFAULT 4.5,
     reviews_count INT DEFAULT 100,
     badge TEXT,
+    badges JSONB DEFAULT '[]'::jsonb, -- Assigned badges array
+    batches JSONB DEFAULT '[]'::jsonb, -- Assigned batches array
+    sections JSONB DEFAULT '["Home", "All OTTs"]'::jsonb, -- 'Home', 'Offers', 'All OTTs'
     in_stock BOOLEAN DEFAULT true,
     is_featured BOOLEAN DEFAULT false,
     display_order INT DEFAULT 1,
+    home_order INT DEFAULT 1,
+    offers_order INT DEFAULT 1,
+    all_otts_order INT DEFAULT 1,
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
--- 11. OFFERS SLIDES
+-- 9. OFFER SLIDES & OFFER ITEMS
 CREATE TABLE IF NOT EXISTS public.offer_slides (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     heading TEXT NOT NULL,
@@ -166,20 +162,6 @@ CREATE TABLE IF NOT EXISTS public.offer_slides (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
--- 12. OFFER CATEGORIES
-CREATE TABLE IF NOT EXISTS public.offer_categories (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name TEXT NOT NULL,
-    heading TEXT,
-    description TEXT,
-    image_url TEXT,
-    display_order INT DEFAULT 1,
-    is_active BOOLEAN DEFAULT true,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
-);
-
--- 13. OFFER ITEMS
 CREATE TABLE IF NOT EXISTS public.offer_items (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name TEXT NOT NULL,
@@ -199,7 +181,49 @@ CREATE TABLE IF NOT EXISTS public.offer_items (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
--- 14. CART SETTINGS (Payment links, WhatsApp numbers)
+-- 10. EASY 10 STEP GUIDE
+CREATE TABLE IF NOT EXISTS public.homepage_steps (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    step_number INT NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    icon_name TEXT DEFAULT 'HelpCircle',
+    image_url TEXT,
+    display_order INT DEFAULT 1,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+-- 11. CONTACT DETAILS
+CREATE TABLE IF NOT EXISTS public.contact_details (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    business_name TEXT DEFAULT 'OTTMoneySaver',
+    phone TEXT DEFAULT '6305151531',
+    secondary_phone TEXT DEFAULT '7013931261',
+    whatsapp TEXT DEFAULT '916305151531',
+    secondary_whatsapp TEXT DEFAULT '917013931261',
+    email TEXT DEFAULT 'support@ottmoneysaver.com',
+    address TEXT DEFAULT 'Hyderabad, Telangana, India',
+    city TEXT DEFAULT 'Hyderabad',
+    state TEXT DEFAULT 'Telangana',
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+-- 12. FOOTER LINKS
+CREATE TABLE IF NOT EXISTS public.footer_links (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    section_name TEXT NOT NULL,
+    heading TEXT,
+    link_text TEXT NOT NULL,
+    link_url TEXT NOT NULL,
+    display_order INT DEFAULT 1,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+-- 13. CART SETTINGS & WHATSAPP TEMPLATES
 CREATE TABLE IF NOT EXISTS public.cart_settings (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     gpay_link TEXT DEFAULT 'upi://pay?pa=6305151531@ybl&pn=OTTMoneySaver&cu=INR',
@@ -213,7 +237,6 @@ CREATE TABLE IF NOT EXISTS public.cart_settings (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
--- 15. WHATSAPP TEMPLATES
 CREATE TABLE IF NOT EXISTS public.whatsapp_templates (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     template_key TEXT UNIQUE DEFAULT 'order_checkout',
@@ -222,7 +245,7 @@ CREATE TABLE IF NOT EXISTS public.whatsapp_templates (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
--- 16. MEDIA
+-- 14. MEDIA LIBRARY
 CREATE TABLE IF NOT EXISTS public.media (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     file_name TEXT NOT NULL,
@@ -234,7 +257,7 @@ CREATE TABLE IF NOT EXISTS public.media (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
--- 17. ACTIVITY LOGS
+-- 15. ACTIVITY LOGS
 CREATE TABLE IF NOT EXISTS public.activity_logs (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     admin_email TEXT NOT NULL,
@@ -245,17 +268,21 @@ CREATE TABLE IF NOT EXISTS public.activity_logs (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
--- 18. ORDERS & ORDER ITEMS & USERS
+-- 16. USERS / MEMBERS
 CREATE TABLE IF NOT EXISTS public.users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    full_name TEXT,
-    mobile_number TEXT UNIQUE,
+    full_name TEXT NOT NULL,
+    mobile_number TEXT UNIQUE NOT NULL,
     email TEXT UNIQUE,
     location TEXT,
+    account_status TEXT DEFAULT 'Active', -- 'Active', 'Disabled'
+    registration_date TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+    last_active TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
+-- 17. ORDERS & ORDER ITEMS
 CREATE TABLE IF NOT EXISTS public.orders (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     order_id TEXT UNIQUE NOT NULL,
@@ -282,40 +309,33 @@ CREATE TABLE IF NOT EXISTS public.order_items (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
+-- 18. WEBSITE VISITOR ANALYTICS
+CREATE TABLE IF NOT EXISTS public.analytics_visits (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    session_id TEXT NOT NULL,
+    path TEXT NOT NULL,
+    device_type TEXT DEFAULT 'desktop', -- 'mobile', 'desktop', 'tablet'
+    referrer TEXT,
+    visited_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
 
 -- ==================================================
--- ROW LEVEL SECURITY (RLS) & AUTHORIZATION
+-- RLS POLICIES
 -- ==================================================
-
--- Helper Function to check if current user is Admin
-CREATE OR REPLACE FUNCTION public.is_admin()
-RETURNS boolean AS $$
-BEGIN
-  IF auth.uid() IS NULL THEN
-    RETURN false;
-  END IF;
-  
-  RETURN EXISTS (
-    SELECT 1 FROM public.admin_profiles
-    WHERE user_id = auth.uid() OR lower(email) = lower(auth.jwt() ->> 'email')
-  );
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Enable RLS on all tables
 ALTER TABLE public.admin_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.site_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.banners ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.homepage_slides ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.homepage_items ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.homepage_categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.badges ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.product_batches ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.offer_slides ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.offer_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.homepage_steps ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.contact_details ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.footer_links ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.offer_slides ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.offer_categories ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.offer_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.cart_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.whatsapp_templates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.media ENABLE ROW LEVEL SECURITY;
@@ -323,62 +343,39 @@ ALTER TABLE public.activity_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.analytics_visits ENABLE ROW LEVEL SECURITY;
 
--- PUBLIC READ POLICIES (Allow public reading for active CMS content)
-CREATE POLICY "Public Read Active Homepage Slides" ON public.homepage_slides FOR SELECT USING (is_active = true OR public.is_admin());
-CREATE POLICY "Public Read Active Homepage Items" ON public.homepage_items FOR SELECT USING (is_active = true OR public.is_admin());
-CREATE POLICY "Public Read Active Homepage Categories" ON public.homepage_categories FOR SELECT USING (is_active = true OR public.is_admin());
-CREATE POLICY "Public Read Active Homepage Steps" ON public.homepage_steps FOR SELECT USING (is_active = true OR public.is_admin());
-CREATE POLICY "Public Read Contact Details" ON public.contact_details FOR SELECT USING (true);
-CREATE POLICY "Public Read Active Footer Links" ON public.footer_links FOR SELECT USING (is_active = true OR public.is_admin());
-CREATE POLICY "Public Read Active Categories" ON public.categories FOR SELECT USING (is_active = true OR public.is_admin());
-CREATE POLICY "Public Read Active Products" ON public.products FOR SELECT USING (is_active = true OR public.is_admin());
-CREATE POLICY "Public Read Active Offer Slides" ON public.offer_slides FOR SELECT USING (is_active = true OR public.is_admin());
-CREATE POLICY "Public Read Active Offer Categories" ON public.offer_categories FOR SELECT USING (is_active = true OR public.is_admin());
-CREATE POLICY "Public Read Active Offer Items" ON public.offer_items FOR SELECT USING (is_active = true OR public.is_admin());
-CREATE POLICY "Public Read Cart Settings" ON public.cart_settings FOR SELECT USING (true);
-CREATE POLICY "Public Read WhatsApp Templates" ON public.whatsapp_templates FOR SELECT USING (true);
+-- PUBLIC READ POLICIES
 CREATE POLICY "Public Read Site Settings" ON public.site_settings FOR SELECT USING (true);
+CREATE POLICY "Public Read Banners" ON public.banners FOR SELECT USING (is_active = true);
+CREATE POLICY "Public Read Active Products" ON public.products FOR SELECT USING (is_active = true);
+CREATE POLICY "Public Read Active Categories" ON public.categories FOR SELECT USING (is_active = true);
+CREATE POLICY "Public Read Active Badges" ON public.badges FOR SELECT USING (is_active = true);
+CREATE POLICY "Public Read Active Batches" ON public.product_batches FOR SELECT USING (is_active = true);
+CREATE POLICY "Public Read Active Offer Items" ON public.offer_items FOR SELECT USING (is_active = true);
+CREATE POLICY "Public Read Contact Details" ON public.contact_details FOR SELECT USING (true);
+CREATE POLICY "Public Read Cart Settings" ON public.cart_settings FOR SELECT USING (true);
 
--- PUBLIC INSERT POLICIES FOR CUSTOMERS
+-- PUBLIC INSERT POLICIES
 CREATE POLICY "Public Insert Orders" ON public.orders FOR INSERT WITH CHECK (true);
 CREATE POLICY "Public Insert Order Items" ON public.order_items FOR INSERT WITH CHECK (true);
 CREATE POLICY "Public Insert Users" ON public.users FOR INSERT WITH CHECK (true);
+CREATE POLICY "Public Insert Analytics Visits" ON public.analytics_visits FOR INSERT WITH CHECK (true);
 
--- ADMIN FULL ACCESS POLICIES (INSERT, UPDATE, DELETE for Admins)
-CREATE POLICY "Admin Full Access Admin Profiles" ON public.admin_profiles FOR ALL USING (public.is_admin() OR auth.uid() = user_id);
-CREATE POLICY "Admin Full Access Site Settings" ON public.site_settings FOR ALL USING (public.is_admin());
-CREATE POLICY "Admin Full Access Homepage Slides" ON public.homepage_slides FOR ALL USING (public.is_admin());
-CREATE POLICY "Admin Full Access Homepage Items" ON public.homepage_items FOR ALL USING (public.is_admin());
-CREATE POLICY "Admin Full Access Homepage Categories" ON public.homepage_categories FOR ALL USING (public.is_admin());
-CREATE POLICY "Admin Full Access Homepage Steps" ON public.homepage_steps FOR ALL USING (public.is_admin());
-CREATE POLICY "Admin Full Access Contact Details" ON public.contact_details FOR ALL USING (public.is_admin());
-CREATE POLICY "Admin Full Access Footer Links" ON public.footer_links FOR ALL USING (public.is_admin());
-CREATE POLICY "Admin Full Access Categories" ON public.categories FOR ALL USING (public.is_admin());
-CREATE POLICY "Admin Full Access Products" ON public.products FOR ALL USING (public.is_admin());
-CREATE POLICY "Admin Full Access Offer Slides" ON public.offer_slides FOR ALL USING (public.is_admin());
-CREATE POLICY "Admin Full Access Offer Categories" ON public.offer_categories FOR ALL USING (public.is_admin());
-CREATE POLICY "Admin Full Access Offer Items" ON public.offer_items FOR ALL USING (public.is_admin());
-CREATE POLICY "Admin Full Access Cart Settings" ON public.cart_settings FOR ALL USING (public.is_admin());
-CREATE POLICY "Admin Full Access WhatsApp Templates" ON public.whatsapp_templates FOR ALL USING (public.is_admin());
-CREATE POLICY "Admin Full Access Media" ON public.media FOR ALL USING (public.is_admin());
-CREATE POLICY "Admin Full Access Activity Logs" ON public.activity_logs FOR ALL USING (public.is_admin());
-CREATE POLICY "Admin Full Access Orders" ON public.orders FOR ALL USING (public.is_admin());
-CREATE POLICY "Admin Full Access Order Items" ON public.order_items FOR ALL USING (public.is_admin());
-CREATE POLICY "Admin Full Access Users" ON public.users FOR ALL USING (public.is_admin());
+-- ALL ACCESS POLICIES (Supabase client full operational access)
+CREATE POLICY "Full Access Banners" ON public.banners FOR ALL USING (true);
+CREATE POLICY "Full Access Products" ON public.products FOR ALL USING (true);
+CREATE POLICY "Full Access Categories" ON public.categories FOR ALL USING (true);
+CREATE POLICY "Full Access Badges" ON public.badges FOR ALL USING (true);
+CREATE POLICY "Full Access Batches" ON public.product_batches FOR ALL USING (true);
+CREATE POLICY "Full Access Site Settings" ON public.site_settings FOR ALL USING (true);
+CREATE POLICY "Full Access Users" ON public.users FOR ALL USING (true);
 
--- ENABLE REALTIME ON PUBLIC TABLES
-ALTER PUBLICATION supabase_realtime ADD TABLE public.homepage_slides;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.homepage_items;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.homepage_categories;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.homepage_steps;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.contact_details;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.footer_links;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.categories;
+-- REALTIME PUBLICATION
+ALTER PUBLICATION supabase_realtime ADD TABLE public.banners;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.products;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.offer_slides;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.offer_categories;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.offer_items;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.cart_settings;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.whatsapp_templates;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.categories;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.badges;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.product_batches;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.site_settings;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.offer_items;
