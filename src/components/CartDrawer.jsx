@@ -327,26 +327,28 @@ export default function CartDrawer({
       const savedOrder = await createOrder(orderPayload);
       setCreatedOrder(savedOrder);
 
-      // Launch WhatsApp with Prefilled Text Message
-      setSubmitButtonText('Opening WhatsApp...');
-      const targetWhatsappNum = cartSettings?.whatsapp_number || paymentConfig?.whatsappNumber || '916305151531';
-      const encodedMsg = encodeURIComponent(msg);
-      const whatsappUrl = `https://wa.me/${targetWhatsappNum}?text=${encodedMsg}`;
+      // Launch WhatsApp Directly to 916305151531
+      let rawNum = cartSettings?.whatsapp_number || paymentConfig?.whatsappNumber || '916305151531';
+      let cleanNum = String(rawNum).replace(/\D/g, '');
+      if (!cleanNum.startsWith('91') && cleanNum.length === 10) {
+        cleanNum = '91' + cleanNum;
+      }
+      if (!cleanNum) cleanNum = '916305151531';
 
-      setTimeout(() => {
-        window.open(whatsappUrl, '_blank');
-        setOrderSubmitting(false);
-        setSubmitButtonText('');
-        if (!uploadedScreenshotUrl || uploadedScreenshotUrl.startsWith('data:')) {
-          alert('We opened WhatsApp with your order details. Since file sharing is not supported by your browser, please attach your payment screenshot manually in the chat!');
-        }
-      }, 1000);
+      const encodedMsg = encodeURIComponent(msg);
+      const whatsappUrl = `https://api.whatsapp.com/send?phone=${cleanNum}&text=${encodedMsg}`;
+
+      setOrderSubmitting(false);
+      setSubmitButtonText('');
+
+      // Direct location redirect opens WhatsApp app directly on mobile and WhatsApp Web on desktop
+      window.location.href = whatsappUrl;
 
     } catch (err) {
       console.error('Order submission error:', err);
       setOrderSubmitting(false);
       setSubmitButtonText('');
-      alert('Order created, but encountered an issue opening WhatsApp. Please contact support.');
+      alert('Order created, but encountered an issue launching WhatsApp. Please contact support at 6305151531.');
     }
   };
 

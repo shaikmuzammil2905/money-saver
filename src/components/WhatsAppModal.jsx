@@ -8,8 +8,12 @@ export default function WhatsAppModal({ isOpen, onClose }) {
   if (!isOpen) return null;
 
   const handleSend = (whatsappNum) => {
+    let cleanNum = String(whatsappNum || '916305151531').replace(/\D/g, '');
+    if (!cleanNum.startsWith('91') && cleanNum.length === 10) {
+      cleanNum = '91' + cleanNum;
+    }
     const encoded = encodeURIComponent(message);
-    window.open(`https://wa.me/${whatsappNum}?text=${encoded}`, '_blank');
+    window.location.href = `https://api.whatsapp.com/send?phone=${cleanNum}&text=${encoded}`;
   };
 
   return (
