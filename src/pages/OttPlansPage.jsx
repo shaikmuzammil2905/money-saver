@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Tv, Flame, CheckCircle, ShieldCheck, Zap, Star, ShoppingCart, Eye, ArrowRight, MessageCircle } from 'lucide-react';
 import { useCMS } from '../context/CMSContext';
 
@@ -140,13 +140,44 @@ const OTT_PLANS_LIST = [
 ];
 
 export default function OttPlansPage({ onAddToCart, onQuickView, onOpenWhatsApp }) {
+  const { categories: cmsCategories, activePublicProducts } = useCMS();
   const [selectedCat, setSelectedCat] = useState('All');
 
-  const filterCategories = ['All', 'Netflix', 'Prime Video', 'Disney+ Hotstar', 'ZEE5', 'Sony LIV', 'Combo Packs'];
+  // Filter products for OTT category group or fallback list
+  const ottPublicProducts = useMemo(() => {
+    const fromCms = activePublicProducts.filter(p => 
+      p.categoryGroup?.toLowerCase().includes('ott') || 
+      p.category?.toLowerCase().includes('ott') ||
+      p.category?.toLowerCase().includes('netflix') ||
+      p.category?.toLowerCase().includes('prime') ||
+      p.category?.toLowerCase().includes('hotstar') ||
+      p.category?.toLowerCase().includes('zee') ||
+      p.category?.toLowerCase().includes('sony') ||
+      p.category?.toLowerCase().includes('combo')
+    );
+
+    if (fromCms && fromCms.length > 0) return fromCms;
+    return OTT_PLANS_LIST;
+  }, [activePublicProducts]);
+
+  const filterCategories = useMemo(() => {
+    const list = ['All'];
+    if (cmsCategories && cmsCategories.length > 0) {
+      cmsCategories
+        .filter(c => c.is_active !== false)
+        .forEach(c => {
+          if (!list.includes(c.name)) list.push(c.name);
+        });
+    }
+    ottPublicProducts.forEach(p => {
+      if (p.category && !list.includes(p.category)) list.push(p.category);
+    });
+    return list;
+  }, [cmsCategories, ottPublicProducts]);
 
   const filteredPlans = selectedCat === 'All' 
-    ? OTT_PLANS_LIST 
-    : OTT_PLANS_LIST.filter(plan => plan.category === selectedCat);
+    ? ottPublicProducts 
+    : ottPublicProducts.filter(plan => plan.category?.toLowerCase() === selectedCat.toLowerCase());
 
   return (
     <div className="min-h-screen bg-slate-50 py-8 font-sans">
@@ -177,15 +208,15 @@ export default function OttPlansPage({ onAddToCart, onQuickView, onOpenWhatsApp 
           </div>
         </div>
 
-        {/* Filter Pills */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-6 scrollbar-none">
+        {/* Dynamic Category Filter Pills */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2 mb-6">
           {filterCategories.map((cat) => (
             <button
               key={cat}
               onClick={() => setSelectedCat(cat)}
-              className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-                selectedCat === cat
-                  ? 'bg-[#e50914] text-white shadow-md shadow-red-600/30'
+              className={`px-3 py-2 rounded-xl text-xs font-bold text-center transition-all truncate ${
+                selectedCat.toLowerCase() === cat.toLowerCase()
+                  ? 'bg-[#e50914] text-white shadow-md shadow-red-600/30 font-black'
                   : 'bg-white text-slate-700 hover:bg-slate-200 border border-slate-200'
               }`}
             >

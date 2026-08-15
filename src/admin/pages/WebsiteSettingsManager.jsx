@@ -42,6 +42,7 @@ export default function WebsiteSettingsManager({ adminEmail }) {
     try {
       const formData = new FormData(e.target);
       const updatedValue = {
+        ...(siteSettings || {}),
         business_name: formData.get('business_name'),
         logo_url: formData.get('logo_url'),
         favicon_url: formData.get('favicon_url'),
@@ -51,6 +52,7 @@ export default function WebsiteSettingsManager({ adminEmail }) {
         address: formData.get('address'),
         website_title: formData.get('website_title'),
         meta_description: formData.get('meta_description'),
+        category_layout_style: siteSettings?.category_layout_style || 'grid',
         social_links: {
           facebook: formData.get('facebook') || '',
           instagram: formData.get('instagram') || '',

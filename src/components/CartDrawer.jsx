@@ -49,6 +49,7 @@ export default function CartDrawer({
     return localStorage.getItem('customerEmail') || '';
   });
 
+  const [isEditingLocation, setIsEditingLocation] = useState(false);
   const [detectingLocation, setDetectingLocation] = useState(false);
   const [locationError, setLocationError] = useState('');
 
@@ -56,6 +57,7 @@ export default function CartDrawer({
   const [screenshotPreview, setScreenshotPreview] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
+  const [submitValidationMsg, setSubmitValidationMsg] = useState('');
   
   const [orderSubmitting, setOrderSubmitting] = useState(false);
   const [submitButtonText, setSubmitButtonText] = useState('');
@@ -174,6 +176,7 @@ export default function CartDrawer({
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     setUploadError('');
+    setSubmitValidationMsg('');
 
     if (!file) return;
 
@@ -202,6 +205,7 @@ export default function CartDrawer({
     setScreenshotFile(null);
     setScreenshotPreview(null);
     setUploadError('');
+    setSubmitValidationMsg('');
   };
 
   // Payment Status Logic
@@ -237,6 +241,8 @@ export default function CartDrawer({
 
   // Submit Order & Open WhatsApp (Progressive Enhancement Flow)
   const handleCheckoutAndSubmit = async () => {
+    setSubmitValidationMsg('');
+
     // 1. Validation Checks
     if (cartItems.length === 0) {
       alert('Your cart is empty.');
@@ -256,7 +262,7 @@ export default function CartDrawer({
       return;
     }
     if (!screenshotFile) {
-      alert('Please upload your payment screenshot before sending the order.');
+      setSubmitValidationMsg('Please upload your payment screenshot to continue.');
       return;
     }
 
@@ -481,28 +487,56 @@ export default function CartDrawer({
                       />
                     </div>
 
-                    {/* Location Input with Auto-detection Option */}
+                    {/* Location Section */}
                     <div>
                       <div className="flex justify-between items-center mb-1">
                         <label className="block text-[11px] font-bold text-slate-700">
-                          Location / Address <span className="text-red-500">*</span>
+                          Location <span className="text-red-500">*</span>
                         </label>
                         <button
                           type="button"
-                          onClick={handleDetectLocation}
-                          disabled={detectingLocation}
-                          className="text-[10px] font-bold text-[#008744] hover:underline flex items-center gap-1 active:scale-95 transition-all"
+                          onClick={() => setIsEditingLocation(!isEditingLocation)}
+                          className="text-[11px] font-bold text-[#e50914] hover:underline active:scale-95 transition-all"
                         >
-                          📍 {detectingLocation ? 'Detecting...' : 'Use My Current Location'}
+                          {isEditingLocation ? 'Done' : 'Edit'}
                         </button>
                       </div>
-                      <input
-                        type="text"
-                        placeholder="Area, City, State"
-                        value={customerLocation}
-                        onChange={(e) => handleLocationChange(e.target.value)}
-                        className="w-full bg-white text-xs rounded-xl py-2.5 px-3 border border-slate-200 focus:outline-none focus:border-[#008744] transition-all"
-                      />
+
+                      {!isEditingLocation ? (
+                        <div className="bg-white rounded-xl p-2.5 border border-slate-200 flex items-center justify-between">
+                          <span className={`text-xs font-semibold ${customerLocation ? 'text-slate-900' : 'text-slate-400'}`}>
+                            {customerLocation || '[ Enter Area, City, State ]'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setIsEditingLocation(true)}
+                            className="text-[10px] font-bold text-[#008744] bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 shrink-0 ml-2"
+                          >
+                            Edit Location
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="space-y-2 mt-1">
+                          <input
+                            type="text"
+                            placeholder="Area, City, State"
+                            value={customerLocation}
+                            onChange={(e) => handleLocationChange(e.target.value)}
+                            className="w-full bg-white text-xs rounded-xl py-2.5 px-3 border border-slate-200 focus:outline-none focus:border-[#008744] transition-all"
+                          />
+                          <div className="flex justify-end">
+                            <button
+                              type="button"
+                              onClick={handleDetectLocation}
+                              disabled={detectingLocation}
+                              className="text-[10px] text-slate-500 hover:text-[#008744] font-medium underline flex items-center gap-1"
+                            >
+                              📍 {detectingLocation ? 'Detecting...' : 'Auto-fill current location via GPS'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
                       {locationError && (
                         <p className="text-[10px] text-red-600 font-bold mt-1">{locationError}</p>
                       )}
@@ -540,7 +574,6 @@ export default function CartDrawer({
                       <span>Subtotal</span>
                       <span className="font-bold text-slate-900">₹{subtotal.toLocaleString()}</span>
                     </div>
-                    {/* Delivery details completely removed */}
                     <div className="flex justify-between text-base font-black text-slate-900 pt-2 border-t border-slate-200">
                       <span>Final Amount</span>
                       <span className="text-[#008744] text-lg">₹{subtotal.toLocaleString()}</span>
@@ -556,7 +589,6 @@ export default function CartDrawer({
                   </h3>
 
                   <div className="grid grid-cols-2 gap-2">
-                    {/* GPay Button */}
                     <button
                       onClick={() => handleOpenPaymentApp('gpay')}
                       className="py-2.5 px-3 rounded-xl bg-white text-slate-900 hover:bg-slate-100 font-extrabold text-xs shadow flex items-center justify-center gap-1.5 transition-all active:scale-95"
@@ -568,7 +600,6 @@ export default function CartDrawer({
                       <ExternalLink className="w-3 h-3 text-slate-400" />
                     </button>
 
-                    {/* PhonePe Button */}
                     <button
                       onClick={() => handleOpenPaymentApp('phonepe')}
                       className="py-2.5 px-3 rounded-xl bg-[#5f259f] text-white hover:bg-[#4d1d82] font-extrabold text-xs shadow flex items-center justify-center gap-1.5 transition-all active:scale-95"
@@ -585,6 +616,14 @@ export default function CartDrawer({
                     <span>Upload Payment Screenshot <span className="text-red-500">*</span></span>
                     <span className="text-[10px] text-slate-500 font-normal">JPG, PNG, WEBP</span>
                   </h3>
+
+                  {/* Submission Validation Message ONLY displayed if submit was clicked and file missing */}
+                  {submitValidationMsg && (
+                    <div className="p-2.5 bg-red-50 border border-red-200 rounded-xl text-red-600 text-xs font-bold flex items-center gap-1.5 animate-pulse">
+                      <AlertCircle className="w-4 h-4 shrink-0" />
+                      <span>{submitValidationMsg}</span>
+                    </div>
+                  )}
 
                   {uploadError && (
                     <div className="p-2.5 bg-red-50 border border-red-200 rounded-xl text-red-600 text-xs font-semibold">

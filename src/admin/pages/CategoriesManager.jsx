@@ -8,6 +8,7 @@ import { uploadToCloudinary } from '../../services/cloudinary';
 export default function CategoriesManager({ adminEmail }) {
   const { 
     categories, setCategories, 
+    siteSettings, setSiteSettings,
     saveCmsItem, deleteCmsItem, updateDisplayOrder, logActivity, refreshAllData 
   } = useCMS();
 
@@ -16,9 +17,49 @@ export default function CategoriesManager({ adminEmail }) {
   const [uploading, setUploading] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
 
+  const currentLayoutStyle = siteSettings?.category_layout_style || 'grid';
+
   const showToast = (msg) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(''), 3000);
+  };
+
+  const handleUpdateLayoutStyle = async (newStyle) => {
+    try {
+      const updatedValue = {
+        ...(siteSettings || {}),
+        category_layout_style: newStyle
+      };
+      
+      const payload = {
+        id: siteSettings?.id,
+        key: 'global_config',
+        value: updatedValue
+      };
+
+      await saveCmsItem('site_settings', payload);
+      setSiteSettings(updatedValue);
+      await logActivity(adminEmail, 'UPDATED', 'Categories Layout', `Category Display Style: ${newStyle.toUpperCase()}`);
+      refreshAllData();
+      showToast(`Category Display Style saved to Supabase: ${newStyle.toUpperCase()}`);
+    } catch (err) {
+      alert('Error updating category layout style: ' + err.message);
+    }
+  };
+
+  const handleMoveCategory = async (index, direction) => {
+    const newCats = [...categories];
+    const targetIdx = direction === 'UP' ? index - 1 : index + 1;
+    if (targetIdx < 0 || targetIdx >= newCats.length) return;
+
+    const temp = newCats[index];
+    newCats[index] = newCats[targetIdx];
+    newCats[targetIdx] = temp;
+
+    setCategories(newCats);
+    await updateDisplayOrder('categories', newCats);
+    await logActivity(adminEmail, 'REORDERED', 'Categories');
+    showToast('Category Order Updated in Supabase.');
   };
 
   const handleToggleStatus = async (cat) => {
@@ -117,9 +158,63 @@ export default function CategoriesManager({ adminEmail }) {
         </button>
       </div>
 
+      {/* ADMIN CONTROL: All OTTs Category Display Style Setting */}
+      <div className="bg-slate-900 border border-purple-500/30 rounded-2xl p-4 sm:p-5 shadow-xl space-y-3">
+        <h2 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+          <span>All OTTs → Category Display Style (Supabase Controlled)</span>
+        </h2>
+        <p className="text-xs text-slate-400">
+          Choose how categories appear on the public "All OTTs" page. Stored directly in Supabase.
+        </p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+          {/* OPTION A: GRID / STABLE */}
+          <button
+            type="button"
+            onClick={() => handleUpdateLayoutStyle('grid')}
+            className={`p-4 rounded-xl border text-left transition-all flex flex-col justify-between ${
+              currentLayoutStyle === 'grid'
+                ? 'bg-purple-950/60 border-purple-500 text-white shadow-lg shadow-purple-900/40 ring-2 ring-purple-500'
+                : 'bg-slate-950 border-slate-800 text-slate-300 hover:bg-slate-800'
+            }`}
+          >
+            <div>
+              <div className="flex items-center justify-between font-extrabold text-sm mb-1">
+                <span>OPTION A — Grid / Stable</span>
+                {currentLayoutStyle === 'grid' && <span className="bg-purple-500 text-white text-[10px] px-2 py-0.5 rounded-full font-black">ACTIVE</span>}
+              </div>
+              <p className="text-xs text-slate-400">
+                Categories wrap naturally side-by-side according to screen width. No horizontal scrolling. (Recommended)
+              </p>
+            </div>
+          </button>
+
+          {/* OPTION B: HORIZONTAL */}
+          <button
+            type="button"
+            onClick={() => handleUpdateLayoutStyle('horizontal')}
+            className={`p-4 rounded-xl border text-left transition-all flex flex-col justify-between ${
+              currentLayoutStyle === 'horizontal'
+                ? 'bg-purple-950/60 border-purple-500 text-white shadow-lg shadow-purple-900/40 ring-2 ring-purple-500'
+                : 'bg-slate-950 border-slate-800 text-slate-300 hover:bg-slate-800'
+            }`}
+          >
+            <div>
+              <div className="flex items-center justify-between font-extrabold text-sm mb-1">
+                <span>OPTION B — Horizontal</span>
+                {currentLayoutStyle === 'horizontal' && <span className="bg-purple-500 text-white text-[10px] px-2 py-0.5 rounded-full font-black">ACTIVE</span>}
+              </div>
+              <p className="text-xs text-slate-400">
+                Categories appear in a horizontal scrollable row with swipe/scroll support.
+              </p>
+            </div>
+          </button>
+        </div>
+      </div>
+
       {/* Categories Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-        {categories.map((cat) => (
+        {categories.map((cat, index) => (
           <div key={cat.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               {cat.image_url ? (
@@ -137,24 +232,43 @@ export default function CategoriesManager({ adminEmail }) {
 
             <div className="flex items-center gap-1 shrink-0">
               <button
+                onClick={() => handleMoveCategory(index, 'UP')}
+                disabled={index === 0}
+                className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-200"
+                title="Move Up"
+              >
+                <ArrowUp className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => handleMoveCategory(index, 'DOWN')}
+                disabled={index === categories.length - 1}
+                className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-200"
+                title="Move Down"
+              >
+                <ArrowDown className="w-3.5 h-3.5" />
+              </button>
+              <button
                 onClick={() => handleToggleStatus(cat)}
                 className={`p-1.5 rounded-lg border text-[10px] font-extrabold transition-all ${
                   cat.is_active !== false
                     ? 'bg-emerald-950 border-emerald-700 text-emerald-300'
                     : 'bg-red-950 border-red-800 text-red-300'
                 }`}
+                title="Toggle Active Status"
               >
                 <Power className="w-3.5 h-3.5" />
               </button>
               <button
                 onClick={() => setEditingCategory(cat)}
                 className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200"
+                title="Edit"
               >
                 <Edit3 className="w-3.5 h-3.5" />
               </button>
               <button
                 onClick={() => handleDeleteCategory(cat.id, cat.name)}
                 className="p-1.5 rounded-lg bg-red-950/80 hover:bg-red-900 text-red-300 border border-red-800"
+                title="Delete"
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>

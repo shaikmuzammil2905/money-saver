@@ -8,7 +8,7 @@ export default function MobileBottomNav({
   const tabs = [
     { id: 'home', label: 'Home', icon: Home },
     { id: 'offers', label: 'Offers', icon: Tag },
-    { id: 'view-all', label: 'Explorer', icon: Compass },
+    { id: 'view-all', label: 'All OTTs', icon: Compass },
   ];
 
   return (

@@ -191,6 +191,7 @@ export const DEFAULT_SITE_SETTINGS = {
   address: 'Hyderabad, Telangana, India',
   website_title: 'OTTMoneySaver — Save Big on OTT, Fiber & Smart Gadgets',
   meta_description: 'Buy discounted OTT platform subscriptions, high-speed fiber internet plans, and smart gadgets at lowest prices.',
+  category_layout_style: 'grid',
   social_links: {
     facebook: '',
     instagram: '',
