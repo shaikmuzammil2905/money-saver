@@ -8,6 +8,8 @@ import { uploadToCloudinary } from '../../services/cloudinary';
 export default function HomePageManager({ adminEmail }) {
   const { 
     homeItems, setHomeItems, 
+    homeSections, setHomeSections,
+    themes, banners,
     homeSlides, setHomeSlides,
     homeSteps, setHomeSteps,
     contactDetails, setContactDetails,
@@ -15,7 +17,8 @@ export default function HomePageManager({ adminEmail }) {
     saveCmsItem, deleteCmsItem, updateDisplayOrder, logActivity, refreshAllData 
   } = useCMS();
 
-  const [activeSubTab, setActiveSubTab] = useState('items'); // 'items', '2nd-slide', 'steps', 'contact', 'footer', 'layout'
+  const [activeSubTab, setActiveSubTab] = useState('builder'); // 'builder', 'items', '2nd-slide', 'steps', 'contact', 'footer'
+  const [editingBox, setEditingBox] = useState(null);
 
   // Modals & Form states
   const [editingItem, setEditingItem] = useState(null);
@@ -258,6 +261,73 @@ export default function HomePageManager({ adminEmail }) {
     }
   };
 
+  // --- HOME PAGE BUILDER (BOX SYSTEM) HANDLERS ---
+  const handleMoveSection = async (index, direction) => {
+    const newSections = [...homeSections];
+    const targetIdx = direction === 'UP' ? index - 1 : index + 1;
+    if (targetIdx < 0 || targetIdx >= newSections.length) return;
+
+    const temp = newSections[index];
+    newSections[index] = newSections[targetIdx];
+    newSections[targetIdx] = temp;
+
+    setHomeSections(newSections);
+    await updateDisplayOrder('home_sections', newSections, 'position');
+    await logActivity(adminEmail, 'REORDERED', 'Home Page Builder');
+    showToast('Home Page Section Order Saved to Supabase.');
+  };
+
+  const handleToggleSectionStatus = async (sec) => {
+    try {
+      const updated = { ...sec, is_active: !sec.is_active };
+      await saveCmsItem('home_sections', updated);
+      await logActivity(adminEmail, updated.is_active ? 'ENABLED' : 'DISABLED', 'Home Page Builder', sec.title_label || sec.box_key);
+      refreshAllData();
+      showToast(updated.is_active ? 'Section Enabled' : 'Section Hidden');
+    } catch (err) {
+      alert('Error updating section: ' + err.message);
+    }
+  };
+
+  const handleDeleteSection = async (id, label) => {
+    if (!window.confirm(`Delete Home Page section "${label}"?`)) return;
+    try {
+      await deleteCmsItem('home_sections', id);
+      await logActivity(adminEmail, 'DELETED', 'Home Page Builder', label);
+      refreshAllData();
+      showToast('Section Removed from Home Page.');
+    } catch (err) {
+      alert('Error deleting section: ' + err.message);
+    }
+  };
+
+  const handleSaveSectionForm = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const formData = new FormData(e.target);
+      const payload = {
+        id: editingBox?.id,
+        box_key: editingBox?.box_key || `box_${Date.now()}`,
+        title_label: formData.get('title_label') || 'Home Page Section',
+        section_type: formData.get('section_type'),
+        content_id: formData.get('content_id') || '',
+        position: editingBox?.position || homeSections.length + 1,
+        is_active: editingBox ? editingBox.is_active !== false : true
+      };
+
+      await saveCmsItem('home_sections', payload);
+      await logActivity(adminEmail, editingBox?.id ? 'EDITED' : 'ADDED', 'Home Page Builder', payload.title_label);
+      refreshAllData();
+      setEditingBox(null);
+      showToast('Section Configuration Saved to Supabase.');
+    } catch (err) {
+      alert('Error saving section box: ' + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="space-y-6 font-sans">
       
@@ -273,10 +343,10 @@ export default function HomePageManager({ adminEmail }) {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
           <div>
             <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
-              <Home className="w-6 h-6 text-[#e50914]" /> Home Page Management
+              <Home className="w-6 h-6 text-[#e50914]" /> Home Page Builder &amp; CMS
             </h1>
             <p className="text-xs sm:text-sm text-slate-400 mt-1">
-              Control Home Items, 2nd Slide, Category Layout, Easy 10 Step Guide, Contact Info, and Footer.
+              Control the structure, section ordering, themes, banners, and home items dynamically on Supabase.
             </p>
           </div>
         </div>
@@ -284,6 +354,7 @@ export default function HomePageManager({ adminEmail }) {
         {/* Sub Tab Buttons */}
         <div className="flex items-center gap-2 overflow-x-auto pt-4 no-scrollbar">
           {[
+            { id: 'builder', label: 'Home Page Builder (Box Order)', icon: Home },
             { id: 'items', label: 'Home Items', icon: Layers },
             { id: '2nd-slide', label: '2nd Slide Banner', icon: ImageIcon },
             { id: 'steps', label: 'Easy Step Guide', icon: ListOrdered },
@@ -307,6 +378,184 @@ export default function HomePageManager({ adminEmail }) {
           })}
         </div>
       </div>
+
+      {/* ================================================== */}
+      {/* SUB TAB 0: HOME PAGE BUILDER (BOX SYSTEM) */}
+      {/* ================================================== */}
+      {activeSubTab === 'builder' && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-black text-white">Home Page Section Boxes ({homeSections.length} Boxes)</h2>
+              <p className="text-xs text-slate-400 mt-0.5">Move sections Up/Down to change Public Website Home Page layout order.</p>
+            </div>
+            <button
+              onClick={() => setEditingBox({
+                box_key: `box_${homeSections.length + 1}`,
+                title_label: `Home Section Box ${homeSections.length + 1}`,
+                section_type: 'banner',
+                content_id: 'home_main_1',
+                position: homeSections.length + 1,
+                is_active: true
+              })}
+              className="px-4 py-2 rounded-xl bg-[#008744] hover:bg-emerald-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-md"
+            >
+              <Plus className="w-4 h-4" /> Add Section Box
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            {homeSections.map((sec, idx) => (
+              <div key={sec.id || sec.box_key} className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 font-sans">
+                
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-white font-black flex items-center justify-center text-sm shadow-md shrink-0">
+                    Box {idx + 1}
+                  </div>
+
+                  <div>
+                    <h3 className="font-extrabold text-white text-base">{sec.title_label || sec.box_key}</h3>
+                    <div className="flex flex-wrap items-center gap-2 mt-1 text-xs">
+                      <span className="px-2 py-0.5 rounded bg-purple-950 text-purple-300 font-bold border border-purple-800 uppercase text-[10px]">
+                        Type: {sec.section_type}
+                      </span>
+                      {sec.content_id && (
+                        <span className="px-2 py-0.5 rounded bg-slate-950 text-amber-300 font-mono text-[10px] border border-slate-800">
+                          Content ID: {sec.content_id}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between sm:justify-end gap-2 pt-3 sm:pt-0 border-t sm:border-0 border-slate-800">
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => handleMoveSection(idx, 'UP')}
+                      disabled={idx === 0}
+                      className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-white"
+                      title="Move Up"
+                    >
+                      <ArrowUp className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleMoveSection(idx, 'DOWN')}
+                      disabled={idx === homeSections.length - 1}
+                      className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-white"
+                      title="Move Down"
+                    >
+                      <ArrowDown className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleToggleSectionStatus(sec)}
+                      className={`px-3 py-2 rounded-xl text-xs font-black border transition-all ${
+                        sec.is_active !== false ? 'bg-emerald-950 border-emerald-800 text-emerald-300' : 'bg-red-950 border-red-800 text-red-300'
+                      }`}
+                    >
+                      {sec.is_active !== false ? 'VISIBLE' : 'HIDDEN'}
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setEditingBox(sec)}
+                      className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs flex items-center gap-1"
+                    >
+                      <Edit3 className="w-3.5 h-3.5 text-purple-400" /> Edit Box
+                    </button>
+                    <button
+                      onClick={() => handleDeleteSection(sec.id, sec.title_label || sec.box_key)}
+                      className="p-2 rounded-xl bg-red-950/80 hover:bg-red-900 text-red-300 border border-red-800"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+            ))}
+          </div>
+
+          {/* EDIT BOX MODAL */}
+          {editingBox && (
+            <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto font-sans">
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 my-8">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                  <h3 className="font-black text-white text-base">
+                    Edit {editingBox.title_label || 'Section Box'}
+                  </h3>
+                  <button onClick={() => setEditingBox(null)} className="text-slate-400 hover:text-white font-bold">✕</button>
+                </div>
+
+                <form onSubmit={handleSaveSectionForm} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">Section Box Title / Label *</label>
+                    <input
+                      type="text"
+                      name="title_label"
+                      required
+                      defaultValue={editingBox.title_label || ''}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white text-xs font-bold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">Select Section Type *</label>
+                    <select
+                      name="section_type"
+                      defaultValue={editingBox.section_type || 'banner'}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white text-xs font-bold"
+                    >
+                      <option value="banner">Banner</option>
+                      <option value="categories">Categories Cards</option>
+                      <option value="theme">Selectable Theme (Visual Builder)</option>
+                      <option value="featured_deals">Featured Deals / Products</option>
+                      <option value="steps">How To Order Guide</option>
+                      <option value="why_choose_us">Why Choose Us</option>
+                      <option value="guidance">Need Help / Guidance Support</option>
+                      <option value="notices">Notice Alert Banner</option>
+                      <option value="custom">Custom Section</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">Select Content (Banner or Theme)</label>
+                    <input
+                      type="text"
+                      name="content_id"
+                      defaultValue={editingBox.content_id || ''}
+                      placeholder="e.g. home_main_1, home_small_1, theme_1..."
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white text-xs font-mono"
+                    />
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      Available Banners: <code className="text-amber-300">home_main_1, home_small_1, home_middle_big, offers_top</code>
+                      <br />
+                      Available Themes: <code className="text-pink-300">theme_1, theme_2</code> (or any created theme key)
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+                    <button
+                      type="button"
+                      onClick={() => setEditingBox(null)}
+                      className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-bold"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={saving}
+                      className="px-6 py-2 rounded-xl bg-[#008744] hover:bg-emerald-600 text-white text-xs font-bold shadow-lg"
+                    >
+                      Save Section Box
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ================================================== */}
       {/* SUB TAB 1: HOME ITEMS */}

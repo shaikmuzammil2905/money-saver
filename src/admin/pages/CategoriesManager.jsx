@@ -212,67 +212,84 @@ export default function CategoriesManager({ adminEmail }) {
         </div>
       </div>
 
-      {/* Categories Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+      {/* Categories Grid (Left Picture - Right Details & Controls Layout) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {categories.map((cat, index) => (
-          <div key={cat.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
+          <div key={cat.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col sm:flex-row items-center sm:items-stretch gap-4 font-sans">
+            
+            {/* Left: Large Category Picture */}
+            <div className="w-full sm:w-32 h-28 sm:h-auto rounded-xl bg-slate-950 border border-slate-800 overflow-hidden relative shrink-0 flex items-center justify-center">
               {cat.image_url ? (
-                <img src={cat.image_url} alt={cat.name} className="w-12 h-12 object-cover rounded-xl border border-slate-700 bg-slate-950" />
+                <img src={cat.image_url} alt={cat.name} className="w-full h-full object-cover" />
               ) : (
-                <div className="w-12 h-12 rounded-xl bg-slate-950 border border-slate-800 text-slate-400 flex items-center justify-center font-bold text-xs">
-                  {cat.icon || 'Icon'}
+                <div className="text-slate-400 font-bold text-xs flex flex-col items-center gap-1">
+                  <span className="text-base">{cat.icon || '✨'}</span>
+                  <span>No Picture</span>
                 </div>
               )}
-              <div>
-                <h3 className="font-bold text-white text-sm">{cat.name}</h3>
-                <p className="text-slate-400 text-xs mt-0.5">{cat.group_name || 'General'}</p>
-              </div>
+              <span className="absolute top-2 left-2 text-[9px] font-black uppercase px-2 py-0.5 bg-black/80 text-purple-300 rounded">
+                #{index + 1}
+              </span>
             </div>
 
-            <div className="flex items-center gap-1 shrink-0">
-              <button
-                onClick={() => handleMoveCategory(index, 'UP')}
-                disabled={index === 0}
-                className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-200"
-                title="Move Up"
-              >
-                <ArrowUp className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={() => handleMoveCategory(index, 'DOWN')}
-                disabled={index === categories.length - 1}
-                className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-200"
-                title="Move Down"
-              >
-                <ArrowDown className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={() => handleToggleStatus(cat)}
-                className={`p-1.5 rounded-lg border text-[10px] font-extrabold transition-all ${
-                  cat.is_active !== false
-                    ? 'bg-emerald-950 border-emerald-700 text-emerald-300'
-                    : 'bg-red-950 border-red-800 text-red-300'
-                }`}
-                title="Toggle Active Status"
-              >
-                <Power className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={() => setEditingCategory(cat)}
-                className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200"
-                title="Edit"
-              >
-                <Edit3 className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={() => handleDeleteCategory(cat.id, cat.name)}
-                className="p-1.5 rounded-lg bg-red-950/80 hover:bg-red-900 text-red-300 border border-red-800"
-                title="Delete"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
+            {/* Right: Heading, Sub-heading, Show/Hide, Edit, Delete */}
+            <div className="flex-1 flex flex-col justify-between space-y-3 w-full">
+              <div>
+                <h3 className="font-extrabold text-white text-base sm:text-lg">{cat.name}</h3>
+                <p className="text-slate-400 text-xs mt-0.5 font-medium">{cat.group_name || 'Mobile / Gadgets'}</p>
+              </div>
+
+              {/* Controls Row */}
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800">
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => handleMoveCategory(index, 'UP')}
+                    disabled={index === 0}
+                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-slate-200"
+                    title="Move Up"
+                  >
+                    <ArrowUp className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => handleMoveCategory(index, 'DOWN')}
+                    disabled={index === categories.length - 1}
+                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-slate-200"
+                    title="Move Down"
+                  >
+                    <ArrowDown className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => handleToggleStatus(cat)}
+                    className={`px-3 py-1.5 rounded-lg border text-[11px] font-extrabold flex items-center gap-1 transition-all ${
+                      cat.is_active !== false
+                        ? 'bg-emerald-950 border-emerald-700 text-emerald-300'
+                        : 'bg-red-950 border-red-800 text-red-300'
+                    }`}
+                    title="Toggle Show/Hide"
+                  >
+                    <Power className="w-3.5 h-3.5" />
+                    <span>{cat.is_active !== false ? 'SHOW' : 'HIDE'}</span>
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setEditingCategory(cat)}
+                    className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs flex items-center gap-1"
+                  >
+                    <Edit3 className="w-3.5 h-3.5 text-purple-400" /> Edit
+                  </button>
+                  <button
+                    onClick={() => handleDeleteCategory(cat.id, cat.name)}
+                    className="px-3 py-1.5 rounded-lg bg-red-950/80 hover:bg-red-900 text-red-300 border border-red-800 font-bold text-xs flex items-center gap-1"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" /> Delete
+                  </button>
+                </div>
+              </div>
+
             </div>
+
           </div>
         ))}
       </div>

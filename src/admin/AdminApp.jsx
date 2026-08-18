@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  LayoutDashboard, Home, Tag, Package, Layers, ShoppingCart, Image as ImageIcon, Globe, Activity, LogOut, Menu, X, Eye, ShieldCheck, ChevronRight, User 
+  LayoutDashboard, Home, Tag, Package, Layers, ShoppingCart, Image as ImageIcon, Globe, Activity, LogOut, Menu, X, Eye, ShieldCheck, ChevronRight, User, Palette, Gift 
 } from 'lucide-react';
 import { getCurrentAdmin, logoutAdmin } from '../services/adminAuth';
 import AdminLogin from './AdminLogin';
@@ -19,6 +19,9 @@ import BadgesManager from './pages/BadgesManager';
 import MembersManager from './pages/MembersManager';
 import AnalyticsManager from './pages/AnalyticsManager';
 import OrdersManager from './pages/OrdersManager';
+import ThemesManager from './pages/ThemesManager';
+import VisitorsManager from './pages/VisitorsManager';
+import ReferEarnManager from './pages/ReferEarnManager';
 
 export default function AdminApp() {
   const [adminUser, setAdminUser] = useState(null);
@@ -60,14 +63,17 @@ export default function AdminApp() {
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'orders', label: 'Orders & Payments', icon: ShoppingCart },
+    { id: 'home', label: 'Home Page Builder', icon: Home },
     { id: 'banners', label: 'Banners Manager', icon: ImageIcon },
-    { id: 'home', label: 'Home Page', icon: Home },
+    { id: 'themes', label: 'Themes Visual Builder', icon: Palette },
+    { id: 'categories', label: 'Categories', icon: Layers },
     { id: 'products', label: 'Products', icon: Package },
     { id: 'offers', label: 'Offers', icon: Tag },
-    { id: 'categories', label: 'Categories', icon: Layers },
-    { id: 'badges', label: 'Badges & Batches', icon: Tag },
+    { id: 'orders', label: 'Orders & Payments', icon: ShoppingCart },
+    { id: 'visitors', label: 'Visitors', icon: Eye },
     { id: 'members', label: 'Members', icon: User },
+    { id: 'refer', label: 'Refer & Earn', icon: Gift },
+    { id: 'badges', label: 'Badges & Batches', icon: Tag },
     { id: 'analytics', label: 'Analytics', icon: Activity },
     { id: 'cart', label: 'Cart & WhatsApp', icon: ShoppingCart },
     { id: 'media', label: 'Media Library', icon: ImageIcon },
@@ -79,22 +85,28 @@ export default function AdminApp() {
     switch (activeTab) {
       case 'dashboard':
         return <Dashboard onNavigate={(tab) => setActiveTab(tab)} />;
-      case 'orders':
-        return <OrdersManager adminEmail={adminUser.email} />;
-      case 'banners':
-        return <BannersManager adminEmail={adminUser.email} />;
       case 'home':
         return <HomePageManager adminEmail={adminUser.email} />;
+      case 'banners':
+        return <BannersManager adminEmail={adminUser.email} />;
+      case 'themes':
+        return <ThemesManager adminEmail={adminUser.email} />;
+      case 'categories':
+        return <CategoriesManager adminEmail={adminUser.email} />;
       case 'products':
         return <ProductsManager adminEmail={adminUser.email} />;
       case 'offers':
         return <OffersManager adminEmail={adminUser.email} />;
-      case 'categories':
-        return <CategoriesManager adminEmail={adminUser.email} />;
-      case 'badges':
-        return <BadgesManager adminEmail={adminUser.email} />;
+      case 'orders':
+        return <OrdersManager adminEmail={adminUser.email} />;
+      case 'visitors':
+        return <VisitorsManager adminEmail={adminUser.email} />;
       case 'members':
         return <MembersManager adminEmail={adminUser.email} />;
+      case 'refer':
+        return <ReferEarnManager />;
+      case 'badges':
+        return <BadgesManager adminEmail={adminUser.email} />;
       case 'analytics':
         return <AnalyticsManager />;
       case 'cart':

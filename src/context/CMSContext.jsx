@@ -16,7 +16,9 @@ import {
   DEFAULT_OFFER_SLIDES,
   DEFAULT_OFFER_ITEMS,
   DEFAULT_WHATSAPP_TEMPLATE,
-  DEFAULT_SITE_SETTINGS
+  DEFAULT_SITE_SETTINGS,
+  DEFAULT_HOME_SECTIONS,
+  DEFAULT_THEMES
 } from '../services/cmsService';
 import { ALL_PRODUCTS, PRIMARY_CATEGORIES, VALUE_PROPOSITIONS } from '../data/products';
 import { DEFAULT_PAYMENT_CONFIG } from '../config/payment';
@@ -32,6 +34,8 @@ export function CMSProvider({ children }) {
   const [batches, setBatches] = useState([]);
   const [members, setMembers] = useState([]);
   const [homeItems, setHomeItems] = useState([]);
+  const [homeSections, setHomeSections] = useState([]);
+  const [themes, setThemes] = useState([]);
   const [homeSteps, setHomeSteps] = useState([]);
   const [contactDetails, setContactDetails] = useState(DEFAULT_CONTACT_DETAILS);
   const [footerLinks, setFooterLinks] = useState([]);
@@ -98,6 +102,8 @@ export function CMSProvider({ children }) {
         bdgs,
         btchs,
         usersList,
+        hSections,
+        tThemes,
         steps,
         contact,
         footer,
@@ -115,6 +121,8 @@ export function CMSProvider({ children }) {
         getCmsTableData('badges', DEFAULT_BADGES),
         getCmsTableData('product_batches', DEFAULT_BATCHES),
         getCmsTableData('users', []),
+        getCmsTableData('home_sections', DEFAULT_HOME_SECTIONS, 'position'),
+        getCmsTableData('themes', DEFAULT_THEMES),
         getCmsTableData('homepage_steps', DEFAULT_HOMEPAGE_STEPS),
         getCmsSingleRecord('contact_details', DEFAULT_CONTACT_DETAILS),
         getCmsTableData('footer_links', DEFAULT_FOOTER_LINKS),
@@ -133,6 +141,8 @@ export function CMSProvider({ children }) {
       setBadges(bdgs || []);
       setBatches(btchs || []);
       setMembers(usersList || []);
+      setHomeSections(hSections || []);
+      setThemes(tThemes || []);
       setHomeSteps(steps || []);
       if (contact) setContactDetails(contact);
       setFooterLinks(footer || []);
@@ -229,6 +239,10 @@ export function CMSProvider({ children }) {
         setMembers,
         homeItems,
         setHomeItems,
+        homeSections,
+        setHomeSections,
+        themes,
+        setThemes,
         homeSteps,
         setHomeSteps,
         contactDetails,

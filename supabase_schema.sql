@@ -319,6 +319,33 @@ CREATE TABLE IF NOT EXISTS public.analytics_visits (
     visited_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
+-- 19. DYNAMIC HOME PAGE SECTIONS
+CREATE TABLE IF NOT EXISTS public.home_sections (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    box_key TEXT UNIQUE NOT NULL,
+    title_label TEXT,
+    section_type TEXT NOT NULL, -- 'banner', 'categories', 'theme', 'notices', 'guidance', 'buttons', 'why_choose_us', 'custom', 'featured_deals', 'steps'
+    content_id TEXT, -- selected banner_key or theme_key or category_id
+    settings JSONB DEFAULT '{}'::jsonb,
+    position INT NOT NULL DEFAULT 1,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+-- 20. VISUAL THEMES / PAGE BUILDER THEMES
+CREATE TABLE IF NOT EXISTS public.themes (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name TEXT NOT NULL,
+    theme_key TEXT UNIQUE NOT NULL,
+    description TEXT,
+    layout_data JSONB DEFAULT '[]'::jsonb, -- Array of components/blocks
+    styles JSONB DEFAULT '{}'::jsonb, -- Global theme colors, font, border settings
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
 -- ==================================================
 -- RLS POLICIES
 -- ==================================================
@@ -344,6 +371,8 @@ ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.analytics_visits ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.home_sections ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.themes ENABLE ROW LEVEL SECURITY;
 
 -- PUBLIC READ POLICIES
 CREATE POLICY "Public Read Site Settings" ON public.site_settings FOR SELECT USING (true);
@@ -355,6 +384,8 @@ CREATE POLICY "Public Read Active Batches" ON public.product_batches FOR SELECT 
 CREATE POLICY "Public Read Active Offer Items" ON public.offer_items FOR SELECT USING (is_active = true);
 CREATE POLICY "Public Read Contact Details" ON public.contact_details FOR SELECT USING (true);
 CREATE POLICY "Public Read Cart Settings" ON public.cart_settings FOR SELECT USING (true);
+CREATE POLICY "Public Read Home Sections" ON public.home_sections FOR SELECT USING (is_active = true);
+CREATE POLICY "Public Read Themes" ON public.themes FOR SELECT USING (is_active = true);
 
 -- PUBLIC INSERT POLICIES
 CREATE POLICY "Public Insert Orders" ON public.orders FOR INSERT WITH CHECK (true);
@@ -370,6 +401,8 @@ CREATE POLICY "Full Access Badges" ON public.badges FOR ALL USING (true);
 CREATE POLICY "Full Access Batches" ON public.product_batches FOR ALL USING (true);
 CREATE POLICY "Full Access Site Settings" ON public.site_settings FOR ALL USING (true);
 CREATE POLICY "Full Access Users" ON public.users FOR ALL USING (true);
+CREATE POLICY "Full Access Home Sections" ON public.home_sections FOR ALL USING (true);
+CREATE POLICY "Full Access Themes" ON public.themes FOR ALL USING (true);
 
 -- REALTIME PUBLICATION
 ALTER PUBLICATION supabase_realtime ADD TABLE public.banners;
@@ -379,3 +412,6 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.badges;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.product_batches;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.site_settings;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.offer_items;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.home_sections;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.themes;
+

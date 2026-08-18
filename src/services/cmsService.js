@@ -315,43 +315,166 @@ export const DEFAULT_SITE_SETTINGS = {
   }
 };
 
+export const DEFAULT_HOME_SECTIONS = [
+  {
+    box_key: 'box_1',
+    title_label: '1st Banner (Hero Carousel)',
+    section_type: 'banner',
+    content_id: 'home_main_1',
+    position: 1,
+    is_active: true
+  },
+  {
+    box_key: 'box_2',
+    title_label: 'Product Categories Cards',
+    section_type: 'categories',
+    content_id: 'all',
+    position: 2,
+    is_active: true
+  },
+  {
+    box_key: 'box_3',
+    title_label: '2nd Banner (Promo Slider)',
+    section_type: 'banner',
+    content_id: 'home_small_1',
+    position: 3,
+    is_active: true
+  },
+  {
+    box_key: 'box_4',
+    title_label: 'Featured Deals Section',
+    section_type: 'featured_deals',
+    content_id: 'featured',
+    position: 4,
+    is_active: true
+  },
+  {
+    box_key: 'box_5',
+    title_label: 'Selectable Theme 01 (Offer Highlights)',
+    section_type: 'theme',
+    content_id: 'theme_1',
+    position: 5,
+    is_active: true
+  },
+  {
+    box_key: 'box_6',
+    title_label: 'How To Order Guide',
+    section_type: 'steps',
+    content_id: 'steps_10',
+    position: 6,
+    is_active: true
+  },
+  {
+    box_key: 'box_7',
+    title_label: 'Why Choose Us',
+    section_type: 'why_choose_us',
+    content_id: 'value_props',
+    position: 7,
+    is_active: true
+  },
+  {
+    box_key: 'box_8',
+    title_label: '3rd Banner (Middle Big)',
+    section_type: 'banner',
+    content_id: 'home_middle_big',
+    position: 8,
+    is_active: true
+  },
+  {
+    box_key: 'box_9',
+    title_label: 'Selectable Theme 02 (Notice Alert Box)',
+    section_type: 'theme',
+    content_id: 'theme_2',
+    position: 9,
+    is_active: true
+  },
+  {
+    box_key: 'box_10',
+    title_label: 'Need Help Section',
+    section_type: 'guidance',
+    content_id: 'contact_help',
+    position: 10,
+    is_active: true
+  }
+];
+
+export const DEFAULT_THEMES = [
+  {
+    name: 'Theme 01 — Special Offer Highlights',
+    theme_key: 'theme_1',
+    description: 'Visual banner with bold heading, offer text, custom button link, and border styling.',
+    layout_data: [
+      { id: 'b1', type: 'heading', content: '🔥 Exclusive Member Deals & Bundles', fontSize: '24px', fontWeight: 'bold', textColor: '#ffffff', alignment: 'center' },
+      { id: 'b2', type: 'paragraph', content: 'Get up to 75% instant discount on 12-in-1 OTT combos, high speed fiber internet, and premium gadgets.', fontSize: '14px', textColor: '#cbd5e1', alignment: 'center' },
+      { id: 'b3', type: 'button', content: 'Claim Discount Now', linkUrl: 'offers', buttonColor: '#e50914', textColor: '#ffffff', border: true, borderRadius: '12px', alignment: 'center' }
+    ],
+    styles: { bgColor: '#0f172a', borderColor: '#e50914', borderWidth: '2px', borderRadius: '16px', padding: '24px' },
+    is_active: true
+  },
+  {
+    name: 'Theme 02 — Notice Alert & Guidance Box',
+    theme_key: 'theme_2',
+    description: 'Custom notification box with green accent highlight and direct support link.',
+    layout_data: [
+      { id: 'b1', type: 'heading', content: '⚡ Instant Digital Activation Support', fontSize: '20px', fontWeight: 'bold', textColor: '#10b981', alignment: 'left' },
+      { id: 'b2', type: 'paragraph', content: 'All OTT subscriptions are activated instantly within 5 to 15 minutes after payment screenshot verification.', fontSize: '13px', textColor: '#e2e8f0', alignment: 'left' },
+      { id: 'b3', type: 'button', content: 'Chat with Live Support', linkUrl: 'contact', buttonColor: '#10b981', textColor: '#ffffff', border: false, borderRadius: '8px', alignment: 'left' }
+    ],
+    styles: { bgColor: '#062016', borderColor: '#10b981', borderWidth: '1px', borderRadius: '12px', padding: '20px' },
+    is_active: true
+  }
+];
+
 // ==================================================
 // GENERAL CMS FETCH / MUTATION HELPERS WITH AUTO SEEDING
 // ==================================================
 
 /**
- * Fetch table items or seed if empty
+ * Fetch table items or seed if empty on first-time setup only.
+ * Deleted items will NEVER be re-seeded!
  */
-export async function getCmsTableData(tableName, defaultItems = []) {
+export async function getCmsTableData(tableName, defaultItems = [], orderColumn = 'display_order') {
   if (!supabase) return defaultItems;
   try {
+    const isPositionOrder = tableName === 'home_sections';
+    const sortField = isPositionOrder ? 'position' : orderColumn;
+
     const { data, error } = await supabase
       .from(tableName)
       .select('*')
-      .order('display_order', { ascending: true });
+      .order(sortField, { ascending: true });
 
     if (error) {
       console.warn(`Supabase fetch error for ${tableName}:`, error.message);
-      return defaultItems;
+      return [];
     }
 
+    const initKey = `oms_table_initialized_${tableName}`;
+    const wasInitialized = localStorage.getItem(initKey);
+
     if (!data || data.length === 0) {
-      if (defaultItems && defaultItems.length > 0) {
-        console.log(`Auto-seeding empty table: ${tableName}`);
+      // ONLY perform first-time initial seed if table has NEVER been initialized
+      if (!wasInitialized && defaultItems && defaultItems.length > 0) {
+        console.log(`First-time initial seeding for empty table: ${tableName}`);
         const { data: seeded, error: seedErr } = await supabase
           .from(tableName)
           .insert(defaultItems)
           .select();
 
-        if (!seedErr && seeded) return seeded;
+        if (!seedErr && seeded && seeded.length > 0) {
+          localStorage.setItem(initKey, 'true');
+          return seeded;
+        }
       }
-      return defaultItems;
+      localStorage.setItem(initKey, 'true');
+      return [];
     }
 
+    localStorage.setItem(initKey, 'true');
     return data;
   } catch (err) {
     console.error(`Exception reading ${tableName}:`, err);
-    return defaultItems;
+    return [];
   }
 }
 

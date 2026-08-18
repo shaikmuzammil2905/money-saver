@@ -20,6 +20,7 @@ import CustomerProfileModal from './components/CustomerProfileModal';
 import MobileBottomNav from './components/MobileBottomNav';
 import ViewAllProducts from './components/ViewAllProducts';
 import ProductCard from './components/ProductCard';
+import ThemeSection from './components/ThemeSection';
 
 // Dedicated Page Views
 import OttPlansPage from './pages/OttPlansPage';
@@ -39,7 +40,7 @@ import { logPageView } from './services/cmsService';
 const CART_STORAGE_KEY = 'ott_cart';
 
 function PublicWebsite() {
-  const { activePublicProducts, loading } = useCMS();
+  const { activePublicProducts, homeSections, themes, banners, loading } = useCMS();
   const [activeTab, setActiveTab] = useState('home');
 
   useEffect(() => {
@@ -286,60 +287,161 @@ function PublicWebsite() {
         );
       case 'home':
       default:
-        return (
-          <>
-            {/* Dual Animated Hero Carousel */}
-            <HeroSection
-              onExploreDeals={() => setActiveTab('offers')}
-              onShopNow={() => setActiveTab('mobiles')}
-            />
+        {
+          const activeSections = Array.isArray(homeSections)
+            ? homeSections.filter((s) => s.is_active !== false).sort((a, b) => (a.position || 1) - (b.position || 1))
+            : [];
 
-            {/* Quick Category Cards */}
-            <CategoryCards onSelectCategory={handleSelectCategory} />
+          if (activeSections.length > 0) {
+            return (
+              <>
+                {activeSections.map((sec) => {
+                  const secKey = sec.id || sec.box_key;
+                  const secType = (sec.section_type || '').toLowerCase();
+                  const contentId = sec.content_id;
 
-            {/* Promo Slider Banner */}
-            <PromoSliderBanner
-              onViewOffers={() => setActiveTab('offers')}
-              onSelectCategory={handleSelectCategory}
-            />
+                  if (secType === 'banner') {
+                    if (contentId === 'home_small_1' || contentId === 'home_small_2' || contentId === 'home_small_3') {
+                      return (
+                        <PromoSliderBanner
+                          key={secKey}
+                          onViewOffers={() => setActiveTab('offers')}
+                          onSelectCategory={handleSelectCategory}
+                        />
+                      );
+                    } else if (contentId === 'home_middle_big') {
+                      return (
+                        <OttInternetBanner
+                          key={secKey}
+                          onExplorePlans={() => setActiveTab('ott-plans')}
+                        />
+                      );
+                    } else if (contentId === 'offers_top' || contentId === 'home_bottom_small') {
+                      return (
+                        <PromoBanner
+                          key={secKey}
+                          onViewOffers={() => setActiveTab('offers')}
+                        />
+                      );
+                    } else {
+                      return (
+                        <HeroSection
+                          key={secKey}
+                          onExploreDeals={() => setActiveTab('offers')}
+                          onShopNow={() => setActiveTab('mobiles')}
+                        />
+                      );
+                    }
+                  }
 
-            {/* Featured Deals Section */}
-            <FeaturedDeals
-              onAddToCart={handleAddToCart}
-              onQuickView={(prod) => setProductDetailModal(prod)}
-              onViewAll={() => setActiveTab('offers')}
-              wishlistIds={wishlistIds}
-              onToggleWishlist={handleToggleWishlist}
-            />
+                  if (secType === 'categories') {
+                    return (
+                      <React.Fragment key={secKey}>
+                        <CategoryCards onSelectCategory={handleSelectCategory} />
+                        <CategoryCarousel onSelectCategory={handleSelectCategory} />
+                      </React.Fragment>
+                    );
+                  }
 
-            {/* How To Order Instructions Section */}
-            <HowToOrderSection
-              onStartShopping={() => {
-                setActiveTab('view-all');
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-            />
+                  if (secType === 'theme') {
+                    const matchedTheme = themes.find((t) => t.theme_key === contentId || t.id === contentId);
+                    return <ThemeSection key={secKey} theme={matchedTheme} onNavigate={handleSelectCategory} />;
+                  }
 
-            {/* Value Proposition */}
-            <ValueProposition />
+                  if (secType === 'featured_deals' || secType === 'products') {
+                    return (
+                      <FeaturedDeals
+                        key={secKey}
+                        onAddToCart={handleAddToCart}
+                        onQuickView={(prod) => setProductDetailModal(prod)}
+                        onViewAll={() => setActiveTab('offers')}
+                        wishlistIds={wishlistIds}
+                        onToggleWishlist={handleToggleWishlist}
+                      />
+                    );
+                  }
 
-            {/* OTT & Internet Plans Banner */}
-            <OttInternetBanner
-              onExplorePlans={() => setActiveTab('ott-plans')}
-            />
+                  if (secType === 'steps') {
+                    return (
+                      <HowToOrderSection
+                        key={secKey}
+                        onStartShopping={() => {
+                          setActiveTab('view-all');
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }}
+                      />
+                    );
+                  }
 
-            {/* Shop By Category Carousel */}
-            <CategoryCarousel onSelectCategory={handleSelectCategory} />
+                  if (secType === 'why_choose_us') {
+                    return <ValueProposition key={secKey} />;
+                  }
 
-            {/* Promo Discount Banner */}
-            <PromoBanner
-              onViewOffers={() => setActiveTab('offers')}
-            />
+                  if (secType === 'guidance' || secType === 'notices' || secType === 'custom') {
+                    return <NeedHelpSection key={secKey} onOpenWhatsApp={() => setIsWhatsAppOpen(true)} />;
+                  }
 
-            {/* Need Help Section */}
-            <NeedHelpSection onOpenWhatsApp={() => setIsWhatsAppOpen(true)} />
-          </>
-        );
+                  return null;
+                })}
+              </>
+            );
+          }
+
+          return (
+            <>
+              {/* Dual Animated Hero Carousel */}
+              <HeroSection
+                onExploreDeals={() => setActiveTab('offers')}
+                onShopNow={() => setActiveTab('mobiles')}
+              />
+
+              {/* Quick Category Cards */}
+              <CategoryCards onSelectCategory={handleSelectCategory} />
+
+              {/* Promo Slider Banner */}
+              <PromoSliderBanner
+                onViewOffers={() => setActiveTab('offers')}
+                onSelectCategory={handleSelectCategory}
+              />
+
+              {/* Featured Deals Section */}
+              <FeaturedDeals
+                onAddToCart={handleAddToCart}
+                onQuickView={(prod) => setProductDetailModal(prod)}
+                onViewAll={() => setActiveTab('offers')}
+                wishlistIds={wishlistIds}
+                onToggleWishlist={handleToggleWishlist}
+              />
+
+              {/* How To Order Instructions Section */}
+              <HowToOrderSection
+                onStartShopping={() => {
+                  setActiveTab('view-all');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+              />
+
+              {/* Value Proposition */}
+              <ValueProposition />
+
+              {/* OTT & Internet Plans Banner */}
+              <OttInternetBanner
+                onExplorePlans={() => setActiveTab('ott-plans')}
+              />
+
+              {/* Shop By Category Carousel */}
+              <CategoryCarousel onSelectCategory={handleSelectCategory} />
+
+              {/* Promo Discount Banner */}
+              <PromoBanner
+                onViewOffers={() => setActiveTab('offers')}
+              />
+
+              {/* Need Help Section */}
+              <NeedHelpSection onOpenWhatsApp={() => setIsWhatsAppOpen(true)} />
+            </>
+          );
+        }
     }
   };
 

@@ -15,8 +15,11 @@ export default function MembersManager({ adminEmail }) {
     setTimeout(() => setToastMsg(''), 3000);
   };
 
-  const filteredMembers = useMemo(() => {
-    return members.filter((m) => {
+  // Group Users by Registration Date
+  const groupedMembers = useMemo(() => {
+    const sorted = [...members].sort((a, b) => new Date(b.registration_date || 0) - new Date(a.registration_date || 0));
+
+    const filtered = sorted.filter((m) => {
       const matchQuery = !searchQuery || 
         (m.full_name && m.full_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (m.mobile_number && m.mobile_number.includes(searchQuery)) ||
@@ -26,6 +29,20 @@ export default function MembersManager({ adminEmail }) {
       const matchStatus = statusFilter === 'All' || m.account_status === statusFilter;
       return matchQuery && matchStatus;
     });
+
+    const groups = {};
+    filtered.forEach((m) => {
+      const dateStr = m.registration_date 
+        ? new Date(m.registration_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+        : 'Unknown Date';
+
+      if (!groups[dateStr]) {
+        groups[dateStr] = [];
+      }
+      groups[dateStr].push(m);
+    });
+
+    return groups;
   }, [members, searchQuery, statusFilter]);
 
   const handleToggleUserStatus = async (userObj) => {
@@ -57,7 +74,7 @@ export default function MembersManager({ adminEmail }) {
             <Users className="w-6 h-6 text-cyan-400" /> Registered Website Members ({members.length})
           </h1>
           <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            View registered user profiles, mobile numbers, locations, and registration dates.
+            Registered customer accounts grouped by registration date.
           </p>
         </div>
       </div>
@@ -89,58 +106,72 @@ export default function MembersManager({ adminEmail }) {
         </div>
       </div>
 
-      {/* Members Cards List (Mobile-First Layout) */}
-      {filteredMembers.length === 0 ? (
+      {/* Date Grouped User Cards */}
+      {Object.keys(groupedMembers).length === 0 ? (
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center text-slate-500">
           <UserCheck className="w-12 h-12 text-slate-700 mx-auto mb-3" />
           <p className="font-bold text-sm text-slate-300">No registered members found</p>
-          <p className="text-xs mt-1">Registered customers will appear here automatically when they sign up or place orders.</p>
+          <p className="text-xs mt-1">Registered customers will appear here automatically when they sign up.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredMembers.map((m) => (
-            <div key={m.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3 font-sans">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                <div>
-                  <h3 className="font-black text-white text-base">{m.full_name || 'Customer'}</h3>
-                  <span className="text-[10px] font-bold text-cyan-400 bg-cyan-950/60 border border-cyan-800/60 px-2 py-0.5 rounded-full">
-                    Registered User
-                  </span>
+        <div className="space-y-6">
+          {Object.entries(groupedMembers).map(([dateStr, usersList]) => (
+            <div key={dateStr} className="space-y-3">
+              
+              {/* DATE GROUPING COLORED HEADING BOX */}
+              <div className="bg-gradient-to-r from-cyan-950 via-slate-900 to-slate-900 border border-cyan-800/60 rounded-xl px-4 py-2.5 flex items-center justify-between shadow-md">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-cyan-400" />
+                  <h3 className="font-black text-white text-sm sm:text-base">
+                    Registered — <span className="text-cyan-300">{dateStr}</span> ({usersList.length} Members)
+                  </h3>
                 </div>
-                <button
-                  onClick={() => handleToggleUserStatus(m)}
-                  className={`px-2.5 py-1 rounded-xl text-[10px] font-black border flex items-center gap-1 ${
-                    m.account_status !== 'Disabled'
-                      ? 'bg-emerald-950 border-emerald-700 text-emerald-300'
-                      : 'bg-red-950 border-red-800 text-red-300'
-                  }`}
-                >
-                  <Power className="w-3 h-3" />
-                  <span>{m.account_status || 'Active'}</span>
-                </button>
               </div>
 
-              <div className="space-y-2 text-xs text-slate-300">
-                <div className="flex items-center gap-2">
-                  <Phone className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                  <span className="font-bold text-white">{m.mobile_number || 'N/A'}</span>
-                </div>
+              {/* Members Cards Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {usersList.map((m) => (
+                  <div key={m.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3 font-sans">
+                    <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                      <div>
+                        <h4 className="font-black text-white text-base">{m.full_name || 'Customer'}</h4>
+                        <span className="text-[10px] font-bold text-cyan-400 bg-cyan-950/60 border border-cyan-800/60 px-2 py-0.5 rounded-full">
+                          Registered Member
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => handleToggleUserStatus(m)}
+                        className={`px-2.5 py-1 rounded-xl text-[10px] font-black border flex items-center gap-1 ${
+                          m.account_status !== 'Disabled'
+                            ? 'bg-emerald-950 border-emerald-700 text-emerald-300'
+                            : 'bg-red-950 border-red-800 text-red-300'
+                        }`}
+                      >
+                        <Power className="w-3 h-3" />
+                        <span>{m.account_status || 'Active'}</span>
+                      </button>
+                    </div>
 
-                <div className="flex items-center gap-2">
-                  <Mail className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                  <span className="truncate">{m.email || 'No email provided'}</span>
-                </div>
+                    <div className="space-y-2 text-xs text-slate-300">
+                      <div className="flex items-center gap-2">
+                        <Phone className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                        <span className="font-bold text-white">{m.mobile_number || 'N/A'}</span>
+                      </div>
 
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                  <span className="truncate">{m.location || 'Location not specified'}</span>
-                </div>
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                        <span className="truncate">{m.email || 'No email provided'}</span>
+                      </div>
 
-                <div className="flex items-center gap-2 text-[10px] text-slate-400 pt-1 border-t border-slate-800/60">
-                  <Calendar className="w-3 h-3 text-slate-500 shrink-0" />
-                  <span>Registered: {m.registration_date ? new Date(m.registration_date).toLocaleDateString() : 'N/A'}</span>
-                </div>
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                        <span className="truncate">{m.location || 'Location not specified'}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
+
             </div>
           ))}
         </div>
