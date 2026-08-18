@@ -383,98 +383,121 @@ export default function HomePageManager({ adminEmail }) {
       {/* SUB TAB 0: HOME PAGE BUILDER (BOX SYSTEM) */}
       {/* ================================================== */}
       {activeSubTab === 'builder' && (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
+        <div className="space-y-6 font-sans">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-black text-white">Home Page Section Boxes ({homeSections.length} Boxes)</h2>
+              <h2 className="text-lg font-black text-white">Home Page Section Boxes ({(homeSections || []).length} Boxes)</h2>
               <p className="text-xs text-slate-400 mt-0.5">Move sections Up/Down to change Public Website Home Page layout order.</p>
             </div>
             <button
               onClick={() => setEditingBox({
-                box_key: `box_${homeSections.length + 1}`,
-                title_label: `Home Section Box ${homeSections.length + 1}`,
+                box_key: `box_${(homeSections || []).length + 1}`,
+                title_label: `Home Section Box ${(homeSections || []).length + 1}`,
                 section_type: 'banner',
                 content_id: 'home_main_1',
-                position: homeSections.length + 1,
+                position: (homeSections || []).length + 1,
                 is_active: true
               })}
-              className="px-4 py-2 rounded-xl bg-[#008744] hover:bg-emerald-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-md"
+              className="px-4 py-2.5 rounded-xl bg-[#008744] hover:bg-emerald-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-md self-start sm:self-auto"
             >
               <Plus className="w-4 h-4" /> Add Section Box
             </button>
           </div>
 
-          <div className="space-y-3">
-            {homeSections.map((sec, idx) => (
-              <div key={sec.id || sec.box_key} className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 font-sans">
-                
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-white font-black flex items-center justify-center text-sm shadow-md shrink-0">
-                    Box {idx + 1}
-                  </div>
+          {(homeSections || []).length === 0 ? (
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-10 text-center space-y-4 shadow-xl">
+              <Home className="w-12 h-12 text-slate-600 mx-auto" />
+              <h3 className="font-extrabold text-white text-base">No Home Page Section Boxes Found</h3>
+              <p className="text-xs text-slate-400 max-w-md mx-auto">
+                Create section boxes to organize your Public Website Home Page banners, categories, themes, and products.
+              </p>
+              <button
+                onClick={() => setEditingBox({
+                  box_key: `box_1`,
+                  title_label: `Home Section Box 1`,
+                  section_type: 'banner',
+                  content_id: 'home_main_1',
+                  position: 1,
+                  is_active: true
+                })}
+                className="px-5 py-2.5 rounded-xl bg-[#008744] hover:bg-emerald-600 text-white font-bold text-xs inline-flex items-center gap-2 shadow-lg"
+              >
+                <Plus className="w-4 h-4" /> Add First Section Box
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {(homeSections || []).map((sec, idx) => (
+                <div key={sec.id || sec.box_key} className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 font-sans">
+                  
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-white font-black flex items-center justify-center text-sm shadow-md shrink-0">
+                      Box {idx + 1}
+                    </div>
 
-                  <div>
-                    <h3 className="font-extrabold text-white text-base">{sec.title_label || sec.box_key}</h3>
-                    <div className="flex flex-wrap items-center gap-2 mt-1 text-xs">
-                      <span className="px-2 py-0.5 rounded bg-purple-950 text-purple-300 font-bold border border-purple-800 uppercase text-[10px]">
-                        Type: {sec.section_type}
-                      </span>
-                      {sec.content_id && (
-                        <span className="px-2 py-0.5 rounded bg-slate-950 text-amber-300 font-mono text-[10px] border border-slate-800">
-                          Content ID: {sec.content_id}
+                    <div>
+                      <h3 className="font-extrabold text-white text-base">{sec.title_label || sec.box_key}</h3>
+                      <div className="flex flex-wrap items-center gap-2 mt-1 text-xs">
+                        <span className="px-2 py-0.5 rounded bg-purple-950 text-purple-300 font-bold border border-purple-800 uppercase text-[10px]">
+                          Type: {sec.section_type}
                         </span>
-                      )}
+                        {sec.content_id && (
+                          <span className="px-2 py-0.5 rounded bg-slate-950 text-amber-300 font-mono text-[10px] border border-slate-800">
+                            Content ID: {sec.content_id}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="flex items-center justify-between sm:justify-end gap-2 pt-3 sm:pt-0 border-t sm:border-0 border-slate-800">
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => handleMoveSection(idx, 'UP')}
-                      disabled={idx === 0}
-                      className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-white"
-                      title="Move Up"
-                    >
-                      <ArrowUp className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleMoveSection(idx, 'DOWN')}
-                      disabled={idx === homeSections.length - 1}
-                      className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-white"
-                      title="Move Down"
-                    >
-                      <ArrowDown className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleToggleSectionStatus(sec)}
-                      className={`px-3 py-2 rounded-xl text-xs font-black border transition-all ${
-                        sec.is_active !== false ? 'bg-emerald-950 border-emerald-800 text-emerald-300' : 'bg-red-950 border-red-800 text-red-300'
-                      }`}
-                    >
-                      {sec.is_active !== false ? 'VISIBLE' : 'HIDDEN'}
-                    </button>
+                  <div className="flex items-center justify-between sm:justify-end gap-2 pt-3 sm:pt-0 border-t sm:border-0 border-slate-800">
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => handleMoveSection(idx, 'UP')}
+                        disabled={idx === 0}
+                        className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-white"
+                        title="Move Up"
+                      >
+                        <ArrowUp className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleMoveSection(idx, 'DOWN')}
+                        disabled={idx === (homeSections || []).length - 1}
+                        className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-white"
+                        title="Move Down"
+                      >
+                        <ArrowDown className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleToggleSectionStatus(sec)}
+                        className={`px-3 py-2 rounded-xl text-xs font-black border transition-all ${
+                          sec.is_active !== false ? 'bg-emerald-950 border-emerald-800 text-emerald-300' : 'bg-red-950 border-red-800 text-red-300'
+                        }`}
+                      >
+                        {sec.is_active !== false ? 'VISIBLE' : 'HIDDEN'}
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setEditingBox(sec)}
+                        className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs flex items-center gap-1"
+                      >
+                        <Edit3 className="w-3.5 h-3.5 text-purple-400" /> Edit Box
+                      </button>
+                      <button
+                        onClick={() => handleDeleteSection(sec.id, sec.title_label || sec.box_key)}
+                        className="p-2 rounded-xl bg-red-950/80 hover:bg-red-900 text-red-300 border border-red-800"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setEditingBox(sec)}
-                      className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs flex items-center gap-1"
-                    >
-                      <Edit3 className="w-3.5 h-3.5 text-purple-400" /> Edit Box
-                    </button>
-                    <button
-                      onClick={() => handleDeleteSection(sec.id, sec.title_label || sec.box_key)}
-                      className="p-2 rounded-xl bg-red-950/80 hover:bg-red-900 text-red-300 border border-red-800"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
                 </div>
-
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
           {/* EDIT BOX MODAL */}
           {editingBox && (
