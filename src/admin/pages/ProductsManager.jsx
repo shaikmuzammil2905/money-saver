@@ -150,7 +150,8 @@ export default function ProductsManager({ adminEmail }) {
         badges: selectedBadgesArr,
         batches: selectedBatchesArr,
         sections: sectionsSelected,
-        in_stock: formData.get('in_stock') === 'true',
+        stock_quantity: parseInt(formData.get('stock_quantity') || '0', 10),
+        in_stock: parseInt(formData.get('stock_quantity') || '0', 10) > 0 ? (formData.get('in_stock') === 'true') : false,
         is_active: editingProduct ? editingProduct.is_active : true,
         display_order: editingProduct ? editingProduct.display_order : products.length + 1
       };

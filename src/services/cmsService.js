@@ -427,7 +427,41 @@ export const DEFAULT_THEMES = [
 
 // ==================================================
 // GENERAL CMS FETCH / MUTATION HELPERS WITH AUTO SEEDING
-// ==================================================
+// Cache for initialized tables in Supabase
+let initializedTablesCache = null;
+
+async function isTableInitializedInSupabase(tableName) {
+  if (initializedTablesCache && initializedTablesCache.includes(tableName)) {
+    return true;
+  }
+  try {
+    const { data } = await supabase.from('site_settings').select('*').eq('key', 'initialized_tables').maybeSingle();
+    if (data && Array.isArray(data.value)) {
+      initializedTablesCache = data.value;
+      return data.value.includes(tableName);
+    }
+  } catch (e) {
+    console.warn('Initialized tables check warning:', e.message);
+  }
+  return false;
+}
+
+async function markTableInitializedInSupabase(tableName) {
+  try {
+    const current = initializedTablesCache || [];
+    if (!current.includes(tableName)) {
+      const updated = [...current, tableName];
+      initializedTablesCache = updated;
+      await supabase.from('site_settings').upsert({
+        key: 'initialized_tables',
+        value: updated,
+        updated_at: new Date().toISOString()
+      });
+    }
+  } catch (e) {
+    console.warn('Mark table initialized warning:', e.message);
+  }
+}
 
 /**
  * Fetch table items or seed if empty on first-time setup only.
@@ -450,7 +484,9 @@ export async function getCmsTableData(tableName, defaultItems = [], orderColumn 
     }
 
     const initKey = `oms_table_initialized_${tableName}`;
-    const wasInitialized = localStorage.getItem(initKey);
+    const wasInitializedInLocal = localStorage.getItem(initKey) === 'true';
+    const wasInitializedInDb = await isTableInitializedInSupabase(tableName);
+    const wasInitialized = wasInitializedInLocal || wasInitializedInDb;
 
     if (!data || data.length === 0) {
       // ONLY perform first-time initial seed if table has NEVER been initialized
@@ -463,14 +499,17 @@ export async function getCmsTableData(tableName, defaultItems = [], orderColumn 
 
         if (!seedErr && seeded && seeded.length > 0) {
           localStorage.setItem(initKey, 'true');
+          await markTableInitializedInSupabase(tableName);
           return seeded;
         }
       }
       localStorage.setItem(initKey, 'true');
+      await markTableInitializedInSupabase(tableName);
       return [];
     }
 
     localStorage.setItem(initKey, 'true');
+    await markTableInitializedInSupabase(tableName);
     return data;
   } catch (err) {
     console.error(`Exception reading ${tableName}:`, err);
