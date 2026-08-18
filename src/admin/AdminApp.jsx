@@ -152,10 +152,10 @@ export default function AdminApp() {
           mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         }`}
       >
-        <div className="p-5 space-y-6">
+        <div className="p-5 space-y-6 flex-1 overflow-y-auto pr-1">
           {/* Brand Header */}
           <div className="flex items-center justify-between pb-4 border-b border-slate-800">
-            <div className="flex items-center gap-2 cursor-pointer" onClick={() => setActiveTab('dashboard')}>
+            <div className="flex items-center gap-2 cursor-pointer" onClick={() => { setActiveTab('dashboard'); setMobileMenuOpen(false); }}>
               <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#e50914] to-[#008744] text-white flex items-center justify-center font-black shadow-md">
                 OMS
               </div>
@@ -164,13 +164,13 @@ export default function AdminApp() {
                 <span className="text-[10px] font-bold text-emerald-400">OTTMoneySaver</span>
               </div>
             </div>
-            <button className="md:hidden text-slate-400" onClick={() => setMobileMenuOpen(false)}>
+            <button className="md:hidden text-slate-400 p-1" onClick={() => setMobileMenuOpen(false)}>
               <X className="w-5 h-5" />
             </button>
           </div>
 
           {/* Navigation Links */}
-          <nav className="space-y-1">
+          <nav className="space-y-1 pb-4">
             {navItems.map((item) => {
               const IconComp = item.icon;
               const isActive = activeTab === item.id;

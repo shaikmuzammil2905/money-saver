@@ -226,8 +226,8 @@ export default function ThemesManager({ adminEmail }) {
 
       {/* CANVA-STYLE VISUAL THEME EDITOR MODAL */}
       {editingTheme && (
-        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-4xl w-full p-4 sm:p-6 shadow-2xl space-y-4 font-sans my-4 max-h-[92vh] flex flex-col justify-between overflow-hidden">
+        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-start sm:items-center justify-center p-2 sm:p-4 overflow-y-auto pt-16 sm:pt-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-4xl w-full p-4 sm:p-6 shadow-2xl space-y-4 font-sans my-2 max-h-[85vh] flex flex-col justify-between overflow-hidden">
             
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-800 shrink-0">

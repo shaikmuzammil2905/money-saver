@@ -551,9 +551,12 @@ export async function saveCmsItem(tableName, itemData) {
     updated_at: new Date().toISOString()
   };
 
+  // If table is site_settings or item has key property without id, resolve conflict on key
+  const options = (tableName === 'site_settings' || (itemData.key && !itemData.id)) ? { onConflict: 'key' } : undefined;
+
   const { data, error } = await supabase
     .from(tableName)
-    .upsert(payload)
+    .upsert(payload, options)
     .select()
     .single();
 
