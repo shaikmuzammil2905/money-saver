@@ -569,6 +569,28 @@ async function updateFallbackDisplayOrder(tableName, items, orderField = 'displa
   }, { onConflict: 'key' });
 }
 
+async function migrateLegacySiteSettingsToTable(tableName) {
+  try {
+    const key = `cms_table_${tableName}`;
+    const { data: settingRow } = await supabase
+      .from('site_settings')
+      .select('*')
+      .eq('key', key)
+      .maybeSingle();
+
+    if (settingRow && Array.isArray(settingRow.value) && settingRow.value.length > 0) {
+      console.log(`Migrating ${settingRow.value.length} legacy items from site_settings to real table '${tableName}'...`);
+      for (const item of settingRow.value) {
+        await supabase.from(tableName).upsert(item);
+      }
+      await supabase.from('site_settings').delete().eq('key', key);
+      console.log(`✅ Data migration to real table '${tableName}' completed!`);
+    }
+  } catch (err) {
+    console.warn(`Data migration notice for '${tableName}':`, err.message);
+  }
+}
+
 /**
  * Fetch table items or seed if empty on first-time setup only.
  * Deleted items will NEVER be re-seeded!
@@ -591,6 +613,9 @@ export async function getCmsTableData(tableName, defaultItems = [], orderColumn 
       console.warn(`Supabase fetch error for ${tableName}:`, error.message);
       return await getFallbackTableData(tableName, defaultItems, orderColumn);
     }
+
+    // Auto-migrate legacy data from site_settings to table if available
+    await migrateLegacySiteSettingsToTable(tableName);
 
     const initKey = `oms_table_initialized_${tableName}`;
     const wasInitializedInLocal = localStorage.getItem(initKey) === 'true';
@@ -695,6 +720,9 @@ export async function deleteCmsItem(tableName, id) {
       .from(tableName)
       .delete()
       .eq('id', id);
+
+    // Clean fallback key as well so deleted items never return
+    await deleteFallbackCmsItem(tableName, id).catch(() => {});
 
     if (error) {
       if (error.code === 'PGRST205' || error.message?.includes('schema cache')) {
