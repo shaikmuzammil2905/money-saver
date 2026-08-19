@@ -722,6 +722,38 @@ export async function saveCmsItem(tableName, itemData) {
           .select();
         if (!updErr && updated && updated.length > 0) return updated[0];
       }
+      if (payload.slug_id) {
+        const { data: updatedSlug, error: updSlugErr } = await supabase
+          .from(tableName)
+          .update(payload)
+          .eq('slug_id', payload.slug_id)
+          .select();
+        if (!updSlugErr && updatedSlug && updatedSlug.length > 0) return updatedSlug[0];
+      }
+      if (payload.banner_key) {
+        const { data: updatedBnr, error: updBnrErr } = await supabase
+          .from(tableName)
+          .update(payload)
+          .eq('banner_key', payload.banner_key)
+          .select();
+        if (!updBnrErr && updatedBnr && updatedBnr.length > 0) return updatedBnr[0];
+      }
+      if (payload.box_key) {
+        const { data: updatedBox, error: updBoxErr } = await supabase
+          .from(tableName)
+          .update(payload)
+          .eq('box_key', payload.box_key)
+          .select();
+        if (!updBoxErr && updatedBox && updatedBox.length > 0) return updatedBox[0];
+      }
+      if (payload.key) {
+        const { data: updatedKey, error: updKeyErr } = await supabase
+          .from(tableName)
+          .update(payload)
+          .eq('key', payload.key)
+          .select();
+        if (!updKeyErr && updatedKey && updatedKey.length > 0) return updatedKey[0];
+      }
       return await saveFallbackCmsItem(tableName, payload);
     }
 

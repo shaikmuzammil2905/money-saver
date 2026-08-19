@@ -129,12 +129,13 @@ export default function ProductsManager({ adminEmail }) {
       const cleanDescPoints = descPoints.filter((pt) => pt && pt.trim().length > 0);
       const cleanCustomInfo = customInfoPoints.filter((pt) => pt && pt.trim().length > 0);
 
-      const targetId = editingProduct?.id || editingProduct?.db_id;
-      const isUUID = targetId && typeof targetId === 'string' && targetId.includes('-') && targetId.length > 20;
+      const rawId = editingProduct?.id || editingProduct?.db_id;
+      const isUUID = rawId && typeof rawId === 'string' && rawId.includes('-') && rawId.length > 20;
+      const validUUID = isUUID ? rawId : (editingProduct?.db_id && typeof editingProduct.db_id === 'string' && editingProduct.db_id.includes('-') && editingProduct.db_id.length > 20 ? editingProduct.db_id : undefined);
 
       const payload = {
-        id: isUUID ? targetId : undefined,
-        slug_id: editingProduct?.slug_id || (!isUUID && targetId ? targetId : `prod-${Date.now()}`),
+        id: validUUID,
+        slug_id: editingProduct?.slug_id || (!isUUID && rawId ? rawId : `prod-${Date.now()}`),
         title: formData.get('title'),
         subtitle: formData.get('subtitle'),
         description: cleanDescPoints.join('\n'),
