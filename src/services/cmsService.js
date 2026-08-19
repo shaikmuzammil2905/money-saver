@@ -704,8 +704,7 @@ export async function saveCmsItem(tableName, itemData) {
     const { data, error } = await supabase
       .from(tableName)
       .upsert(payload, options)
-      .select()
-      .single();
+      .select();
 
     if (error) {
       if (error.code === 'PGRST205' || error.message?.includes('schema cache')) {
@@ -713,7 +712,20 @@ export async function saveCmsItem(tableName, itemData) {
       }
       throw new Error(`Supabase save error (${error.code || 'ERR'}): ${error.message}`);
     }
-    return data;
+
+    if (!data || data.length === 0) {
+      if (payload.id) {
+        const { data: updated, error: updErr } = await supabase
+          .from(tableName)
+          .update(payload)
+          .eq('id', payload.id)
+          .select();
+        if (!updErr && updated && updated.length > 0) return updated[0];
+      }
+      return await saveFallbackCmsItem(tableName, payload);
+    }
+
+    return data[0] || data;
   } catch (err) {
     if (err.message?.includes('schema cache') || err.code === 'PGRST205') {
       return await saveFallbackCmsItem(tableName, payload);

@@ -273,7 +273,7 @@ ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.home_sections ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.themes ENABLE ROW LEVEL SECURITY;
 
--- DROP POLICIES IF THEY EXIST TO PREVENT RE-RUN DUPLICATE POLICY ERRORS
+-- DROP ALL POLICIES TO PREVENT DUPLICATE ERRORS
 DROP POLICY IF EXISTS "Public Read Site Settings" ON public.site_settings;
 DROP POLICY IF EXISTS "Public Read Banners" ON public.banners;
 DROP POLICY IF EXISTS "Public Read Active Products" ON public.products;
@@ -300,34 +300,40 @@ DROP POLICY IF EXISTS "Admin Write Home Sections" ON public.home_sections;
 DROP POLICY IF EXISTS "Admin Write Themes" ON public.themes;
 DROP POLICY IF EXISTS "Admin Write Orders" ON public.orders;
 DROP POLICY IF EXISTS "Admin Write Order Items" ON public.order_items;
+DROP POLICY IF EXISTS "Admin Write Offer Items" ON public.offer_items;
+DROP POLICY IF EXISTS "Admin Write Offer Slides" ON public.offer_slides;
+DROP POLICY IF EXISTS "Admin Write Contact Details" ON public.contact_details;
 
--- CREATE RLS POLICIES
+-- CREATE RLS READ & WRITE POLICIES (UNRESTRICTED ADMIN & PUBLIC SYNC)
 CREATE POLICY "Public Read Site Settings" ON public.site_settings FOR SELECT USING (true);
-CREATE POLICY "Public Read Banners" ON public.banners FOR SELECT USING (is_active = true);
-CREATE POLICY "Public Read Active Products" ON public.products FOR SELECT USING (is_active = true);
-CREATE POLICY "Public Read Active Categories" ON public.categories FOR SELECT USING (is_active = true);
-CREATE POLICY "Public Read Active Badges" ON public.badges FOR SELECT USING (is_active = true);
-CREATE POLICY "Public Read Active Batches" ON public.product_batches FOR SELECT USING (is_active = true);
-CREATE POLICY "Public Read Active Offer Items" ON public.offer_items FOR SELECT USING (is_active = true);
+CREATE POLICY "Public Read Banners" ON public.banners FOR SELECT USING (true);
+CREATE POLICY "Public Read Active Products" ON public.products FOR SELECT USING (true);
+CREATE POLICY "Public Read Active Categories" ON public.categories FOR SELECT USING (true);
+CREATE POLICY "Public Read Active Badges" ON public.badges FOR SELECT USING (true);
+CREATE POLICY "Public Read Active Batches" ON public.product_batches FOR SELECT USING (true);
+CREATE POLICY "Public Read Active Offer Items" ON public.offer_items FOR SELECT USING (true);
 CREATE POLICY "Public Read Contact Details" ON public.contact_details FOR SELECT USING (true);
-CREATE POLICY "Public Read Home Sections" ON public.home_sections FOR SELECT USING (is_active = true);
-CREATE POLICY "Public Read Themes" ON public.themes FOR SELECT USING (is_active = true);
+CREATE POLICY "Public Read Home Sections" ON public.home_sections FOR SELECT USING (true);
+CREATE POLICY "Public Read Themes" ON public.themes FOR SELECT USING (true);
 
 CREATE POLICY "Public Insert Orders" ON public.orders FOR INSERT WITH CHECK (true);
 CREATE POLICY "Public Insert Order Items" ON public.order_items FOR INSERT WITH CHECK (true);
 CREATE POLICY "Public Insert Users" ON public.users FOR INSERT WITH CHECK (true);
 
-CREATE POLICY "Admin Write Banners" ON public.banners FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "Admin Write Products" ON public.products FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "Admin Write Categories" ON public.categories FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "Admin Write Badges" ON public.badges FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "Admin Write Batches" ON public.product_batches FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "Admin Write Site Settings" ON public.site_settings FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "Admin Write Users" ON public.users FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "Admin Write Home Sections" ON public.home_sections FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "Admin Write Themes" ON public.themes FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "Admin Write Orders" ON public.orders FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "Admin Write Order Items" ON public.order_items FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Admin Write Banners" ON public.banners FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Admin Write Products" ON public.products FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Admin Write Categories" ON public.categories FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Admin Write Badges" ON public.badges FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Admin Write Batches" ON public.product_batches FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Admin Write Site Settings" ON public.site_settings FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Admin Write Users" ON public.users FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Admin Write Home Sections" ON public.home_sections FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Admin Write Themes" ON public.themes FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Admin Write Orders" ON public.orders FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Admin Write Order Items" ON public.order_items FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Admin Write Offer Items" ON public.offer_items FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Admin Write Offer Slides" ON public.offer_slides FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Admin Write Contact Details" ON public.contact_details FOR ALL USING (true) WITH CHECK (true);
 
 -- ADD TABLES TO REALTIME PUBLICATION SAFELY
 DO $$
