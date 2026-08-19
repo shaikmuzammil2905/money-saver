@@ -151,7 +151,7 @@ export default function ProductsManager({ adminEmail }) {
         batches: selectedBatchesArr,
         sections: sectionsSelected,
         stock_quantity: parseInt(formData.get('stock_quantity') || '0', 10),
-        in_stock: parseInt(formData.get('stock_quantity') || '0', 10) > 0 ? (formData.get('in_stock') === 'true') : false,
+        in_stock: formData.get('in_stock') === 'true',
         is_active: editingProduct ? editingProduct.is_active : true,
         display_order: editingProduct ? editingProduct.display_order : products.length + 1
       };
@@ -266,7 +266,7 @@ export default function ProductsManager({ adminEmail }) {
         {filteredProducts.map((prod, index) => {
           const sectionsArr = Array.isArray(prod.sections) ? prod.sections : ['Home', 'All OTTs'];
           return (
-            <div key={prod.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-4 flex flex-col justify-between font-sans">
+            <div key={prod.id || prod.slug_id || index} className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-4 flex flex-col justify-between font-sans">
               
               <div className="space-y-3">
                 {/* Image & Badges */}
@@ -382,7 +382,7 @@ export default function ProductsManager({ adminEmail }) {
               <button onClick={() => setEditingProduct(null)} className="text-slate-400 hover:text-white font-bold text-base">✕</button>
             </div>
 
-            <form onSubmit={handleSaveProduct} className="space-y-4">
+            <form key={editingProduct?.id || editingProduct?.slug_id || 'edit_product_form'} onSubmit={handleSaveProduct} className="space-y-4">
               
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1">Product Title *</label>

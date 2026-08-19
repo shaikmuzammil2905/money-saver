@@ -688,8 +688,8 @@ export async function saveCmsItem(tableName, itemData) {
   let options = undefined;
   if (tableName === 'site_settings' || (itemData.key && !itemData.id)) {
     options = { onConflict: 'key' };
-  } else if (tableName === 'products' && itemData.slug_id && !itemData.id) {
-    options = { onConflict: 'slug_id' };
+  } else if (tableName === 'products') {
+    options = itemData.id ? { onConflict: 'id' } : (itemData.slug_id ? { onConflict: 'slug_id' } : undefined);
   } else if (tableName === 'banners' && itemData.banner_key && !itemData.id) {
     options = { onConflict: 'banner_key' };
   } else if (tableName === 'themes' && itemData.theme_key && !itemData.id) {
