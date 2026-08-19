@@ -7,12 +7,12 @@ export default function OffersPage({ onAddToCart, onQuickView, wishlistIds = [],
   const { activePublicProducts, offerSlides, offerItems } = useCMS();
 
   // Active Offer Slides
-  const activeSlides = offerSlides.filter(s => s.is_active !== false);
+  const activeSlides = (offerSlides || []).filter(s => s && s.is_active !== false);
   const topSlide = activeSlides.length > 0 ? activeSlides[0] : null;
 
   // Active Offer Items mapped to UI product format
-  const mappedOfferItems = offerItems
-    .filter(o => o.is_active !== false)
+  const mappedOfferItems = (offerItems || [])
+    .filter(o => o && o.is_active !== false)
     .sort((a, b) => (a.display_order || 999) - (b.display_order || 999))
     .map(o => ({
       id: o.id,

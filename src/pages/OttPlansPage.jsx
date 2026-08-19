@@ -227,7 +227,7 @@ export default function OttPlansPage({ onAddToCart, onQuickView, onOpenWhatsApp 
 
         {/* OTT Plans Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredPlans.map((plan) => (
+          {(filteredPlans || []).map((plan) => (
             <div
               key={plan.id}
               className="bg-white rounded-3xl border border-slate-200/90 p-5 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between group"
@@ -236,23 +236,27 @@ export default function OttPlansPage({ onAddToCart, onQuickView, onOpenWhatsApp 
                 {/* Header Image & Badge */}
                 <div className="relative w-full h-44 rounded-2xl overflow-hidden mb-4 bg-slate-900">
                   <img
-                    src={plan.image}
-                    alt={plan.title}
+                    src={plan.image || '/hero-products-showcase.png'}
+                    alt={plan.title || 'OTT Subscription'}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent flex items-end p-4">
                     <div>
-                      <span className="text-[10px] font-extrabold text-amber-400 bg-amber-950/80 border border-amber-500/50 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                        {plan.badge}
-                      </span>
+                      {plan.badge && (
+                        <span className="text-[10px] font-extrabold text-amber-400 bg-amber-950/80 border border-amber-500/50 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                          {plan.badge}
+                        </span>
+                      )}
                       <h3 className="text-lg font-black text-white leading-snug mt-1">
-                        {plan.title}
+                        {plan.title || 'OTT Plan'}
                       </h3>
                     </div>
                   </div>
-                  <span className="absolute top-3 right-3 bg-[#e50914] text-white text-xs font-black px-2.5 py-1 rounded-full shadow">
-                    {plan.discount}
-                  </span>
+                  {plan.discount && (
+                    <span className="absolute top-3 right-3 bg-[#e50914] text-white text-xs font-black px-2.5 py-1 rounded-full shadow">
+                      {plan.discount}
+                    </span>
+                  )}
                 </div>
 
                 <p className="text-xs text-slate-500 font-medium mb-3">{plan.subtitle}</p>
@@ -261,14 +265,14 @@ export default function OttPlansPage({ onAddToCart, onQuickView, onOpenWhatsApp 
                 <div className="flex items-center gap-1.5 mb-4 text-xs">
                   <div className="flex items-center gap-1 text-amber-500 font-extrabold">
                     <Star className="w-3.5 h-3.5 fill-current" />
-                    <span>{plan.rating}</span>
+                    <span>{plan.rating || 4.9}</span>
                   </div>
-                  <span className="text-slate-400">({plan.reviewsCount.toLocaleString()} reviews)</span>
+                  <span className="text-slate-400">({(plan.reviewsCount || 1200).toLocaleString()} reviews)</span>
                 </div>
 
                 {/* Key Features List */}
                 <div className="space-y-2 mb-6 border-t border-b border-slate-100 py-3">
-                  {plan.features.map((feat, idx) => (
+                  {(Array.isArray(plan.features) ? plan.features : (Array.isArray(plan.description_points) ? plan.description_points : ['Instant Digital Activation', 'Ultra HD Streaming Quality', 'Multi-device Logins Supported', '24/7 Priority Support'])).map((feat, idx) => (
                     <div key={idx} className="flex items-start gap-2 text-xs text-slate-700">
                       <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                       <span>{feat}</span>
@@ -281,11 +285,13 @@ export default function OttPlansPage({ onAddToCart, onQuickView, onOpenWhatsApp 
               <div>
                 <div className="flex items-baseline justify-between mb-4">
                   <div>
-                    <span className="text-xs text-slate-400 line-through font-medium mr-2">
-                      ₹{plan.originalPrice.toLocaleString()}
-                    </span>
+                    {plan.originalPrice || plan.original_price ? (
+                      <span className="text-xs text-slate-400 line-through font-medium mr-2">
+                        ₹{(plan.originalPrice || plan.original_price || 0).toLocaleString()}
+                      </span>
+                    ) : null}
                     <span className="text-2xl font-black text-slate-900">
-                      ₹{plan.price.toLocaleString()}
+                      ₹{(plan.price || 0).toLocaleString()}
                     </span>
                   </div>
                   <span className="text-xs font-extrabold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md">
@@ -295,13 +301,13 @@ export default function OttPlansPage({ onAddToCart, onQuickView, onOpenWhatsApp 
 
                 <div className="grid grid-cols-2 gap-2">
                   <button
-                    onClick={() => onQuickView(plan)}
+                    onClick={() => onQuickView && onQuickView(plan)}
                     className="py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs flex items-center justify-center gap-1 transition-colors"
                   >
                     <Eye className="w-4 h-4" /> Details
                   </button>
                   <button
-                    onClick={() => onAddToCart(plan)}
+                    onClick={() => onAddToCart && onAddToCart(plan)}
                     className="py-2.5 px-3 rounded-xl bg-[#008744] hover:bg-[#007038] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-700/20 transition-colors"
                   >
                     <ShoppingCart className="w-4 h-4 stroke-[2.5]" /> Add to Cart

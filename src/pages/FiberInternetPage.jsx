@@ -87,6 +87,40 @@ const FIBER_PLANS = [
 ];
 
 export default function FiberInternetPage({ onAddToCart, onOpenWhatsApp }) {
+  const { activePublicProducts } = useCMS();
+
+  const displayPlans = React.useMemo(() => {
+    const fromCms = (activePublicProducts || []).filter(p => 
+      (p?.categoryGroup || '').toLowerCase().includes('fiber') || 
+      (p?.category || '').toLowerCase().includes('fiber') ||
+      (p?.category || '').toLowerCase().includes('broadband') ||
+      (p?.title || '').toLowerCase().includes('fiber') ||
+      (Array.isArray(p?.sections) && p.sections.includes('Fiber Broadband'))
+    ).map(p => ({
+      id: p.id || p.slug_id || `fiber-${Math.random()}`,
+      title: p.title || 'High-Speed Fiber Broadband',
+      subtitle: p.subtitle || 'Unlimited High-Speed Internet',
+      speed: p.subtitle?.includes('Mbps') ? p.subtitle : '100 Mbps',
+      price: p.price || 499,
+      originalPrice: p.originalPrice || p.original_price || 799,
+      discount: p.discount || '38% OFF',
+      badge: p.badge || '',
+      features: Array.isArray(p.description_points) && p.description_points.length > 0 
+        ? p.description_points 
+        : (Array.isArray(p.features) ? p.features : [
+            'Symmetric High Speed Upload & Download',
+            'Truly Unlimited Data (No FUP)',
+            'Free Dual-Band Wi-Fi Router',
+            '24/7 Support Service'
+          ]),
+      ottIncluded: Array.isArray(p.custom_info) && p.custom_info.length > 0
+        ? p.custom_info
+        : (Array.isArray(p.ottIncluded) ? p.ottIncluded : ['Hotstar', 'ZEE5', 'SonyLIV'])
+    }));
+
+    return fromCms.length > 0 ? fromCms : FIBER_PLANS;
+  }, [activePublicProducts]);
+
   return (
     <div className="min-h-screen bg-slate-50 py-8 font-sans">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -200,22 +234,26 @@ export default function FiberInternetPage({ onAddToCart, onOpenWhatsApp }) {
                 {/* Pricing Box */}
                 <div className="bg-slate-50 rounded-2xl p-4 mb-6 border border-slate-200/80 flex items-baseline justify-between">
                   <div>
-                    <span className="text-xs text-slate-400 line-through mr-2 font-medium">
-                      ₹{plan.originalPrice.toLocaleString()}
-                    </span>
+                    {plan.originalPrice || plan.original_price ? (
+                      <span className="text-xs text-slate-400 line-through mr-2 font-medium">
+                        ₹{(plan.originalPrice || plan.original_price || 0).toLocaleString()}
+                      </span>
+                    ) : null}
                     <span className="text-3xl font-black text-slate-900">
-                      ₹{plan.price.toLocaleString()}
+                      ₹{(plan.price || 0).toLocaleString()}
                     </span>
                     <span className="text-xs text-slate-500 font-bold ml-1">/ month</span>
                   </div>
-                  <span className="text-xs font-extrabold text-white bg-[#e50914] px-2.5 py-1 rounded-md">
-                    {plan.discount}
-                  </span>
+                  {plan.discount && (
+                    <span className="text-xs font-extrabold text-white bg-[#e50914] px-2.5 py-1 rounded-md">
+                      {plan.discount}
+                    </span>
+                  )}
                 </div>
 
                 {/* Features List */}
                 <div className="space-y-2.5 mb-6">
-                  {plan.features.map((feat, idx) => (
+                  {(Array.isArray(plan.features) ? plan.features : []).map((feat, idx) => (
                     <div key={idx} className="flex items-start gap-2.5 text-xs text-slate-700 font-medium">
                       <CheckCircle2 className="w-4 h-4 text-sky-500 shrink-0 mt-0.5" />
                       <span>{feat}</span>
@@ -224,18 +262,20 @@ export default function FiberInternetPage({ onAddToCart, onOpenWhatsApp }) {
                 </div>
 
                 {/* OTT Apps Badges */}
-                <div className="pt-2 mb-6">
-                  <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-2">
-                    Included OTT Subscriptions:
-                  </span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {plan.ottIncluded.map((ott, i) => (
-                      <span key={i} className="text-[10px] font-extrabold text-slate-800 bg-slate-100 px-2 py-1 rounded-md border border-slate-200">
-                        {ott}
-                      </span>
-                    ))}
+                {Array.isArray(plan.ottIncluded) && plan.ottIncluded.length > 0 && (
+                  <div className="pt-2 mb-6">
+                    <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-2">
+                      Included OTT Subscriptions:
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {plan.ottIncluded.map((ott, i) => (
+                        <span key={i} className="text-[10px] font-extrabold text-slate-800 bg-slate-100 px-2 py-1 rounded-md border border-slate-200">
+                          {ott}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Action Buttons */}
