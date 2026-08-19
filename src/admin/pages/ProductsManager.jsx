@@ -158,7 +158,7 @@ export default function ProductsManager({ adminEmail }) {
 
       await saveCmsItem('products', payload);
       await logActivity(adminEmail, editingProduct?.id ? 'EDITED' : 'ADDED', 'Products', payload.title);
-      refreshAllData();
+      await refreshAllData();
       setEditingProduct(null);
       showToast(editingProduct?.id ? 'Updated successfully.' : 'Product Added Successfully.');
     } catch (err) {

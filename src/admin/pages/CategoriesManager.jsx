@@ -105,7 +105,7 @@ export default function CategoriesManager({ adminEmail }) {
 
       await saveCmsItem('categories', payload);
       await logActivity(adminEmail, editingCategory?.id ? 'EDITED' : 'ADDED', 'Categories', payload.name);
-      refreshAllData();
+      await refreshAllData();
       setEditingCategory(null);
       showToast('Category Saved Successfully.');
     } catch (err) {

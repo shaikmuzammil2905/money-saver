@@ -71,7 +71,7 @@ export default function BannersManager({ adminEmail }) {
 
       await saveCmsItem('banners', payload);
       await logActivity(adminEmail, editingBanner?.id ? 'EDITED' : 'ADDED', 'Banners', payload.title_name);
-      refreshAllData();
+      await refreshAllData();
       setEditingBanner(null);
       showToast('Banner Saved Successfully.');
     } catch (err) {

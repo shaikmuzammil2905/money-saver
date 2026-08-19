@@ -1,5 +1,6 @@
 import React from 'react';
 import { Wifi, Zap, ShieldCheck, CheckCircle2, ShoppingCart, MessageCircle, ArrowRight, Gauge, Cpu, Phone } from 'lucide-react';
+import { useCMS } from '../context/CMSContext';
 
 const FIBER_PLANS = [
   {
@@ -58,10 +59,9 @@ const FIBER_PLANS = [
       '300 Mbps Lightning Fast Speed',
       'Includes 16 Premium OTT Apps including Netflix 4K',
       'Free Dual-Band Wi-Fi 6 Router',
-      'Connect up to 20+ Smart Devices simultaneously',
-      'Symmetric 300 Mbps Upload Speed'
+      'Priority Customer Service & On-Site Repair'
     ],
-    ottIncluded: ['Netflix 4K', 'Amazon Prime', 'Disney+ Hotstar', 'ZEE5', 'SonyLIV', 'Apple TV+']
+    ottIncluded: ['All 16 Premium OTT Apps']
   },
   {
     id: 'fiber-1gbps-gigabit',
@@ -173,7 +173,7 @@ export default function FiberInternetPage({ onAddToCart, onOpenWhatsApp }) {
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {FIBER_PLANS.map((plan) => (
+          {(displayPlans || FIBER_PLANS).map((plan) => (
             <div
               key={plan.id}
               className={`bg-white rounded-3xl border ${plan.badge ? 'border-sky-500 shadow-lg shadow-sky-500/10' : 'border-slate-200/90 shadow-sm'} p-6 sm:p-8 flex flex-col justify-between relative overflow-hidden`}

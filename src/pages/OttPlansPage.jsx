@@ -143,7 +143,7 @@ export default function OttPlansPage({ onAddToCart, onQuickView, onOpenWhatsApp 
   const { categories: cmsCategories, activePublicProducts } = useCMS();
   const [selectedCat, setSelectedCat] = useState('All');
 
-  // Filter products for OTT category group or fallback list
+  // Filter products for OTT category group or section
   const ottPublicProducts = useMemo(() => {
     const fromCms = activePublicProducts.filter(p => 
       p.categoryGroup?.toLowerCase().includes('ott') || 
@@ -153,11 +153,11 @@ export default function OttPlansPage({ onAddToCart, onQuickView, onOpenWhatsApp 
       p.category?.toLowerCase().includes('hotstar') ||
       p.category?.toLowerCase().includes('zee') ||
       p.category?.toLowerCase().includes('sony') ||
-      p.category?.toLowerCase().includes('combo')
+      p.category?.toLowerCase().includes('combo') ||
+      (Array.isArray(p.sections) && p.sections.includes('All OTTs'))
     );
 
-    if (fromCms && fromCms.length > 0) return fromCms;
-    return OTT_PLANS_LIST;
+    return fromCms.length > 0 ? fromCms : activePublicProducts;
   }, [activePublicProducts]);
 
   const filterCategories = useMemo(() => {

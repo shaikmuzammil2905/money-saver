@@ -67,7 +67,7 @@ export default function OffersManager({ adminEmail }) {
 
       await saveCmsItem('offer_items', payload);
       await logActivity(adminEmail, editingOfferItem ? 'EDITED' : 'ADDED', 'Offer Items', payload.name);
-      refreshAllData();
+      await refreshAllData();
       setEditingOfferItem(null);
       showToast(editingOfferItem ? 'Offer Item Updated.' : 'Offer Item Added.');
     } catch (err) {
@@ -82,7 +82,7 @@ export default function OffersManager({ adminEmail }) {
       const updated = { ...item, is_active: !item.is_active };
       await saveCmsItem('offer_items', updated);
       await logActivity(adminEmail, updated.is_active ? 'ENABLED' : 'DISABLED', 'Offer Items', item.name);
-      refreshAllData();
+      await refreshAllData();
       showToast(updated.is_active ? 'Enabled' : 'Disabled');
     } catch (err) {
       alert('Error toggling status: ' + err.message);
@@ -94,7 +94,7 @@ export default function OffersManager({ adminEmail }) {
     try {
       await deleteCmsItem('offer_items', id);
       await logActivity(adminEmail, 'DELETED', 'Offer Items', name);
-      refreshAllData();
+      await refreshAllData();
       showToast('Deleted successfully.');
     } catch (err) {
       alert('Error deleting offer: ' + err.message);

@@ -135,7 +135,7 @@ export default function ThemesManager({ adminEmail }) {
 
       await saveCmsItem('themes', payload);
       await logActivity(adminEmail, editingTheme.id ? 'EDITED' : 'ADDED', 'Themes', payload.name);
-      refreshAllData();
+      await refreshAllData();
       setEditingTheme(null);
       showToast('Theme Saved to Supabase Successfully.');
     } catch (err) {
