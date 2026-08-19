@@ -19,8 +19,9 @@ export default function ElectronicsPage({ onAddToCart, onQuickView, wishlistIds 
 
   const filtered = useMemo(() => {
     return electronicsList.filter(p => {
+      if (!p) return false;
       const matchCat = selectedCategory === 'All' || p.category === selectedCategory;
-      const matchSearch = p.title.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchSearch = (p.title || '').toLowerCase().includes((searchTerm || '').toLowerCase());
       return matchCat && matchSearch;
     });
   }, [electronicsList, selectedCategory, searchTerm]);

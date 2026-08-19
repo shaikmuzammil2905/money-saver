@@ -110,31 +110,66 @@ export default function HeroSection({ onExploreDeals, onShopNow }) {
                 
                 {/* Left Column */}
                 <div className="lg:col-span-5 space-y-2 sm:space-y-4 text-center lg:text-left flex flex-col justify-center">
+                  {/* Subheading / Badges */}
+                  <div className="flex items-center justify-center lg:justify-start gap-2 flex-wrap mb-1">
+                    {banner1.subheading && (
+                      <span className="bg-amber-400 text-black px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wide">
+                        {banner1.subheading}
+                      </span>
+                    )}
+                    {Array.isArray(banner1.badges) && banner1.badges.map((bdg, bIdx) => (
+                      <span key={bIdx} className="bg-red-600/90 text-white px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase border border-red-400/40">
+                        {typeof bdg === 'string' ? bdg : bdg.text}
+                      </span>
+                    ))}
+                  </div>
+
                   <div>
                     <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-5xl font-black uppercase tracking-tight leading-none font-sans">
-                      <span className="text-[#e50914] block drop-shadow-[0_2px_10px_rgba(229,9,20,0.5)]">SAVE MONEY.</span>
-                      <span className="text-white block drop-shadow-[0_2px_10px_rgba(255,255,255,0.4)]">ENJOY MORE.</span>
+                      <span className="text-[#e50914] block drop-shadow-[0_2px_10px_rgba(229,9,20,0.5)]">{banner1.heading || 'SAVE MONEY.'}</span>
                     </h1>
                   </div>
 
                   <p className="text-slate-300 text-xs sm:text-base font-normal leading-snug sm:leading-relaxed max-w-md mx-auto lg:mx-0">
-                    OTT subscriptions, high-speed fiber internet, mobiles &amp; gadgets — <span className="font-semibold text-white">all at smart prices.</span>
+                    {banner1.description || 'OTT subscriptions, high-speed fiber internet, mobiles & gadgets — all at smart prices.'}
                   </p>
 
-                  <div className="flex items-center justify-center lg:justify-start gap-2.5 sm:gap-4 pt-1">
-                    <button
-                      onClick={onExploreDeals}
-                      className="px-5 py-2.5 sm:px-6 sm:py-3 rounded-xl bg-gradient-to-r from-[#e50914] to-red-600 hover:from-red-600 hover:to-red-700 text-white font-extrabold text-xs sm:text-sm md:text-base shadow-lg shadow-red-600/40 hover:scale-105 transition-all flex items-center gap-1.5"
-                    >
-                      <span>Explore Deals</span>
-                    </button>
+                  {/* Dynamic Independent Position Buttons */}
+                  <div className="flex items-center justify-center lg:justify-start gap-2.5 sm:gap-4 pt-1 flex-wrap">
+                    {Array.isArray(banner1.buttons) && banner1.buttons.length > 0 ? (
+                      banner1.buttons.filter(b => b.is_active !== false).map((btn, btnIdx) => (
+                        <button
+                          key={btn.id || btnIdx}
+                          onClick={() => {
+                            if (btn.link === 'offers' || btn.link === '/offers') onExploreDeals();
+                            else if (btn.link === 'mobiles' || btn.link === '/mobiles') onShopNow();
+                            else if (btn.link) window.location.href = btn.link;
+                          }}
+                          style={{
+                            transform: `translate(${btn.position_x || 0}px, ${btn.position_y || 0}px)`
+                          }}
+                          className="px-5 py-2.5 sm:px-6 sm:py-3 rounded-xl font-extrabold text-xs sm:text-sm md:text-base shadow-lg transition-all hover:scale-105 cursor-pointer relative"
+                        >
+                          {btn.text || 'Click Here'}
+                        </button>
+                      ))
+                    ) : (
+                      <>
+                        <button
+                          onClick={onExploreDeals}
+                          className="px-5 py-2.5 sm:px-6 sm:py-3 rounded-xl bg-gradient-to-r from-[#e50914] to-red-600 hover:from-red-600 hover:to-red-700 text-white font-extrabold text-xs sm:text-sm md:text-base shadow-lg shadow-red-600/40 hover:scale-105 transition-all flex items-center gap-1.5"
+                        >
+                          <span>{banner1.button_text || 'Explore Deals'}</span>
+                        </button>
 
-                    <button
-                      onClick={onShopNow}
-                      className="px-5 py-2.5 sm:px-6 sm:py-3 rounded-xl bg-white hover:bg-slate-100 text-slate-950 font-extrabold text-xs sm:text-sm md:text-base shadow-lg hover:scale-105 transition-all"
-                    >
-                      Shop Now
-                    </button>
+                        <button
+                          onClick={onShopNow}
+                          className="px-5 py-2.5 sm:px-6 sm:py-3 rounded-xl bg-white hover:bg-slate-100 text-slate-950 font-extrabold text-xs sm:text-sm md:text-base shadow-lg hover:scale-105 transition-all"
+                        >
+                          Shop Now
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
 

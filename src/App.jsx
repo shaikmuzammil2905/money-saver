@@ -37,11 +37,77 @@ import { CMSProvider, useCMS } from './context/CMSContext';
 import { getUserProfile } from './services/orderService';
 import { logPageView } from './services/cmsService';
 
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error("React Error Boundary caught error:", error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center font-sans">
+          <div className="bg-white border border-slate-200 p-8 rounded-3xl shadow-xl max-w-md space-y-4">
+            <h2 className="text-xl font-black text-slate-900">Page Navigation Notice</h2>
+            <p className="text-xs text-slate-500">
+              {this.state.error?.message || 'An unexpected rendering error occurred.'}
+            </p>
+            <button
+              onClick={() => {
+                this.setState({ hasError: false, error: null });
+                window.location.href = '/';
+              }}
+              className="px-6 py-2.5 rounded-xl bg-[#e50914] text-white font-extrabold text-xs shadow-md hover:bg-red-700 transition-all cursor-pointer"
+            >
+              Return to Home Page
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 const CART_STORAGE_KEY = 'ott_cart';
 
 function PublicWebsite() {
   const { activePublicProducts, homeSections, themes, banners, loading } = useCMS();
-  const [activeTab, setActiveTab] = useState('home');
+
+  const getInitialTabFromUrl = () => {
+    const path = window.location.pathname.replace('/', '').toLowerCase();
+    if (path === 'ott-plans' || path === 'ott') return 'ott-plans';
+    if (path === 'fiber-internet' || path === 'fiber') return 'fiber';
+    if (path === 'mobiles' || path === 'gadgets') return 'mobiles';
+    if (path === 'electronics') return 'electronics';
+    if (path === 'offers') return 'offers';
+    if (path === 'contact') return 'contact';
+    if (path === 'view-all') return 'view-all';
+    return 'home';
+  };
+
+  const [activeTab, setActiveTabState] = useState(getInitialTabFromUrl);
+
+  const setActiveTab = (tab) => {
+    setActiveTabState(tab);
+    const targetPath = tab === 'home' ? '/' : (tab === 'fiber' ? '/fiber-internet' : `/${tab}`);
+    if (window.location.pathname !== targetPath) {
+      window.history.pushState({}, '', targetPath);
+    }
+  };
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setActiveTabState(getInitialTabFromUrl());
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   useEffect(() => {
     logPageView(`/${activeTab}`);
@@ -545,7 +611,7 @@ export default function App() {
 
   return (
     <CMSProvider>
-      {isAdminRoute ? <AdminApp /> : <PublicWebsite />}
+      {isAdminRoute ? <AdminApp /> : <ErrorBoundary><PublicWebsite /></ErrorBoundary>}
     </CMSProvider>
   );
 }

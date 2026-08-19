@@ -131,7 +131,7 @@ export default function ProductsManager({ adminEmail }) {
 
       const payload = {
         id: editingProduct?.id,
-        slug_id: editingProduct?.slug_id || `prod-${Date.now()}`,
+        slug_id: editingProduct?.slug_id || editingProduct?.id || `prod-${Date.now()}`,
         title: formData.get('title'),
         subtitle: formData.get('subtitle'),
         description: cleanDescPoints.join('\n'),

@@ -685,7 +685,20 @@ export async function saveCmsItem(tableName, itemData) {
     updated_at: new Date().toISOString()
   };
 
-  const options = (tableName === 'site_settings' || (itemData.key && !itemData.id)) ? { onConflict: 'key' } : undefined;
+  let options = undefined;
+  if (tableName === 'site_settings' || (itemData.key && !itemData.id)) {
+    options = { onConflict: 'key' };
+  } else if (tableName === 'products' && itemData.slug_id && !itemData.id) {
+    options = { onConflict: 'slug_id' };
+  } else if (tableName === 'banners' && itemData.banner_key && !itemData.id) {
+    options = { onConflict: 'banner_key' };
+  } else if (tableName === 'themes' && itemData.theme_key && !itemData.id) {
+    options = { onConflict: 'theme_key' };
+  } else if (tableName === 'home_sections' && itemData.box_key && !itemData.id) {
+    options = { onConflict: 'box_key' };
+  } else if (tableName === 'categories' && itemData.slug && !itemData.id) {
+    options = { onConflict: 'slug' };
+  }
 
   try {
     const { data, error } = await supabase

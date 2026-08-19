@@ -21,10 +21,11 @@ export default function MobilesGadgetsPage({ onAddToCart, onQuickView, wishlistI
 
   const filtered = useMemo(() => {
     return mobileGadgetProducts.filter((p) => {
+      if (!p) return false;
       const matchCat = selectedSubCat === 'All' || p.category === selectedSubCat;
       const matchSearch = 
-        p.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.subtitle?.toLowerCase().includes(searchTerm.toLowerCase());
+        (p.title || '').toLowerCase().includes((searchTerm || '').toLowerCase()) ||
+        (p.subtitle || '').toLowerCase().includes((searchTerm || '').toLowerCase());
       return matchCat && matchSearch;
     }).sort((a, b) => {
       if (sortBy === 'price-low') return a.price - b.price;
