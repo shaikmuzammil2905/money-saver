@@ -187,7 +187,8 @@ export function CMSProvider({ children }) {
     .filter((p) => p.is_active !== false)
     .sort((a, b) => (a.display_order || 999) - (b.display_order || 999))
     .map((p) => ({
-      id: p.slug_id || p.id,
+      id: p.id || p.slug_id,
+      slug_id: p.slug_id || p.id,
       db_id: p.id,
       title: p.title,
       subtitle: p.subtitle,
