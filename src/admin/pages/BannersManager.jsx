@@ -107,12 +107,12 @@ export default function BannersManager({ adminEmail }) {
       )}
 
       {/* Header */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
             <ImageIcon className="w-6 h-6 text-[#e50914]" /> Banner Manager (Home &amp; Offers)
           </h1>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1">
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">
             Manage all 7 Home Banners (including Home Main Banner 02 / 2nd Slide) and Offers Top Banner.
           </p>
         </div>
@@ -127,7 +127,7 @@ export default function BannersManager({ adminEmail }) {
             button_color: '#e50914',
             bg_color: '#050b1e'
           })}
-          className="px-4 py-2.5 rounded-xl bg-[#008744] hover:bg-emerald-600 text-white font-bold text-xs flex items-center gap-2 shadow-lg transition-all"
+          className="px-4 py-2.5 rounded-xl bg-[#008744] hover:bg-emerald-600 text-white font-bold text-xs flex items-center gap-2 shadow-sm transition-all"
         >
           <Plus className="w-4 h-4" /> Add New Banner
         </button>
@@ -136,7 +136,8 @@ export default function BannersManager({ adminEmail }) {
       {/* Mobile-First Banners List (Vertical Cards) */}
       <div className="space-y-4">
         {banners.map((b) => (
-          <div key={b.id || b.banner_key} className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl space-y-4 font-sans">
+          <div key={b.id || b.banner_key} className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-sm space-y-4 font-sans">
+
             
             {/* Card Top: Banner Identity & Active Switch */}
             <div className="flex items-center justify-between gap-2 pb-3 border-b border-slate-800">

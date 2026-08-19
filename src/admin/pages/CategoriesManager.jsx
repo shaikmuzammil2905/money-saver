@@ -141,18 +141,18 @@ export default function CategoriesManager({ adminEmail }) {
       )}
 
       {/* Header */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
-            <Layers className="w-6 h-6 text-purple-500" /> Categories Management
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+            <Layers className="w-6 h-6 text-purple-600" /> Categories Management
           </h1>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1">
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">
             Add, edit, reorder, and enable/disable website product categories.
           </p>
         </div>
         <button
           onClick={() => setEditingCategory({ icon: 'Sparkles', group_name: 'Mobile / Gadgets' })}
-          className="px-4 py-2.5 rounded-xl bg-[#008744] hover:bg-emerald-600 text-white font-bold text-xs flex items-center gap-2 shadow-lg transition-all"
+          className="px-4 py-2.5 rounded-xl bg-[#008744] hover:bg-emerald-600 text-white font-bold text-xs flex items-center gap-2 shadow-sm transition-all"
         >
           <Plus className="w-4 h-4" /> Add Category
         </button>

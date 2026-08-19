@@ -1,12 +1,20 @@
 import React from 'react';
 import { ArrowRight, Flame } from 'lucide-react';
+import { useCMS } from '../context/CMSContext';
 
 export default function PromoBanner({ onViewOffers }) {
+  const { banners } = useCMS();
+  const banner = banners.find(b => b.banner_key === 'offers_top' || b.banner_key === 'home_bottom_small') || {
+    heading: 'WHY PAY MORE?',
+    description: 'Discover smart deals on entertainment, internet, gadgets and electronics.',
+    button_text: 'View All Offers'
+  };
+
   return (
     <section className="py-8 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        <div className="relative rounded-3xl bg-gradient-to-r from-brand-red via-red-600 to-brand-orange text-white p-6 sm:p-10 overflow-hidden shadow-xl">
+        <div className="relative rounded-3xl bg-gradient-to-r from-[#e50914] via-red-600 to-orange-500 text-white p-6 sm:p-10 overflow-hidden shadow-xl">
           
           {/* Decorative Pattern Background */}
           <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none" />
@@ -16,19 +24,19 @@ export default function PromoBanner({ onViewOffers }) {
             {/* Left Column Text & Button */}
             <div className="lg:col-span-7 space-y-4 text-center lg:text-left">
               <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-white uppercase font-sans drop-shadow-md">
-                WHY PAY MORE?
+                {banner.heading || 'WHY PAY MORE?'}
               </h2>
               
               <p className="text-white/95 text-base sm:text-lg font-medium max-w-xl mx-auto lg:mx-0">
-                Discover smart deals on entertainment, internet, gadgets and electronics.
+                {banner.description || 'Discover smart deals on entertainment, internet, gadgets and electronics.'}
               </p>
 
               <div className="pt-2">
                 <button
                   onClick={onViewOffers}
-                  className="px-8 py-3.5 rounded-xl bg-slate-950 hover:bg-slate-900 text-white font-extrabold text-sm sm:text-base shadow-2xl transition-all hover:scale-105 inline-flex items-center gap-2 group"
+                  className="px-8 py-3.5 rounded-xl bg-slate-950 hover:bg-slate-900 text-white font-extrabold text-sm sm:text-base shadow-2xl transition-all hover:scale-105 inline-flex items-center gap-2 group cursor-pointer"
                 >
-                  <span>View All Offers</span>
+                  <span>{banner.button_text || 'View All Offers'}</span>
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </button>
               </div>

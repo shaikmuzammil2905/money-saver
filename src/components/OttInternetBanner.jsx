@@ -1,7 +1,17 @@
 import React from 'react';
 import { Tv, Wifi, Layers, ArrowRight } from 'lucide-react';
+import { useCMS } from '../context/CMSContext';
 
 export default function OttInternetBanner({ onExplorePlans }) {
+  const { banners } = useCMS();
+  const banner = banners.find(b => b.banner_key === 'home_middle_big') || {
+    heading: '12-in-1 Mega Subscription Pack',
+    subheading: 'ULTIMATE SAVINGS BUNDLE',
+    description: 'Single dashboard access for Netflix, Prime, Hotstar, ZEE5, SonyLIV & 7 more apps.',
+    button_text: 'Claim Offer',
+    image_url: '/image.png'
+  };
+
   return (
     <section id="ott-plans" className="py-12 bg-white font-sans">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -16,16 +26,17 @@ export default function OttInternetBanner({ onExplorePlans }) {
             {/* Left Content */}
             <div className="lg:col-span-7 space-y-6">
               <div>
-                <span className="text-xs font-extrabold uppercase tracking-widest text-brand-red mb-2 block">
-                  Entertainment + Connectivity
+                <span className="text-xs font-extrabold uppercase tracking-widest text-[#e50914] mb-2 block">
+                  {banner.subheading || 'Entertainment + Connectivity'}
                 </span>
                 <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tight uppercase leading-tight font-sans">
-                  OTT & INTERNET PLANS
+                  {banner.heading || 'OTT & INTERNET PLANS'}
                 </h2>
                 <p className="text-slate-300 text-sm sm:text-base font-normal mt-1">
-                  Entertainment + Connectivity at Best Prices
+                  {banner.description || 'Entertainment + Connectivity at Best Prices'}
                 </p>
               </div>
+
 
               {/* 3 Features */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
@@ -58,9 +69,9 @@ export default function OttInternetBanner({ onExplorePlans }) {
               <div className="pt-2">
                 <button
                   onClick={onExplorePlans}
-                  className="px-7 py-3 rounded-xl bg-brand-red hover:bg-brand-redHover text-white font-extrabold text-sm shadow-lg shadow-brand-red/30 transition-all flex items-center gap-2 group"
+                  className="px-7 py-3 rounded-xl bg-[#e50914] hover:bg-red-700 text-white font-extrabold text-sm shadow-lg shadow-red-900/30 transition-all flex items-center gap-2 group cursor-pointer"
                 >
-                  <span>View All Plans</span>
+                  <span>{banner.button_text || 'View All Plans'}</span>
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </button>
               </div>

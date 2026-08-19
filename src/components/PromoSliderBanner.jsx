@@ -1,42 +1,49 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Flame, ArrowRight, ChevronLeft, ChevronRight, Zap, Gift } from 'lucide-react';
+import { useCMS } from '../context/CMSContext';
 
 export default function PromoSliderBanner({ onViewOffers, onSelectCategory }) {
+  const { banners: cmsBanners } = useCMS();
   const [currentIdx, setCurrentIdx] = useState(0);
+
+  const b1 = cmsBanners.find(b => b.banner_key === 'home_small_1') || {};
+  const b2 = cmsBanners.find(b => b.banner_key === 'home_small_2') || {};
+  const b3 = cmsBanners.find(b => b.banner_key === 'home_small_3') || {};
 
   const banners = [
     {
-      id: 1,
-      badge: 'MEGA DISCOUNT CARNIVAL',
-      title: 'OTT & FIBER BROADBAND BUNDLES',
-      subtitle: 'Get 12+ Premium OTT Apps & 200 Mbps Unlimited Fiber Internet',
-      discount: 'UP TO 75% OFF',
+      id: b1.id || 'b1',
+      badge: b1.subheading || 'MEGA DISCOUNT CARNIVAL',
+      title: b1.heading || 'OTT & FIBER BROADBAND BUNDLES',
+      subtitle: b1.description || 'Get 12+ Premium OTT Apps & 200 Mbps Unlimited Fiber Internet',
+      discount: b1.discount || 'UP TO 75% OFF',
       bgGradient: 'from-red-600 via-rose-600 to-orange-500',
-      actionText: 'Explore Fiber Bundles',
-      targetCategory: 'fiber'
+      actionText: b1.button_text || 'Explore Fiber Bundles',
+      targetCategory: b1.button_link || 'fiber'
     },
     {
-      id: 2,
-      badge: 'LIMITED TIME DEAL',
-      title: 'NETFLIX 4K UHD & PRIME VIDEO',
-      subtitle: 'Multi-screen Ultra HD Playback with Instant Digital Activation',
-      discount: '70% OFF REGULAR PRICE',
+      id: b2.id || 'b2',
+      badge: b2.subheading || 'LIMITED TIME DEAL',
+      title: b2.heading || 'NETFLIX 4K UHD & PRIME VIDEO',
+      subtitle: b2.description || 'Multi-screen Ultra HD Playback with Instant Digital Activation',
+      discount: b2.discount || '70% OFF REGULAR PRICE',
       bgGradient: 'from-slate-900 via-zinc-900 to-red-950',
-      actionText: 'Get OTT Subscriptions',
-      targetCategory: 'ott'
+      actionText: b2.button_text || 'Get OTT Subscriptions',
+      targetCategory: b2.button_link || 'ott'
     },
     {
-      id: 3,
-      badge: 'SMART GADGET FEST',
-      title: '5G MOBILES & ANC EARBUDS',
-      subtitle: 'Shop Sony IMX OIS Camera Phones, Smartwatches & ANC Earbuds',
-      discount: 'SAVE UP TO ₹5,000',
+      id: b3.id || 'b3',
+      badge: b3.subheading || 'SMART GADGET FEST',
+      title: b3.heading || '5G MOBILES & ANC EARBUDS',
+      subtitle: b3.description || 'Shop Sony IMX OIS Camera Phones, Smartwatches & ANC Earbuds',
+      discount: b3.discount || 'SAVE UP TO ₹5,000',
       bgGradient: 'from-emerald-700 via-teal-800 to-slate-950',
-      actionText: 'Shop Gadgets Deals',
-      targetCategory: 'mobiles'
+      actionText: b3.button_text || 'Shop Gadgets Deals',
+      targetCategory: b3.button_link || 'mobiles'
     }
   ];
+
 
   useEffect(() => {
     const timer = setInterval(() => {

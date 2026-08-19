@@ -155,19 +155,19 @@ export default function ThemesManager({ adminEmail }) {
       )}
 
       {/* Header */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
             <Palette className="w-6 h-6 text-pink-500" /> Themes &amp; Visual Page Builder
           </h1>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1">
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">
             Create custom visual section themes with Canva-style element controls (Text, Colors, Borders, Buttons, Boxes).
           </p>
         </div>
 
         <button
           onClick={() => openThemeEditor()}
-          className="px-4 py-2.5 rounded-xl bg-[#008744] hover:bg-emerald-600 text-white font-bold text-xs flex items-center gap-2 shadow-lg transition-all self-start sm:self-auto"
+          className="px-4 py-2.5 rounded-xl bg-[#008744] hover:bg-emerald-600 text-white font-bold text-xs flex items-center gap-2 shadow-sm transition-all self-start sm:self-auto"
         >
           <Plus className="w-4 h-4" /> Create New Theme
         </button>
@@ -176,15 +176,16 @@ export default function ThemesManager({ adminEmail }) {
       {/* THEMES GRID LIST */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {themes.map((t) => (
-          <div key={t.id || t.theme_key} className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4 font-sans flex flex-col justify-between">
+          <div key={t.id || t.theme_key} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4 font-sans flex flex-col justify-between">
             <div className="space-y-3">
-              <div className="flex items-center justify-between gap-2 pb-3 border-b border-slate-800">
+              <div className="flex items-center justify-between gap-2 pb-3 border-b border-slate-100">
                 <div>
-                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-pink-950 text-pink-300 border border-pink-800">
+                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-pink-50 text-pink-700 border border-pink-200">
                     {t.theme_key}
                   </span>
-                  <h3 className="font-extrabold text-white text-base mt-1">{t.name}</h3>
+                  <h3 className="font-extrabold text-slate-900 text-base mt-1">{t.name}</h3>
                 </div>
+
                 <button
                   onClick={() => handleToggleThemeStatus(t)}
                   className={`px-3 py-1 rounded-xl text-xs font-black border transition-all ${

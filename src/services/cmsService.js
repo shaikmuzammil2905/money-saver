@@ -1,7 +1,7 @@
 // OTTMoneySaver Central CMS Database Service Layer
-import { supabase } from './supabase';
-import { ALL_PRODUCTS, PRIMARY_CATEGORIES, SHOP_BY_CATEGORIES, VALUE_PROPOSITIONS, FEATURED_DEALS } from '../data/products';
-import { DEFAULT_PAYMENT_CONFIG } from '../config/payment';
+import { supabase } from './supabase.js';
+import { ALL_PRODUCTS, PRIMARY_CATEGORIES, SHOP_BY_CATEGORIES, VALUE_PROPOSITIONS, FEATURED_DEALS } from '../data/products.js';
+import { DEFAULT_PAYMENT_CONFIG } from '../config/payment.js';
 
 // ==================================================
 // ACTIVITY LOGGING SERVICE
@@ -427,6 +427,8 @@ export const DEFAULT_THEMES = [
 
 // ==================================================
 // GENERAL CMS FETCH / MUTATION HELPERS WITH AUTO SEEDING
+// ==================================================
+// GENERAL CMS FETCH / MUTATION HELPERS WITH AUTO SEEDING & SUPABASE FALLBACK
 // Cache for initialized tables in Supabase
 let initializedTablesCache = null;
 
@@ -463,6 +465,110 @@ async function markTableInitializedInSupabase(tableName) {
   }
 }
 
+// Fallback persistence layer using Supabase site_settings table when PostgREST schema cache is missing table
+async function getFallbackTableData(tableName, defaultItems = [], orderColumn = 'display_order') {
+  try {
+    const key = `cms_table_${tableName}`;
+    const { data, error } = await supabase
+      .from('site_settings')
+      .select('*')
+      .eq('key', key)
+      .maybeSingle();
+
+    if (!error && data && Array.isArray(data.value)) {
+      const items = [...data.value];
+      const sortField = tableName === 'home_sections' ? 'position' : orderColumn;
+      items.sort((a, b) => (a[sortField] || 0) - (b[sortField] || 0));
+      return items;
+    }
+
+    if (defaultItems && defaultItems.length > 0) {
+      const seeded = defaultItems.map((item, idx) => ({
+        id: item.id || `seed_${Date.now()}_${idx}`,
+        ...item,
+        position: item.position || idx + 1,
+        display_order: item.display_order || idx + 1
+      }));
+      await supabase.from('site_settings').upsert({
+        key,
+        value: seeded,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'key' });
+      return seeded;
+    }
+
+    return [];
+  } catch (err) {
+    console.warn(`Fallback fetch error for ${tableName}:`, err);
+    return defaultItems || [];
+  }
+}
+
+async function saveFallbackCmsItem(tableName, itemData) {
+  const key = `cms_table_${tableName}`;
+  const current = await getFallbackTableData(tableName, []);
+  let updated = [...current];
+
+  const targetId = itemData.id || itemData.box_key || itemData.banner_key || itemData.theme_key;
+  const existingIdx = updated.findIndex(i => 
+    (i.id && i.id === targetId) || 
+    (i.box_key && itemData.box_key && i.box_key === itemData.box_key) || 
+    (i.banner_key && itemData.banner_key && i.banner_key === itemData.banner_key) || 
+    (i.theme_key && itemData.theme_key && i.theme_key === itemData.theme_key)
+  );
+
+  const finalItem = {
+    id: itemData.id || (existingIdx >= 0 && updated[existingIdx].id ? updated[existingIdx].id : `id_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`),
+    ...itemData,
+    updated_at: new Date().toISOString()
+  };
+
+  if (existingIdx >= 0) {
+    updated[existingIdx] = { ...updated[existingIdx], ...finalItem };
+  } else {
+    updated.push(finalItem);
+  }
+
+  const { error } = await supabase.from('site_settings').upsert({
+    key,
+    value: updated,
+    updated_at: new Date().toISOString()
+  }, { onConflict: 'key' });
+
+  if (error) throw new Error(`Supabase save failed: ${error.message}`);
+  return finalItem;
+}
+
+async function deleteFallbackCmsItem(tableName, id) {
+  const key = `cms_table_${tableName}`;
+  const current = await getFallbackTableData(tableName, []);
+  const updated = current.filter(i => i.id !== id && i.box_key !== id && i.banner_key !== id && i.theme_key !== id);
+
+  const { error } = await supabase.from('site_settings').upsert({
+    key,
+    value: updated,
+    updated_at: new Date().toISOString()
+  }, { onConflict: 'key' });
+
+  if (error) throw new Error(`Supabase delete failed: ${error.message}`);
+  return true;
+}
+
+async function updateFallbackDisplayOrder(tableName, items, orderField = 'display_order') {
+  const key = `cms_table_${tableName}`;
+  const reordered = items.map((item, idx) => ({
+    ...item,
+    [orderField]: idx + 1,
+    updated_at: new Date().toISOString()
+  }));
+
+  await supabase.from('site_settings').upsert({
+    key,
+    value: reordered,
+    updated_at: new Date().toISOString()
+  }, { onConflict: 'key' });
+}
+
 /**
  * Fetch table items or seed if empty on first-time setup only.
  * Deleted items will NEVER be re-seeded!
@@ -479,8 +585,11 @@ export async function getCmsTableData(tableName, defaultItems = [], orderColumn 
       .order(sortField, { ascending: true });
 
     if (error) {
+      if (error.code === 'PGRST205' || error.message?.includes('schema cache')) {
+        return await getFallbackTableData(tableName, defaultItems, orderColumn);
+      }
       console.warn(`Supabase fetch error for ${tableName}:`, error.message);
-      return [];
+      return await getFallbackTableData(tableName, defaultItems, orderColumn);
     }
 
     const initKey = `oms_table_initialized_${tableName}`;
@@ -513,7 +622,7 @@ export async function getCmsTableData(tableName, defaultItems = [], orderColumn 
     return data;
   } catch (err) {
     console.error(`Exception reading ${tableName}:`, err);
-    return [];
+    return await getFallbackTableData(tableName, defaultItems, orderColumn);
   }
 }
 
@@ -551,17 +660,28 @@ export async function saveCmsItem(tableName, itemData) {
     updated_at: new Date().toISOString()
   };
 
-  // If table is site_settings or item has key property without id, resolve conflict on key
   const options = (tableName === 'site_settings' || (itemData.key && !itemData.id)) ? { onConflict: 'key' } : undefined;
 
-  const { data, error } = await supabase
-    .from(tableName)
-    .upsert(payload, options)
-    .select()
-    .single();
+  try {
+    const { data, error } = await supabase
+      .from(tableName)
+      .upsert(payload, options)
+      .select()
+      .single();
 
-  if (error) throw error;
-  return data;
+    if (error) {
+      if (error.code === 'PGRST205' || error.message?.includes('schema cache')) {
+        return await saveFallbackCmsItem(tableName, payload);
+      }
+      throw new Error(`Supabase save error (${error.code || 'ERR'}): ${error.message}`);
+    }
+    return data;
+  } catch (err) {
+    if (err.message?.includes('schema cache') || err.code === 'PGRST205') {
+      return await saveFallbackCmsItem(tableName, payload);
+    }
+    throw err;
+  }
 }
 
 /**
@@ -570,13 +690,25 @@ export async function saveCmsItem(tableName, itemData) {
 export async function deleteCmsItem(tableName, id) {
   if (!supabase) throw new Error('Supabase client not configured.');
 
-  const { error } = await supabase
-    .from(tableName)
-    .delete()
-    .eq('id', id);
+  try {
+    const { error } = await supabase
+      .from(tableName)
+      .delete()
+      .eq('id', id);
 
-  if (error) throw error;
-  return true;
+    if (error) {
+      if (error.code === 'PGRST205' || error.message?.includes('schema cache')) {
+        return await deleteFallbackCmsItem(tableName, id);
+      }
+      throw new Error(`Supabase delete error: ${error.message}`);
+    }
+    return true;
+  } catch (err) {
+    if (err.message?.includes('schema cache') || err.code === 'PGRST205') {
+      return await deleteFallbackCmsItem(tableName, id);
+    }
+    throw err;
+  }
 }
 
 /**
@@ -586,17 +718,29 @@ export async function updateDisplayOrder(tableName, items, orderField = 'display
   if (!supabase || !items || items.length === 0) return;
 
   try {
+    const isPositionOrder = tableName === 'home_sections';
+    const fieldToUpdate = isPositionOrder ? 'position' : orderField;
+
     for (let index = 0; index < items.length; index++) {
       const item = items[index];
-      await supabase
-        .from(tableName)
-        .update({ [orderField]: index + 1, updated_at: new Date().toISOString() })
-        .eq('id', item.id);
+      if (item.id) {
+        const { error } = await supabase
+          .from(tableName)
+          .update({ [fieldToUpdate]: index + 1, updated_at: new Date().toISOString() })
+          .eq('id', item.id);
+        
+        if (error && (error.code === 'PGRST205' || error.message?.includes('schema cache'))) {
+          return await updateFallbackDisplayOrder(tableName, items, fieldToUpdate);
+        }
+      }
     }
   } catch (err) {
-    console.error(`Error updating order for ${tableName}:`, err);
+    const isPositionOrder = tableName === 'home_sections';
+    const fieldToUpdate = isPositionOrder ? 'position' : orderField;
+    await updateFallbackDisplayOrder(tableName, items, fieldToUpdate);
   }
 }
+
 
 // ==================================================
 // ANONYMOUS VISITOR ANALYTICS SERVICES

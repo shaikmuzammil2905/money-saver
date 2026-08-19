@@ -123,7 +123,8 @@ export default function AdminApp() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans flex flex-col md:flex-row overflow-x-hidden">
+    <div className="min-h-screen bg-slate-100 text-slate-900 font-sans flex flex-col md:flex-row overflow-x-hidden">
+
       
       {/* MOBILE TOPBAR */}
       <div className="md:hidden sticky top-0 z-40 bg-slate-900 border-b border-slate-800 px-4 py-3 flex items-center justify-between">

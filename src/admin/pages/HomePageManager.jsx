@@ -421,13 +421,13 @@ function HomePageManagerContent({ adminEmail }) {
       )}
 
       {/* Top Header & Sub Navigation Tabs */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+      <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-6 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
           <div>
-            <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
               <Home className="w-6 h-6 text-[#e50914]" /> Home Page Builder &amp; CMS
             </h1>
-            <p className="text-xs sm:text-sm text-slate-400 mt-1">
+            <p className="text-xs sm:text-sm text-slate-500 mt-1">
               Control the structure, section ordering, themes, banners, and home items dynamically on Supabase.
             </p>
           </div>
@@ -450,8 +450,8 @@ function HomePageManagerContent({ adminEmail }) {
                 onClick={() => setActiveSubTab(tab.id)}
                 className={`px-4 py-2 rounded-xl font-bold text-xs shrink-0 flex items-center gap-2 transition-all ${
                   activeSubTab === tab.id
-                    ? 'bg-[#008744] text-white shadow-lg'
-                    : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                    ? 'bg-[#008744] text-white shadow-md'
+                    : 'bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200 border border-slate-200'
                 }`}
               >
                 <IconComp className="w-4 h-4" /> {tab.label}
@@ -468,17 +468,17 @@ function HomePageManagerContent({ adminEmail }) {
         <div className="space-y-6 font-sans">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-black text-white">Home Page Section Boxes ({homeSections.length} Boxes)</h2>
-              <p className="text-xs text-slate-400 mt-0.5">Move sections Up/Down to change Public Website Home Page layout order.</p>
+              <h2 className="text-lg font-black text-slate-900">Home Page Section Boxes ({homeSections.length} Boxes)</h2>
+              <p className="text-xs text-slate-500 mt-0.5">Move sections Up/Down to change Public Website Home Page layout order.</p>
             </div>
             <div className="flex items-center gap-2 self-start sm:self-auto">
               <button
                 onClick={handleInitDefaultHomeSections}
                 disabled={saving}
-                className="px-3.5 py-2.5 rounded-xl bg-purple-950/80 hover:bg-purple-900 text-purple-300 border border-purple-800 font-bold text-xs flex items-center gap-1.5 shadow-md"
+                className="px-3.5 py-2.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 font-bold text-xs flex items-center gap-1.5 shadow-sm"
                 title="Initialize default 8 section boxes into database"
               >
-                <Layers className="w-4 h-4 text-purple-400" /> Init Default 8 Boxes
+                <Layers className="w-4 h-4 text-purple-600" /> Init Default 8 Boxes
               </button>
               <button
                 onClick={() => setEditingBox({
@@ -489,7 +489,7 @@ function HomePageManagerContent({ adminEmail }) {
                   position: homeSections.length + 1,
                   is_active: true
                 })}
-                className="px-4 py-2.5 rounded-xl bg-[#008744] hover:bg-emerald-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-md"
+                className="px-4 py-2.5 rounded-xl bg-[#008744] hover:bg-emerald-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm"
               >
                 <Plus className="w-4 h-4" /> Add Section Box
               </button>
@@ -497,11 +497,11 @@ function HomePageManagerContent({ adminEmail }) {
           </div>
 
           {homeSections.length === 0 ? (
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 sm:p-12 text-center space-y-5 shadow-xl">
-              <Home className="w-14 h-14 text-slate-600 mx-auto" />
+            <div className="bg-white border border-slate-200 rounded-2xl p-8 sm:p-12 text-center space-y-5 shadow-sm">
+              <Home className="w-14 h-14 text-slate-400 mx-auto" />
               <div>
-                <h3 className="font-extrabold text-white text-base sm:text-lg">No Home Page Section Boxes Found</h3>
-                <p className="text-xs sm:text-sm text-slate-400 max-w-md mx-auto mt-1">
+                <h3 className="font-extrabold text-slate-900 text-base sm:text-lg">No Home Page Section Boxes Found</h3>
+                <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto mt-1">
                   Create section boxes or initialize default section boxes to structure your Home Page layout.
                 </p>
               </div>
@@ -509,7 +509,7 @@ function HomePageManagerContent({ adminEmail }) {
                 <button
                   onClick={handleInitDefaultHomeSections}
                   disabled={saving}
-                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs inline-flex items-center gap-2 shadow-lg"
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs inline-flex items-center gap-2 shadow-md"
                 >
                   <Layers className="w-4 h-4" /> Initialize All 8 Default Boxes
                 </button>
@@ -522,7 +522,7 @@ function HomePageManagerContent({ adminEmail }) {
                     position: 1,
                     is_active: true
                   })}
-                  className="px-5 py-2.5 rounded-xl bg-[#008744] hover:bg-emerald-600 text-white font-bold text-xs inline-flex items-center gap-2 shadow-lg"
+                  className="px-5 py-2.5 rounded-xl bg-[#008744] hover:bg-emerald-600 text-white font-bold text-xs inline-flex items-center gap-2 shadow-md"
                 >
                   <Plus className="w-4 h-4" /> Add Custom Box
                 </button>
@@ -531,7 +531,7 @@ function HomePageManagerContent({ adminEmail }) {
           ) : (
             <div className="space-y-3">
               {homeSections.map((sec, idx) => (
-                <div key={sec.id || sec.box_key || idx} className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 font-sans">
+                <div key={sec.id || sec.box_key || idx} className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 font-sans">
                   
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-white font-black flex items-center justify-center text-sm shadow-md shrink-0">
@@ -539,13 +539,13 @@ function HomePageManagerContent({ adminEmail }) {
                     </div>
 
                     <div>
-                      <h3 className="font-extrabold text-white text-base">{sec.title_label || sec.box_key}</h3>
+                      <h3 className="font-extrabold text-slate-900 text-base">{sec.title_label || sec.box_key}</h3>
                       <div className="flex flex-wrap items-center gap-2 mt-1 text-xs">
-                        <span className="px-2 py-0.5 rounded bg-purple-950 text-purple-300 font-bold border border-purple-800 uppercase text-[10px]">
+                        <span className="px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-700 font-bold border border-purple-200 uppercase text-[10px]">
                           Type: {sec.section_type}
                         </span>
                         {sec.content_id && (
-                          <span className="px-2 py-0.5 rounded bg-slate-950 text-amber-300 font-mono text-[10px] border border-slate-800">
+                          <span className="px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 font-mono text-[10px] border border-amber-200 font-semibold">
                             Content ID: {sec.content_id}
                           </span>
                         )}
@@ -553,12 +553,12 @@ function HomePageManagerContent({ adminEmail }) {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between sm:justify-end gap-2 pt-3 sm:pt-0 border-t sm:border-0 border-slate-800">
+                  <div className="flex items-center justify-between sm:justify-end gap-2 pt-3 sm:pt-0 border-t sm:border-0 border-slate-100">
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => handleMoveSection(idx, 'UP')}
                         disabled={idx === 0}
-                        className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-white"
+                        className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 disabled:opacity-30 text-slate-700"
                         title="Move Up"
                       >
                         <ArrowUp className="w-4 h-4" />
@@ -566,7 +566,7 @@ function HomePageManagerContent({ adminEmail }) {
                       <button
                         onClick={() => handleMoveSection(idx, 'DOWN')}
                         disabled={idx === homeSections.length - 1}
-                        className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-white"
+                        className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 disabled:opacity-30 text-slate-700"
                         title="Move Down"
                       >
                         <ArrowDown className="w-4 h-4" />
@@ -574,7 +574,7 @@ function HomePageManagerContent({ adminEmail }) {
                       <button
                         onClick={() => handleToggleSectionStatus(sec)}
                         className={`px-3 py-2 rounded-xl text-xs font-black border transition-all ${
-                          sec.is_active !== false ? 'bg-emerald-950 border-emerald-800 text-emerald-300' : 'bg-red-950 border-red-800 text-red-300'
+                          sec.is_active !== false ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-red-50 border-red-300 text-red-700'
                         }`}
                       >
                         {sec.is_active !== false ? 'VISIBLE' : 'HIDDEN'}
@@ -584,13 +584,13 @@ function HomePageManagerContent({ adminEmail }) {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => setEditingBox(sec)}
-                        className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs flex items-center gap-1"
+                        className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs flex items-center gap-1 border border-slate-200"
                       >
-                        <Edit3 className="w-3.5 h-3.5 text-purple-400" /> Edit Box
+                        <Edit3 className="w-3.5 h-3.5 text-purple-600" /> Edit Box
                       </button>
                       <button
                         onClick={() => handleDeleteSection(sec.id, sec.title_label || sec.box_key)}
-                        className="p-2 rounded-xl bg-red-950/80 hover:bg-red-900 text-red-300 border border-red-800"
+                        className="p-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 border border-red-200"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -598,41 +598,50 @@ function HomePageManagerContent({ adminEmail }) {
                   </div>
 
                 </div>
+
               ))}
             </div>
           )}
 
           {/* EDIT BOX MODAL */}
           {editingBox && (
-            <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-start sm:items-center justify-center p-2 sm:p-4 overflow-y-auto pt-16 sm:pt-4 font-sans">
-              <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-4 sm:p-6 shadow-2xl space-y-4 my-2 max-h-[85vh] overflow-y-auto">
-                <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                  <h3 className="font-black text-white text-base">
+            <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-start sm:items-center justify-center p-2 sm:p-4 overflow-y-auto pt-16 sm:pt-4 font-sans">
+              <div className="bg-white border border-slate-200 rounded-2xl max-w-md w-full p-4 sm:p-6 shadow-2xl space-y-4 my-2 max-h-[85vh] overflow-y-auto">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                  <h3 className="font-black text-slate-900 text-base">
                     Edit {editingBox.title_label || 'Section Box'}
                   </h3>
-                  <button onClick={() => setEditingBox(null)} className="text-slate-400 hover:text-white font-bold">✕</button>
+                  <button onClick={() => setEditingBox(null)} className="text-slate-400 hover:text-slate-700 font-bold">✕</button>
                 </div>
 
                 <form onSubmit={handleSaveSectionForm} className="space-y-4">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">Section Box Title / Label *</label>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Section Box Title / Label *</label>
                     <input
                       type="text"
                       name="title_label"
                       required
                       defaultValue={editingBox.title_label || ''}
-                      className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white text-xs font-bold"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-slate-900 text-xs font-bold focus:bg-white focus:border-[#008744]"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">Select Section Type *</label>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Select Section Type *</label>
                     <select
                       name="section_type"
                       defaultValue={editingBox.section_type || 'banner'}
-                      className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white text-xs font-bold"
+                      onChange={(e) => {
+                        const type = e.target.value;
+                        setEditingBox(prev => ({
+                          ...prev,
+                          section_type: type,
+                          content_id: type === 'banner' && banners.length > 0 ? (banners[0].banner_key || banners[0].id) : type === 'theme' && themes.length > 0 ? (themes[0].theme_key || themes[0].id) : prev.content_id
+                        }));
+                      }}
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-slate-900 text-xs font-bold focus:bg-white focus:border-[#008744]"
                     >
-                      <option value="banner">Banner</option>
+                      <option value="banner">Banner Carousel / Slide</option>
                       <option value="categories">Categories Cards</option>
                       <option value="theme">Selectable Theme (Visual Builder)</option>
                       <option value="featured_deals">Featured Deals / Products</option>
@@ -644,36 +653,81 @@ function HomePageManagerContent({ adminEmail }) {
                     </select>
                   </div>
 
+                  {/* DYNAMIC CONTENT SELECTION BASED ON TYPE */}
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">Select Content (Banner or Theme)</label>
-                    <input
-                      type="text"
-                      name="content_id"
-                      defaultValue={editingBox.content_id || ''}
-                      placeholder="e.g. home_main_1, home_small_1, theme_1..."
-                      className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white text-xs font-mono"
-                    />
-                    <p className="text-[10px] text-slate-400 mt-1">
-                      Available Banners: <code className="text-amber-300">home_main_1, home_small_1, home_middle_big, offers_top</code>
-                      <br />
-                      Available Themes: <code className="text-pink-300">theme_1, theme_2</code> (or any created theme key)
-                    </p>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      {editingBox.section_type === 'banner' ? 'Select Banner Content *' : editingBox.section_type === 'theme' ? 'Select Theme Content *' : 'Content ID / Reference'}
+                    </label>
+
+                    {editingBox.section_type === 'banner' ? (
+                      <select
+                        name="content_id"
+                        defaultValue={editingBox.content_id || (banners[0]?.banner_key || 'home_main_1')}
+                        className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-slate-900 text-xs font-bold focus:bg-white focus:border-[#008744]"
+                      >
+                        {banners.length > 0 ? (
+                          banners.map(b => (
+                            <option key={b.id || b.banner_key} value={b.banner_key || b.id}>
+                              {b.title_name || b.banner_key} ({b.banner_key})
+                            </option>
+                          ))
+                        ) : (
+                          <>
+                            <option value="home_main_1">Home Main Banner 01</option>
+                            <option value="home_main_2">Home Main Banner 02</option>
+                            <option value="home_small_1">Home Small Banner 01</option>
+                            <option value="home_small_2">Home Small Banner 02</option>
+                            <option value="home_small_3">Home Small Banner 03</option>
+                            <option value="home_middle_big">Home Middle Big Banner</option>
+                            <option value="offers_top">Offers Top Banner</option>
+                            <option value="home_bottom_small">Home Bottom Small Banner</option>
+                          </>
+                        )}
+                      </select>
+                    ) : editingBox.section_type === 'theme' ? (
+                      <select
+                        name="content_id"
+                        defaultValue={editingBox.content_id || (themes[0]?.theme_key || 'theme_1')}
+                        className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-slate-900 text-xs font-bold focus:bg-white focus:border-[#008744]"
+                      >
+                        {themes.length > 0 ? (
+                          themes.map(t => (
+                            <option key={t.id || t.theme_key} value={t.theme_key || t.id}>
+                              {t.name || t.theme_key} ({t.theme_key})
+                            </option>
+                          ))
+                        ) : (
+                          <>
+                            <option value="theme_1">Theme 01 — Special Offer Highlights</option>
+                            <option value="theme_2">Theme 02 — Notice Alert & Guidance Box</option>
+                          </>
+                        )}
+                      </select>
+                    ) : (
+                      <input
+                        type="text"
+                        name="content_id"
+                        defaultValue={editingBox.content_id || 'all'}
+                        placeholder="e.g. all, featured, steps_10..."
+                        className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-slate-900 text-xs font-mono focus:bg-white focus:border-[#008744]"
+                      />
+                    )}
                   </div>
 
-                  <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+                  <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
                     <button
                       type="button"
                       onClick={() => setEditingBox(null)}
-                      className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-bold"
+                      className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
                       disabled={saving}
-                      className="px-6 py-2 rounded-xl bg-[#008744] hover:bg-emerald-600 text-white text-xs font-bold shadow-lg"
+                      className="px-6 py-2.5 rounded-xl bg-[#008744] hover:bg-emerald-600 text-white text-xs font-bold shadow-md"
                     >
-                      Save Section Box
+                      {saving ? 'Saving...' : 'Save Section Box'}
                     </button>
                   </div>
                 </form>
