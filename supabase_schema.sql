@@ -374,7 +374,7 @@ ALTER TABLE public.analytics_visits ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.home_sections ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.themes ENABLE ROW LEVEL SECURITY;
 
--- PUBLIC READ POLICIES
+-- PUBLIC READ POLICIES (ANONYMOUS READ ALLOWED FOR PUBLIC WEBSITE CONTENT)
 CREATE POLICY "Public Read Site Settings" ON public.site_settings FOR SELECT USING (true);
 CREATE POLICY "Public Read Banners" ON public.banners FOR SELECT USING (is_active = true);
 CREATE POLICY "Public Read Active Products" ON public.products FOR SELECT USING (is_active = true);
@@ -387,22 +387,25 @@ CREATE POLICY "Public Read Cart Settings" ON public.cart_settings FOR SELECT USI
 CREATE POLICY "Public Read Home Sections" ON public.home_sections FOR SELECT USING (is_active = true);
 CREATE POLICY "Public Read Themes" ON public.themes FOR SELECT USING (is_active = true);
 
--- PUBLIC INSERT POLICIES
+-- PUBLIC INSERT POLICIES (CHECKOUT & REGISTRATION ONLY)
 CREATE POLICY "Public Insert Orders" ON public.orders FOR INSERT WITH CHECK (true);
 CREATE POLICY "Public Insert Order Items" ON public.order_items FOR INSERT WITH CHECK (true);
 CREATE POLICY "Public Insert Users" ON public.users FOR INSERT WITH CHECK (true);
 CREATE POLICY "Public Insert Analytics Visits" ON public.analytics_visits FOR INSERT WITH CHECK (true);
 
--- ALL ACCESS POLICIES (Supabase client full operational access)
-CREATE POLICY "Full Access Banners" ON public.banners FOR ALL USING (true);
-CREATE POLICY "Full Access Products" ON public.products FOR ALL USING (true);
-CREATE POLICY "Full Access Categories" ON public.categories FOR ALL USING (true);
-CREATE POLICY "Full Access Badges" ON public.badges FOR ALL USING (true);
-CREATE POLICY "Full Access Batches" ON public.product_batches FOR ALL USING (true);
-CREATE POLICY "Full Access Site Settings" ON public.site_settings FOR ALL USING (true);
-CREATE POLICY "Full Access Users" ON public.users FOR ALL USING (true);
-CREATE POLICY "Full Access Home Sections" ON public.home_sections FOR ALL USING (true);
-CREATE POLICY "Full Access Themes" ON public.themes FOR ALL USING (true);
+-- AUTHENTICATED ADMIN FULL ACCESS POLICIES (REQUIRES AUTHENTICATED ADMIN SESSION)
+CREATE POLICY "Admin Write Banners" ON public.banners FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Admin Write Products" ON public.products FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Admin Write Categories" ON public.categories FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Admin Write Badges" ON public.badges FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Admin Write Batches" ON public.product_batches FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Admin Write Site Settings" ON public.site_settings FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Admin Write Users" ON public.users FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Admin Write Home Sections" ON public.home_sections FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Admin Write Themes" ON public.themes FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Admin Write Orders" ON public.orders FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Admin Write Order Items" ON public.order_items FOR ALL TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY "Admin Write Analytics Visits" ON public.analytics_visits FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 -- REALTIME PUBLICATION
 ALTER PUBLICATION supabase_realtime ADD TABLE public.banners;
@@ -414,4 +417,5 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.site_settings;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.offer_items;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.home_sections;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.themes;
+
 
