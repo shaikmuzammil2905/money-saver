@@ -1,7 +1,8 @@
 -- OTTMoneySaver Master Database Schema & RLS Security Script
 -- Supabase PostgreSQL Script for Admin Panel CMS + Public Website
+-- Copy & Paste this into your Supabase Dashboard -> SQL Editor and click "Run"
 
--- Enable UUID extension
+-- 0. Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- 1. ADMIN PROFILES
@@ -25,13 +26,15 @@ CREATE TABLE IF NOT EXISTS public.site_settings (
 -- 3. BANNERS TABLE (Home Main 01/02, Small 01/02/03, Middle Big, Bottom Small, Offers Top)
 CREATE TABLE IF NOT EXISTS public.banners (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    banner_key TEXT UNIQUE NOT NULL, -- 'home_main_1', 'home_main_2', 'home_small_1', 'home_small_2', 'home_small_3', 'home_middle_big', 'home_bottom_small', 'offers_top'
+    banner_key TEXT UNIQUE NOT NULL,
     title_name TEXT NOT NULL,
     heading TEXT,
     subheading TEXT,
     description TEXT,
     button_text TEXT DEFAULT 'Shop Now',
     button_link TEXT DEFAULT '/all-otts',
+    buttons JSONB DEFAULT '[]'::jsonb,
+    badges JSONB DEFAULT '[]'::jsonb,
     image_url TEXT,
     mobile_image_url TEXT,
     text_color TEXT DEFAULT '#ffffff',
@@ -44,20 +47,10 @@ CREATE TABLE IF NOT EXISTS public.banners (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
--- Legacy Compatibility View/Table for Homepage Slides
-CREATE TABLE IF NOT EXISTS public.homepage_slides (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    slide_key TEXT UNIQUE DEFAULT 'second_slide',
-    heading TEXT NOT NULL,
-    description TEXT,
-    button_text TEXT,
-    button_link TEXT,
-    image_url TEXT,
-    display_order INT DEFAULT 1,
-    is_active BOOLEAN DEFAULT true,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
-);
+-- ALTER BANNERS IF TABLE PREVIOUSLY EXISTED
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS buttons JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS badges JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS subheading TEXT;
 
 -- 4. HOMEPAGE ITEMS
 CREATE TABLE IF NOT EXISTS public.homepage_items (
@@ -103,7 +96,7 @@ CREATE TABLE IF NOT EXISTS public.badges (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
--- 7. PRODUCT BATCHES / GROUPS (Best Seller, Trending, Top Picks, etc.)
+-- 7. PRODUCT BATCHES / GROUPS
 CREATE TABLE IF NOT EXISTS public.product_batches (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name TEXT NOT NULL,
@@ -113,14 +106,14 @@ CREATE TABLE IF NOT EXISTS public.product_batches (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
--- 8. PRODUCTS (Full Schema with Multi-Section Assignment & Per-Section Orders)
+-- 8. PRODUCTS
 CREATE TABLE IF NOT EXISTS public.products (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     slug_id TEXT UNIQUE,
     title TEXT NOT NULL,
     subtitle TEXT,
     description TEXT,
-    description_points JSONB DEFAULT '[]'::jsonb, -- Array of vertical points
+    description_points JSONB DEFAULT '[]'::jsonb,
     custom_info JSONB DEFAULT '["Instant Activation", "WhatsApp Support Available", "Payment via UPI"]'::jsonb,
     price DECIMAL(10,2) NOT NULL,
     original_price DECIMAL(10,2),
@@ -134,9 +127,9 @@ CREATE TABLE IF NOT EXISTS public.products (
     rating DECIMAL(3,2) DEFAULT 4.5,
     reviews_count INT DEFAULT 100,
     badge TEXT,
-    badges JSONB DEFAULT '[]'::jsonb, -- Assigned badges array
-    batches JSONB DEFAULT '[]'::jsonb, -- Assigned batches array
-    sections JSONB DEFAULT '["Home", "All OTTs"]'::jsonb, -- 'Home', 'Offers', 'All OTTs'
+    badges JSONB DEFAULT '[]'::jsonb,
+    batches JSONB DEFAULT '[]'::jsonb,
+    sections JSONB DEFAULT '["Home", "All OTTs"]'::jsonb,
     in_stock BOOLEAN DEFAULT true,
     is_featured BOOLEAN DEFAULT false,
     display_order INT DEFAULT 1,
@@ -181,21 +174,7 @@ CREATE TABLE IF NOT EXISTS public.offer_items (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
--- 10. EASY 10 STEP GUIDE
-CREATE TABLE IF NOT EXISTS public.homepage_steps (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    step_number INT NOT NULL,
-    title TEXT NOT NULL,
-    description TEXT NOT NULL,
-    icon_name TEXT DEFAULT 'HelpCircle',
-    image_url TEXT,
-    display_order INT DEFAULT 1,
-    is_active BOOLEAN DEFAULT true,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
-);
-
--- 11. CONTACT DETAILS
+-- 10. CONTACT DETAILS
 CREATE TABLE IF NOT EXISTS public.contact_details (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     business_name TEXT DEFAULT 'OTTMoneySaver',
@@ -210,79 +189,20 @@ CREATE TABLE IF NOT EXISTS public.contact_details (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
--- 12. FOOTER LINKS
-CREATE TABLE IF NOT EXISTS public.footer_links (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    section_name TEXT NOT NULL,
-    heading TEXT,
-    link_text TEXT NOT NULL,
-    link_url TEXT NOT NULL,
-    display_order INT DEFAULT 1,
-    is_active BOOLEAN DEFAULT true,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
-);
-
--- 13. CART SETTINGS & WHATSAPP TEMPLATES
-CREATE TABLE IF NOT EXISTS public.cart_settings (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    gpay_link TEXT DEFAULT 'upi://pay?pa=6305151531@ybl&pn=OTTMoneySaver&cu=INR',
-    phonepe_link TEXT DEFAULT 'upi://pay?pa=6305151531@ybl&pn=OTTMoneySaver&cu=INR',
-    upi_id TEXT DEFAULT '6305151531@ybl',
-    whatsapp_number TEXT DEFAULT '916305151531',
-    whatsapp_number_secondary TEXT DEFAULT '917013931261',
-    phone_number TEXT DEFAULT '6305151531',
-    phone_number_secondary TEXT DEFAULT '7013931261',
-    business_location TEXT DEFAULT 'Hyderabad, Telangana, India',
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
-);
-
-CREATE TABLE IF NOT EXISTS public.whatsapp_templates (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    template_key TEXT UNIQUE DEFAULT 'order_checkout',
-    template_text TEXT NOT NULL,
-    available_variables JSONB DEFAULT '["{PRODUCTS}", "{CUSTOMER_NAME}", "{CUSTOMER_PHONE}", "{CUSTOMER_LOCATION}", "{CUSTOMER_EMAIL}", "{TOTAL}", "{ORDER_ID}", "{PAYMENT_SCREENSHOT}"]'::jsonb,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
-);
-
--- 14. MEDIA LIBRARY
-CREATE TABLE IF NOT EXISTS public.media (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    file_name TEXT NOT NULL,
-    file_url TEXT NOT NULL,
-    public_id TEXT,
-    file_size INT,
-    file_type TEXT,
-    category TEXT DEFAULT 'general',
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
-);
-
--- 15. ACTIVITY LOGS
-CREATE TABLE IF NOT EXISTS public.activity_logs (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    admin_email TEXT NOT NULL,
-    action TEXT NOT NULL,
-    section TEXT NOT NULL,
-    item_name TEXT,
-    details JSONB,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
-);
-
--- 16. USERS / MEMBERS
+-- 11. USERS & ORDERS
 CREATE TABLE IF NOT EXISTS public.users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     full_name TEXT NOT NULL,
     mobile_number TEXT UNIQUE NOT NULL,
     email TEXT UNIQUE,
     location TEXT,
-    account_status TEXT DEFAULT 'Active', -- 'Active', 'Disabled'
+    account_status TEXT DEFAULT 'Active',
     registration_date TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
     last_active TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
--- 17. ORDERS & ORDER ITEMS
 CREATE TABLE IF NOT EXISTS public.orders (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     order_id TEXT UNIQUE NOT NULL,
@@ -309,23 +229,13 @@ CREATE TABLE IF NOT EXISTS public.order_items (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
--- 18. WEBSITE VISITOR ANALYTICS
-CREATE TABLE IF NOT EXISTS public.analytics_visits (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    session_id TEXT NOT NULL,
-    path TEXT NOT NULL,
-    device_type TEXT DEFAULT 'desktop', -- 'mobile', 'desktop', 'tablet'
-    referrer TEXT,
-    visited_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
-);
-
--- 19. DYNAMIC HOME PAGE SECTIONS
+-- 12. DYNAMIC HOME SECTIONS & THEMES
 CREATE TABLE IF NOT EXISTS public.home_sections (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     box_key TEXT UNIQUE NOT NULL,
     title_label TEXT,
-    section_type TEXT NOT NULL, -- 'banner', 'categories', 'theme', 'notices', 'guidance', 'buttons', 'why_choose_us', 'custom', 'featured_deals', 'steps'
-    content_id TEXT, -- selected banner_key or theme_key or category_id
+    section_type TEXT NOT NULL,
+    content_id TEXT,
     settings JSONB DEFAULT '{}'::jsonb,
     position INT NOT NULL DEFAULT 1,
     is_active BOOLEAN DEFAULT true,
@@ -333,26 +243,22 @@ CREATE TABLE IF NOT EXISTS public.home_sections (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
--- 20. VISUAL THEMES / PAGE BUILDER THEMES
 CREATE TABLE IF NOT EXISTS public.themes (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name TEXT NOT NULL,
     theme_key TEXT UNIQUE NOT NULL,
     description TEXT,
-    layout_data JSONB DEFAULT '[]'::jsonb, -- Array of components/blocks
-    styles JSONB DEFAULT '{}'::jsonb, -- Global theme colors, font, border settings
+    layout_data JSONB DEFAULT '[]'::jsonb,
+    styles JSONB DEFAULT '{}'::jsonb,
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
--- ==================================================
--- RLS POLICIES
--- ==================================================
+-- ENABLE RLS ON ALL TABLES
 ALTER TABLE public.admin_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.site_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.banners ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.homepage_slides ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.homepage_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.badges ENABLE ROW LEVEL SECURITY;
@@ -360,21 +266,42 @@ ALTER TABLE public.product_batches ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.offer_slides ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.offer_items ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.homepage_steps ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.contact_details ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.footer_links ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.cart_settings ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.whatsapp_templates ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.media ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.activity_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.analytics_visits ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.home_sections ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.themes ENABLE ROW LEVEL SECURITY;
 
--- PUBLIC READ POLICIES (ANONYMOUS READ ALLOWED FOR PUBLIC WEBSITE CONTENT)
+-- DROP POLICIES IF THEY EXIST TO PREVENT RE-RUN DUPLICATE POLICY ERRORS
+DROP POLICY IF EXISTS "Public Read Site Settings" ON public.site_settings;
+DROP POLICY IF EXISTS "Public Read Banners" ON public.banners;
+DROP POLICY IF EXISTS "Public Read Active Products" ON public.products;
+DROP POLICY IF EXISTS "Public Read Active Categories" ON public.categories;
+DROP POLICY IF EXISTS "Public Read Active Badges" ON public.badges;
+DROP POLICY IF EXISTS "Public Read Active Batches" ON public.product_batches;
+DROP POLICY IF EXISTS "Public Read Active Offer Items" ON public.offer_items;
+DROP POLICY IF EXISTS "Public Read Contact Details" ON public.contact_details;
+DROP POLICY IF EXISTS "Public Read Home Sections" ON public.home_sections;
+DROP POLICY IF EXISTS "Public Read Themes" ON public.themes;
+
+DROP POLICY IF EXISTS "Public Insert Orders" ON public.orders;
+DROP POLICY IF EXISTS "Public Insert Order Items" ON public.order_items;
+DROP POLICY IF EXISTS "Public Insert Users" ON public.users;
+
+DROP POLICY IF EXISTS "Admin Write Banners" ON public.banners;
+DROP POLICY IF EXISTS "Admin Write Products" ON public.products;
+DROP POLICY IF EXISTS "Admin Write Categories" ON public.categories;
+DROP POLICY IF EXISTS "Admin Write Badges" ON public.badges;
+DROP POLICY IF EXISTS "Admin Write Batches" ON public.product_batches;
+DROP POLICY IF EXISTS "Admin Write Site Settings" ON public.site_settings;
+DROP POLICY IF EXISTS "Admin Write Users" ON public.users;
+DROP POLICY IF EXISTS "Admin Write Home Sections" ON public.home_sections;
+DROP POLICY IF EXISTS "Admin Write Themes" ON public.themes;
+DROP POLICY IF EXISTS "Admin Write Orders" ON public.orders;
+DROP POLICY IF EXISTS "Admin Write Order Items" ON public.order_items;
+
+-- CREATE RLS POLICIES
 CREATE POLICY "Public Read Site Settings" ON public.site_settings FOR SELECT USING (true);
 CREATE POLICY "Public Read Banners" ON public.banners FOR SELECT USING (is_active = true);
 CREATE POLICY "Public Read Active Products" ON public.products FOR SELECT USING (is_active = true);
@@ -383,17 +310,13 @@ CREATE POLICY "Public Read Active Badges" ON public.badges FOR SELECT USING (is_
 CREATE POLICY "Public Read Active Batches" ON public.product_batches FOR SELECT USING (is_active = true);
 CREATE POLICY "Public Read Active Offer Items" ON public.offer_items FOR SELECT USING (is_active = true);
 CREATE POLICY "Public Read Contact Details" ON public.contact_details FOR SELECT USING (true);
-CREATE POLICY "Public Read Cart Settings" ON public.cart_settings FOR SELECT USING (true);
 CREATE POLICY "Public Read Home Sections" ON public.home_sections FOR SELECT USING (is_active = true);
 CREATE POLICY "Public Read Themes" ON public.themes FOR SELECT USING (is_active = true);
 
--- PUBLIC INSERT POLICIES (CHECKOUT & REGISTRATION ONLY)
 CREATE POLICY "Public Insert Orders" ON public.orders FOR INSERT WITH CHECK (true);
 CREATE POLICY "Public Insert Order Items" ON public.order_items FOR INSERT WITH CHECK (true);
 CREATE POLICY "Public Insert Users" ON public.users FOR INSERT WITH CHECK (true);
-CREATE POLICY "Public Insert Analytics Visits" ON public.analytics_visits FOR INSERT WITH CHECK (true);
 
--- AUTHENTICATED ADMIN FULL ACCESS POLICIES (REQUIRES AUTHENTICATED ADMIN SESSION)
 CREATE POLICY "Admin Write Banners" ON public.banners FOR ALL TO authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "Admin Write Products" ON public.products FOR ALL TO authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "Admin Write Categories" ON public.categories FOR ALL TO authenticated USING (true) WITH CHECK (true);
@@ -405,17 +328,35 @@ CREATE POLICY "Admin Write Home Sections" ON public.home_sections FOR ALL TO aut
 CREATE POLICY "Admin Write Themes" ON public.themes FOR ALL TO authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "Admin Write Orders" ON public.orders FOR ALL TO authenticated USING (true) WITH CHECK (true);
 CREATE POLICY "Admin Write Order Items" ON public.order_items FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY "Admin Write Analytics Visits" ON public.analytics_visits FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
--- REALTIME PUBLICATION
-ALTER PUBLICATION supabase_realtime ADD TABLE public.banners;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.products;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.categories;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.badges;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.product_batches;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.site_settings;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.offer_items;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.home_sections;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.themes;
-
-
+-- ADD TABLES TO REALTIME PUBLICATION SAFELY
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'banners') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.banners;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'products') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.products;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'categories') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.categories;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'badges') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.badges;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'product_batches') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.product_batches;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'site_settings') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.site_settings;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'offer_items') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.offer_items;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'home_sections') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.home_sections;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'themes') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.themes;
+  END IF;
+END $$;
