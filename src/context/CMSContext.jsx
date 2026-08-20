@@ -115,24 +115,24 @@ export function CMSProvider({ children }) {
         sSettings,
         media
       ] = await Promise.all([
-        getCmsTableData('products', mappedDefaultProducts),
-        getCmsTableData('banners', DEFAULT_BANNERS),
-        getCmsTableData('categories', mappedDefaultCategories),
-        getCmsTableData('badges', DEFAULT_BADGES),
-        getCmsTableData('product_batches', DEFAULT_BATCHES),
-        getCmsTableData('users', []),
+        getCmsTableData('products', mappedDefaultProducts, 'display_order'),
+        getCmsTableData('banners', DEFAULT_BANNERS, 'display_order'),
+        getCmsTableData('categories', mappedDefaultCategories, 'display_order'),
+        getCmsTableData('badges', DEFAULT_BADGES, 'created_at'),
+        getCmsTableData('product_batches', DEFAULT_BATCHES, 'display_order'),
+        getCmsTableData('users', [], 'created_at'),
         getCmsTableData('home_sections', DEFAULT_HOME_SECTIONS, 'position'),
-        getCmsTableData('themes', DEFAULT_THEMES),
-        getCmsTableData('homepage_steps', DEFAULT_HOMEPAGE_STEPS),
+        getCmsTableData('themes', DEFAULT_THEMES, 'created_at'),
+        getCmsTableData('homepage_steps', DEFAULT_HOMEPAGE_STEPS, 'display_order'),
         getCmsSingleRecord('contact_details', DEFAULT_CONTACT_DETAILS),
-        getCmsTableData('footer_links', DEFAULT_FOOTER_LINKS),
-        getCmsTableData('offer_slides', DEFAULT_OFFER_SLIDES),
-        getCmsTableData('offer_categories', []),
-        getCmsTableData('offer_items', DEFAULT_OFFER_ITEMS),
+        getCmsTableData('footer_links', DEFAULT_FOOTER_LINKS, 'display_order'),
+        getCmsTableData('offer_slides', DEFAULT_OFFER_SLIDES, 'display_order'),
+        getCmsTableData('offer_categories', [], 'display_order'),
+        getCmsTableData('offer_items', DEFAULT_OFFER_ITEMS, 'display_order'),
         getCmsSingleRecord('cart_settings', DEFAULT_PAYMENT_CONFIG),
         getCmsSingleRecord('whatsapp_templates', { template_key: 'order_checkout', template_text: DEFAULT_WHATSAPP_TEMPLATE }),
         getCmsSingleRecord('site_settings', { key: 'global_config', value: DEFAULT_SITE_SETTINGS }),
-        getCmsTableData('media', [])
+        getCmsTableData('media', [], 'created_at')
       ]);
 
       setProducts(prods || []);

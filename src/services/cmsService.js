@@ -601,10 +601,23 @@ export async function getCmsTableData(tableName, defaultItems = [], orderColumn 
     const isPositionOrder = tableName === 'home_sections';
     const sortField = isPositionOrder ? 'position' : orderColumn;
 
-    const { data, error } = await supabase
+    let data, error;
+
+    // First attempt: with ordering
+    const result = await supabase
       .from(tableName)
       .select('*')
       .order(sortField, { ascending: true });
+    data = result.data;
+    error = result.error;
+
+    // If sort column doesn't exist, retry WITHOUT ordering so real DB data is always returned
+    if (error && error.message?.includes('column') && error.message?.includes('does not exist')) {
+      console.warn(`Sort column '${sortField}' missing in '${tableName}', retrying without order...`);
+      const retryResult = await supabase.from(tableName).select('*');
+      data = retryResult.data;
+      error = retryResult.error;
+    }
 
     if (error) {
       if (error.code === 'PGRST205' || error.message?.includes('schema cache')) {
