@@ -5,13 +5,14 @@ import {
 import { useCMS } from '../context/CMSContext';
 
 export default function ContactPage({ onOpenWhatsApp }) {
-  const { contactDetails, contactCards, faqs } = useCMS();
+  const { contactDetails, contactCards, faqs, siteSettings } = useCMS();
   const [formData, setFormData] = useState({ name: '', phone: '', email: '', message: '' });
   const [submitted, setSubmitted] = useState(false);
 
-  const phoneDisplay = contactDetails?.phone || '6305151531';
-  const emailDisplay = contactDetails?.email || 'support@ottmoneysaver.com';
-  const addressDisplay = contactDetails?.address || 'Hyderabad, Telangana, India';
+  const phoneDisplay = contactDetails?.phone || siteSettings?.phone || '6305151531';
+  const whatsappDisplay = contactDetails?.whatsapp || siteSettings?.whatsapp || '6305151531';
+  const emailDisplay = contactDetails?.email || siteSettings?.email || 'support@ottmoneysaver.com';
+  const addressDisplay = contactDetails?.address || siteSettings?.address || 'Hyderabad, Telangana, India';
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -23,11 +24,39 @@ export default function ContactPage({ onOpenWhatsApp }) {
     }, 4000);
   };
 
-  const activeCards = Array.isArray(contactCards) && contactCards.length > 0 
-    ? contactCards.filter(c => c.is_active !== false)
+  const activeCards = (Array.isArray(contactCards) && contactCards.length > 0)
+    ? contactCards
+        .filter(c => c.is_active !== false)
+        .map(c => {
+          let val = c.value;
+          let link = c.link;
+
+          const titleUpper = (c.title || '').toUpperCase();
+          if (titleUpper.includes('PHONE') || titleUpper.includes('HOTLINE') || titleUpper.includes('CALL')) {
+            if (!val || val === '6305151531') {
+              val = phoneDisplay;
+            }
+            if (!link || link === 'tel:6305151531') {
+              link = `tel:${val}`;
+            }
+          } else if (titleUpper.includes('WHATSAPP') || titleUpper.includes('CHAT')) {
+            if (!link || link.includes('916305151531')) {
+              link = `https://wa.me/91${whatsappDisplay.replace(/\D/g, '')}`;
+            }
+          } else if (titleUpper.includes('LOCATION') || titleUpper.includes('OFFICE') || titleUpper.includes('ADDRESS')) {
+            if (!val || val === 'Hyderabad, Telangana' || val === 'Hyderabad, Telangana, India') {
+              val = addressDisplay;
+            }
+          }
+          return {
+            ...c,
+            value: val,
+            link: link
+          };
+        })
     : [
         { id: 'cpc_1', title: 'PHONE HOTLINE', value: phoneDisplay, subtitle: 'Mon - Sun: 24 Hours Active', link: `tel:${phoneDisplay}`, icon: 'Phone', color: '#e50914' },
-        { id: 'cpc_2', title: 'WHATSAPP CHAT', value: 'Instant Chat →', subtitle: 'Average reply in 2 mins', link: 'https://wa.me/916305151531', icon: 'MessageCircle', color: '#059669' },
+        { id: 'cpc_2', title: 'WHATSAPP CHAT', value: 'Instant Chat →', subtitle: 'Average reply in 2 mins', link: `https://wa.me/91${whatsappDisplay.replace(/\D/g, '')}`, icon: 'MessageCircle', color: '#059669' },
         { id: 'cpc_3', title: 'OFFICE LOCATION', value: addressDisplay, subtitle: 'India - 500001', link: '', icon: 'MapPin', color: '#d97706' },
         { id: 'cpc_4', title: 'SUPPORT HOURS', value: '24/7 Everyday', subtitle: 'Including Holidays', link: '', icon: 'Clock', color: '#0284c7' }
       ];

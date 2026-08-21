@@ -281,20 +281,55 @@ function HomePageManagerContent({ adminEmail }) {
     setSaving(true);
     try {
       const formData = new FormData(e.target);
+      const newPhone = formData.get('phone');
+      const newWhatsapp = formData.get('whatsapp');
+      const newEmail = formData.get('email');
+      const newAddress = formData.get('address');
+      const newBusName = formData.get('business_name');
+      const newSecPhone = formData.get('secondary_phone');
+      const newSecWhatsapp = formData.get('secondary_whatsapp');
+      const newCity = formData.get('city');
+      const newState = formData.get('state');
+
       const payload = {
         id: contactDetails?.id,
-        business_name: formData.get('business_name'),
-        phone: formData.get('phone'),
-        secondary_phone: formData.get('secondary_phone'),
-        whatsapp: formData.get('whatsapp'),
-        secondary_whatsapp: formData.get('secondary_whatsapp'),
-        email: formData.get('email'),
-        address: formData.get('address'),
-        city: formData.get('city'),
-        state: formData.get('state')
+        business_name: newBusName,
+        phone: newPhone,
+        secondary_phone: newSecPhone,
+        whatsapp: newWhatsapp,
+        secondary_whatsapp: newSecWhatsapp,
+        email: newEmail,
+        address: newAddress,
+        city: newCity,
+        state: newState
       };
 
       await saveCmsItem('contact_details', payload);
+      setContactDetails(payload);
+
+      // Sync site settings
+      await saveSiteConfigKey('business_name', newBusName);
+      await saveSiteConfigKey('phone', newPhone);
+      await saveSiteConfigKey('whatsapp', newWhatsapp);
+      await saveSiteConfigKey('email', newEmail);
+      await saveSiteConfigKey('address', newAddress);
+
+      // Also sync Contact Cards
+      if (Array.isArray(contactCards) && contactCards.length > 0) {
+        const updatedCards = contactCards.map(c => {
+          const titleUp = (c.title || '').toUpperCase();
+          if (titleUp.includes('PHONE') || titleUp.includes('HOTLINE') || c.icon === 'Phone') {
+            return { ...c, value: newPhone, link: `tel:${newPhone}` };
+          }
+          if (titleUp.includes('LOCATION') || titleUp.includes('OFFICE') || c.icon === 'MapPin') {
+            return { ...c, value: newAddress };
+          }
+          return c;
+        });
+        setContactCards(updatedCards);
+        await saveSiteConfigKey('contact_cards', updatedCards);
+      }
+
       await logActivity(adminEmail, 'UPDATED', 'Contact Details');
       refreshAllData();
       showToast('Contact Details Updated Successfully.');
