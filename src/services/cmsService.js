@@ -658,21 +658,11 @@ export async function getCmsTableData(tableName, defaultItems = [], orderColumn 
   }
 }
 
-async function getFallbackSingleRecord(tableName, defaultObj = {}) {
-  try {
-    const key = `cms_single_${tableName}`;
-    const { data } = await supabase
-      .from('site_settings')
-      .select('*')
-      .eq('key', key)
-      .maybeSingle();
-
-    if (data && data.value) {
-      return { ...defaultObj, ...data.value };
-    }
-  } catch (err) {}
-  return defaultObj;
-}
+const SINGLE_RECORD_KEY_MAP = {
+  cart_settings: 'cms_cart_settings',
+  contact_details: 'cms_contact_details',
+  whatsapp_templates: 'cms_whatsapp_templates'
+};
 
 /**
  * Single Record Fetcher (e.g. contact_details, cart_settings, site_settings)
@@ -680,34 +670,36 @@ async function getFallbackSingleRecord(tableName, defaultObj = {}) {
 export async function getCmsSingleRecord(tableName, defaultObj = {}) {
   if (!supabase) return defaultObj;
   try {
-    let query = supabase.from(tableName).select('*');
-    if (defaultObj?.key) {
-      query = query.eq('key', defaultObj.key);
-    }
-    const { data, error } = await query.limit(1).maybeSingle();
-    if (!error && data) return data;
+    const targetKey = SINGLE_RECORD_KEY_MAP[tableName] || defaultObj?.key;
 
-    // If query returned error (e.g. table missing / 400 Bad Request / 404), return fallback
-    if (error) {
-      return await getFallbackSingleRecord(tableName, defaultObj);
-    }
-
-    if (!data && Object.keys(defaultObj).length > 0) {
-      const payload = { ...defaultObj };
-      const options = payload.key ? { onConflict: 'key' } : undefined;
-      const { data: inserted, error: insertErr } = await supabase
-        .from(tableName)
-        .upsert(payload, options)
-        .select()
+    if (targetKey || tableName === 'site_settings' || tableName === 'cart_settings') {
+      const dbKey = targetKey || tableName;
+      const { data, error } = await supabase
+        .from('site_settings')
+        .select('*')
+        .eq('key', dbKey)
         .maybeSingle();
-      if (!insertErr && inserted) return inserted;
 
-      return await getFallbackSingleRecord(tableName, defaultObj);
+      if (!error && data && data.value) {
+        return typeof data.value === 'object' ? { ...defaultObj, ...data.value } : data.value;
+      }
+
+      if (Object.keys(defaultObj).length > 0) {
+        await supabase.from('site_settings').upsert({
+          key: dbKey,
+          value: defaultObj,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'key' });
+        return defaultObj;
+      }
     }
+
+    const { data, error } = await supabase.from(tableName).select('*').limit(1).maybeSingle();
+    if (!error && data) return data;
+    return await getFallbackSingleRecord(tableName, defaultObj);
   } catch (err) {
     return await getFallbackSingleRecord(tableName, defaultObj);
   }
-  return defaultObj;
 }
 
 /**
@@ -720,6 +712,20 @@ export async function saveCmsItem(tableName, itemData) {
     ...itemData,
     updated_at: new Date().toISOString()
   };
+
+  if (SINGLE_RECORD_KEY_MAP[tableName]) {
+    const dbKey = SINGLE_RECORD_KEY_MAP[tableName];
+    const { error } = await supabase.from('site_settings').upsert({
+      key: dbKey,
+      value: payload,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'key' });
+
+    if (error) {
+      return await saveFallbackCmsItem(tableName, payload);
+    }
+    return payload;
+  }
 
   let options = undefined;
   if (tableName === 'site_settings' || (itemData.key && !itemData.id)) {
