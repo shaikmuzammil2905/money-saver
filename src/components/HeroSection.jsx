@@ -13,7 +13,7 @@ import {
 import { useCMS } from '../context/CMSContext';
 
 export default function HeroSection({ onExploreDeals, onShopNow }) {
-  const { banners } = useCMS();
+  const { banners, homeSlides } = useCMS();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
@@ -27,14 +27,19 @@ export default function HeroSection({ onExploreDeals, onShopNow }) {
     is_active: true
   };
 
-  const banner2 = banners.find(b => b.banner_key === 'home_main_2') || {
-    heading: 'SAVE MORE. ENJOY MORE.',
-    subheading: 'MEGA DEALS!',
-    description: 'Up to 75% Off Premium Electronics, OTT Subscriptions & High-Speed Fiber Internet.',
-    button_text: 'Shop Now',
-    button_link: 'mobiles',
-    image_url: '/hero-products-showcase.png',
-    is_active: true
+  const slide2Data = (Array.isArray(homeSlides) && homeSlides.find(s => s.slide_key === 'second_slide')) || {};
+  const banner2FromBanners = banners.find(b => b.banner_key === 'home_main_2') || {};
+  const banner2 = {
+    ...banner2FromBanners,
+    heading: slide2Data.heading || banner2FromBanners.heading || 'SAVE MORE. ENJOY MORE.',
+    subheading: banner2FromBanners.subheading || 'MEGA DEALS!',
+    description: slide2Data.description || banner2FromBanners.description || 'Up to 75% Off Premium Electronics, OTT Subscriptions & High-Speed Fiber Internet.',
+    button_text: slide2Data.button_text || banner2FromBanners.button_text || 'Shop Now',
+    button_link: slide2Data.button_link || banner2FromBanners.button_link || 'mobiles',
+    image_url: slide2Data.image_url || banner2FromBanners.image_url || '/hero-products-showcase.png',
+    buttons: banner2FromBanners.buttons || [],
+    badges: banner2FromBanners.badges || [],
+    is_active: slide2Data.is_active !== undefined ? slide2Data.is_active : (banner2FromBanners.is_active !== false)
   };
 
   const activeSlides = [banner1];

@@ -144,15 +144,15 @@ function HomePageManagerContent({ adminEmail }) {
       const formData = new FormData(e.target);
       const payload = {
         id: editingItem?.id,
-        title: formData.get('title'),
-        short_description: formData.get('short_description'),
-        image_url: formData.get('image_url'),
+        title: formData.get('title') || 'New Home Item',
+        short_description: formData.get('short_description') || '',
+        image_url: formData.get('image_url') || editingItem?.image_url || 'https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=800&auto=format&fit=crop&q=80',
         price: formData.get('price') ? parseFloat(formData.get('price')) : null,
         original_price: formData.get('original_price') ? parseFloat(formData.get('original_price')) : null,
-        discount: formData.get('discount'),
-        link_url: formData.get('link_url'),
-        badge: formData.get('badge'),
-        category: formData.get('category'),
+        discount: formData.get('discount') || '',
+        link_url: formData.get('link_url') || 'offers',
+        badge: formData.get('badge') || '',
+        category: formData.get('category') || 'OTT Platforms',
         is_active: editingItem ? editingItem.is_active : true,
         display_order: editingItem ? editingItem.display_order : homeItems.length + 1
       };
@@ -187,17 +187,31 @@ function HomePageManagerContent({ adminEmail }) {
     try {
       const formData = new FormData(e.target);
       const payload = {
-        id: secondSlide.id,
+        id: secondSlide?.id,
         slide_key: 'second_slide',
-        heading: formData.get('heading'),
-        description: formData.get('description'),
-        button_text: formData.get('button_text'),
-        button_link: formData.get('button_link'),
-        image_url: formData.get('image_url'),
-        is_active: formData.get('is_active') === 'true'
+        heading: formData.get('heading') || '',
+        description: formData.get('description') || '',
+        button_text: formData.get('button_text') || 'Explore Offers',
+        button_link: formData.get('button_link') || 'offers',
+        image_url: formData.get('image_url') || '',
+        is_active: formData.get('is_active') !== 'false'
       };
 
       await saveCmsItem('homepage_slides', payload);
+
+      const b2 = Array.isArray(banners) ? banners.find(b => b.banner_key === 'home_main_2') : null;
+      if (b2) {
+        await saveCmsItem('banners', {
+          ...b2,
+          heading: payload.heading,
+          description: payload.description,
+          button_text: payload.button_text,
+          button_link: payload.button_link,
+          image_url: payload.image_url || b2.image_url,
+          is_active: payload.is_active
+        });
+      }
+
       await logActivity(adminEmail, 'UPDATED', 'Home 2nd Slide', payload.heading);
       refreshAllData();
       showToast('2nd Slide Updated Successfully.');

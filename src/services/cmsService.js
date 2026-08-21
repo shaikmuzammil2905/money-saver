@@ -577,6 +577,8 @@ async function migrateLegacySiteSettingsToTable(tableName) {
 export const TABLE_COLUMNS = {
   products: ['id', 'slug_id', 'title', 'subtitle', 'description', 'price', 'original_price', 'discount', 'image', 'images', 'category', 'category_group', 'brand', 'sku', 'rating', 'reviews_count', 'badge', 'in_stock', 'is_featured', 'display_order', 'is_active', 'created_at', 'updated_at', 'description_points', 'custom_info', 'badges', 'batches', 'sections', 'home_order', 'offers_order', 'all_otts_order'],
   banners: ['id', 'banner_key', 'title_name', 'heading', 'subheading', 'description', 'button_text', 'button_link', 'buttons', 'badges', 'image_url', 'mobile_image_url', 'text_color', 'button_color', 'bg_color', 'overlay_color', 'display_order', 'is_active', 'created_at', 'updated_at'],
+  homepage_slides: ['id', 'slide_key', 'heading', 'description', 'button_text', 'button_link', 'image_url', 'display_order', 'is_active', 'created_at', 'updated_at'],
+  homepage_items: ['id', 'title', 'short_description', 'image_url', 'price', 'original_price', 'discount', 'link_url', 'badge', 'category', 'is_active', 'display_order', 'created_at', 'updated_at'],
   categories: ['id', 'name', 'slug', 'icon', 'image_url', 'group_name', 'display_order', 'is_active', 'created_at', 'updated_at'],
   badges: ['id', 'name', 'text', 'bg_color', 'text_color', 'position', 'is_active', 'created_at', 'display_order', 'updated_at'],
   themes: ['id', 'name', 'theme_key', 'description', 'layout_data', 'styles', 'is_active', 'created_at', 'updated_at', 'display_order'],
@@ -620,12 +622,14 @@ export function sanitizePayload(tableName, data) {
     if (raw.images === undefined && raw.image) {
       raw.images = [raw.image];
     }
+  } else if (tableName === 'homepage_items') {
+    if (!raw.image_url) {
+      raw.image_url = 'https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=800&auto=format&fit=crop&q=80';
+    }
   }
-
   const clean = {};
   for (const k of cols) {
     if (raw[k] !== undefined) {
-      // Don't pass non-UUID strings as 'id' to prevent PostgreSQL UUID syntax errors
       if (k === 'id') {
         if (isValidUUID(raw.id)) {
           clean.id = raw.id;
@@ -796,10 +800,14 @@ export async function saveCmsItem(tableName, itemData) {
     options = cleanPayload.id ? { onConflict: 'id' } : (cleanPayload.slug_id ? { onConflict: 'slug_id' } : undefined);
   } else if (tableName === 'banners') {
     options = cleanPayload.id ? { onConflict: 'id' } : (cleanPayload.banner_key ? { onConflict: 'banner_key' } : undefined);
+  } else if (tableName === 'homepage_slides') {
+    options = cleanPayload.id ? { onConflict: 'id' } : (cleanPayload.slide_key ? { onConflict: 'slide_key' } : undefined);
   } else if (tableName === 'themes') {
     options = cleanPayload.id ? { onConflict: 'id' } : (cleanPayload.theme_key ? { onConflict: 'theme_key' } : undefined);
   } else if (tableName === 'home_sections') {
     options = cleanPayload.id ? { onConflict: 'id' } : (cleanPayload.box_key ? { onConflict: 'box_key' } : undefined);
+  } else if (tableName === 'whatsapp_templates') {
+    options = cleanPayload.id ? { onConflict: 'id' } : (cleanPayload.template_key ? { onConflict: 'template_key' } : undefined);
   } else if (tableName === 'categories') {
     options = cleanPayload.id ? { onConflict: 'id' } : (cleanPayload.slug ? { onConflict: 'slug' } : undefined);
   } else if (cleanPayload.id) {
@@ -820,33 +828,55 @@ export async function saveCmsItem(tableName, itemData) {
     } else {
       // 2. Direct Update fallback
       let updateQuery = supabase.from(tableName).update(cleanPayload);
+      let filterApplied = false;
+
       if (cleanPayload.id) {
         updateQuery = updateQuery.eq('id', cleanPayload.id);
+        filterApplied = true;
       } else if (cleanPayload.slug_id) {
         updateQuery = updateQuery.eq('slug_id', cleanPayload.slug_id);
+        filterApplied = true;
       } else if (cleanPayload.banner_key) {
         updateQuery = updateQuery.eq('banner_key', cleanPayload.banner_key);
+        filterApplied = true;
+      } else if (cleanPayload.slide_key) {
+        updateQuery = updateQuery.eq('slide_key', cleanPayload.slide_key);
+        filterApplied = true;
       } else if (cleanPayload.theme_key) {
         updateQuery = updateQuery.eq('theme_key', cleanPayload.theme_key);
+        filterApplied = true;
       } else if (cleanPayload.box_key) {
         updateQuery = updateQuery.eq('box_key', cleanPayload.box_key);
+        filterApplied = true;
+      } else if (cleanPayload.template_key) {
+        updateQuery = updateQuery.eq('template_key', cleanPayload.template_key);
+        filterApplied = true;
       } else if (cleanPayload.key) {
         updateQuery = updateQuery.eq('key', cleanPayload.key);
+        filterApplied = true;
       } else if (cleanPayload.slug) {
         updateQuery = updateQuery.eq('slug', cleanPayload.slug);
+        filterApplied = true;
       }
 
-      const { data: updatedRows, error: updateError } = await updateQuery.select();
-      if (!updateError && updatedRows && updatedRows.length > 0) {
-        resultData = updatedRows[0];
-      } else if (!cleanPayload.id) {
-        // 3. Direct Insert fallback if no ID exists yet
+      if (filterApplied) {
+        const { data: updatedRows, error: updateError } = await updateQuery.select();
+        if (!updateError && updatedRows && updatedRows.length > 0) {
+          resultData = updatedRows[0];
+        }
+      }
+
+      // 3. Direct Insert fallback if update didn't match rows
+      if (!resultData) {
         const { data: insertedRows, error: insertError } = await supabase
           .from(tableName)
           .insert(cleanPayload)
           .select();
         if (!insertError && insertedRows && insertedRows.length > 0) {
           resultData = insertedRows[0];
+        } else if (insertError || error) {
+          console.warn(`Direct insert failed on ${tableName}:`, insertError || error);
+          resultData = await saveFallbackCmsItem(tableName, cleanPayload);
         }
       }
     }

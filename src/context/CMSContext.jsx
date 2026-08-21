@@ -34,6 +34,7 @@ export function CMSProvider({ children }) {
   const [batches, setBatches] = useState([]);
   const [members, setMembers] = useState([]);
   const [homeItems, setHomeItems] = useState([]);
+  const [homeSlides, setHomeSlides] = useState([]);
   const [homeSections, setHomeSections] = useState([]);
   const [themes, setThemes] = useState([]);
   const [homeSteps, setHomeSteps] = useState([]);
@@ -122,6 +123,8 @@ export function CMSProvider({ children }) {
         getCmsTableData('product_batches', DEFAULT_BATCHES, 'display_order'),
         getCmsTableData('users', [], 'created_at'),
         getCmsTableData('home_sections', DEFAULT_HOME_SECTIONS, 'position'),
+        getCmsTableData('homepage_slides', [], 'display_order'),
+        getCmsTableData('homepage_items', [], 'display_order'),
         getCmsTableData('themes', DEFAULT_THEMES, 'created_at'),
         getCmsTableData('homepage_steps', DEFAULT_HOMEPAGE_STEPS, 'display_order'),
         getCmsSingleRecord('contact_details', DEFAULT_CONTACT_DETAILS),
@@ -142,6 +145,8 @@ export function CMSProvider({ children }) {
       setBatches(btchs || []);
       setMembers(usersList || []);
       setHomeSections(hSections || []);
+      setHomeSlides(hSlides || []);
+      setHomeItems(hItems || []);
       setThemes(tThemes || []);
       setHomeSteps(steps || []);
       if (contact) setContactDetails(contact);
@@ -187,11 +192,12 @@ export function CMSProvider({ children }) {
     if (!saved) return saved;
 
     const upsertInList = (list) => {
-      const targetId = saved.id || saved.slug_id || saved.slug || saved.banner_key || saved.theme_key || saved.box_key;
+      const targetId = saved.id || saved.slug_id || saved.slug || saved.slide_key || saved.banner_key || saved.theme_key || saved.box_key;
       const idx = list.findIndex(i => 
         (saved.id && i.id === saved.id) ||
         (saved.slug_id && i.slug_id === saved.slug_id) ||
         (saved.slug && i.slug === saved.slug) ||
+        (saved.slide_key && i.slide_key === saved.slide_key) ||
         (saved.banner_key && i.banner_key === saved.banner_key) ||
         (saved.theme_key && i.theme_key === saved.theme_key) ||
         (saved.box_key && i.box_key === saved.box_key) ||
@@ -226,6 +232,12 @@ export function CMSProvider({ children }) {
         break;
       case 'home_sections':
         setHomeSections(prev => upsertInList(prev));
+        break;
+      case 'homepage_slides':
+        setHomeSlides(prev => upsertInList(prev));
+        break;
+      case 'homepage_items':
+        setHomeItems(prev => upsertInList(prev));
         break;
       case 'themes':
         setThemes(prev => upsertInList(prev));
@@ -292,6 +304,12 @@ export function CMSProvider({ children }) {
         break;
       case 'home_sections':
         setHomeSections(prev => filterOut(prev));
+        break;
+      case 'homepage_slides':
+        setHomeSlides(prev => prev.filter(i => i.id !== id && i.slide_key !== id));
+        break;
+      case 'homepage_items':
+        setHomeItems(prev => prev.filter(i => i.id !== id));
         break;
       case 'themes':
         setThemes(prev => filterOut(prev));
@@ -412,6 +430,8 @@ export function CMSProvider({ children }) {
         setMembers,
         homeItems,
         setHomeItems,
+        homeSlides,
+        setHomeSlides,
         homeSections,
         setHomeSections,
         themes,
