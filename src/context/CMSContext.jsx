@@ -181,6 +181,178 @@ export function CMSProvider({ children }) {
     };
   }, [refreshAllData]);
 
+  // --- OPTIMISTIC STATE MUTATION HELPERS ---
+  const handleSaveCmsItem = useCallback(async (tableName, itemData) => {
+    const saved = await saveCmsItem(tableName, itemData);
+    if (!saved) return saved;
+
+    const upsertInList = (list) => {
+      const targetId = saved.id || saved.slug_id || saved.slug || saved.banner_key || saved.theme_key || saved.box_key;
+      const idx = list.findIndex(i => 
+        (saved.id && i.id === saved.id) ||
+        (saved.slug_id && i.slug_id === saved.slug_id) ||
+        (saved.slug && i.slug === saved.slug) ||
+        (saved.banner_key && i.banner_key === saved.banner_key) ||
+        (saved.theme_key && i.theme_key === saved.theme_key) ||
+        (saved.box_key && i.box_key === saved.box_key) ||
+        (targetId && (i.id === targetId || i.slug_id === targetId))
+      );
+      if (idx >= 0) {
+        const next = [...list];
+        next[idx] = { ...next[idx], ...saved };
+        return next;
+      }
+      return [...list, saved];
+    };
+
+    switch (tableName) {
+      case 'products':
+        setProducts(prev => upsertInList(prev));
+        break;
+      case 'banners':
+        setBanners(prev => upsertInList(prev));
+        break;
+      case 'categories':
+        setCategories(prev => upsertInList(prev));
+        break;
+      case 'badges':
+        setBadges(prev => upsertInList(prev));
+        break;
+      case 'product_batches':
+        setBatches(prev => upsertInList(prev));
+        break;
+      case 'users':
+        setMembers(prev => upsertInList(prev));
+        break;
+      case 'home_sections':
+        setHomeSections(prev => upsertInList(prev));
+        break;
+      case 'themes':
+        setThemes(prev => upsertInList(prev));
+        break;
+      case 'homepage_steps':
+        setHomeSteps(prev => upsertInList(prev));
+        break;
+      case 'contact_details':
+        setContactDetails(prev => ({ ...prev, ...saved }));
+        break;
+      case 'footer_links':
+        setFooterLinks(prev => upsertInList(prev));
+        break;
+      case 'offer_slides':
+        setOfferSlides(prev => upsertInList(prev));
+        break;
+      case 'offer_categories':
+        setOfferCategories(prev => upsertInList(prev));
+        break;
+      case 'offer_items':
+        setOfferItems(prev => upsertInList(prev));
+        break;
+      case 'cart_settings':
+        setCartSettings(prev => ({ ...prev, ...saved }));
+        break;
+      case 'whatsapp_templates':
+        if (saved.template_text) setWhatsAppTemplate(saved.template_text);
+        break;
+      case 'site_settings':
+        if (saved.value) setSiteSettings(prev => ({ ...prev, ...saved.value }));
+        break;
+      case 'media':
+        setMediaList(prev => upsertInList(prev));
+        break;
+      default:
+        break;
+    }
+
+    return saved;
+  }, []);
+
+  const handleDeleteCmsItem = useCallback(async (tableName, id) => {
+    const res = await deleteCmsItem(tableName, id);
+    const filterOut = (list) => list.filter(i => i.id !== id && i.slug_id !== id && i.banner_key !== id && i.theme_key !== id && i.box_key !== id);
+
+    switch (tableName) {
+      case 'products':
+        setProducts(prev => filterOut(prev));
+        break;
+      case 'banners':
+        setBanners(prev => filterOut(prev));
+        break;
+      case 'categories':
+        setCategories(prev => filterOut(prev));
+        break;
+      case 'badges':
+        setBadges(prev => filterOut(prev));
+        break;
+      case 'product_batches':
+        setBatches(prev => filterOut(prev));
+        break;
+      case 'users':
+        setMembers(prev => filterOut(prev));
+        break;
+      case 'home_sections':
+        setHomeSections(prev => filterOut(prev));
+        break;
+      case 'themes':
+        setThemes(prev => filterOut(prev));
+        break;
+      case 'homepage_steps':
+        setHomeSteps(prev => filterOut(prev));
+        break;
+      case 'footer_links':
+        setFooterLinks(prev => filterOut(prev));
+        break;
+      case 'offer_slides':
+        setOfferSlides(prev => filterOut(prev));
+        break;
+      case 'offer_categories':
+        setOfferCategories(prev => filterOut(prev));
+        break;
+      case 'offer_items':
+        setOfferItems(prev => filterOut(prev));
+        break;
+      case 'media':
+        setMediaList(prev => filterOut(prev));
+        break;
+      default:
+        break;
+    }
+
+    return res;
+  }, []);
+
+  const handleUpdateDisplayOrder = useCallback(async (tableName, items, orderField = 'display_order') => {
+    switch (tableName) {
+      case 'products':
+        setProducts([...items]);
+        break;
+      case 'banners':
+        setBanners([...items]);
+        break;
+      case 'categories':
+        setCategories([...items]);
+        break;
+      case 'home_sections':
+        setHomeSections([...items]);
+        break;
+      case 'offer_items':
+        setOfferItems([...items]);
+        break;
+      case 'offer_slides':
+        setOfferSlides([...items]);
+        break;
+      case 'homepage_steps':
+        setHomeSteps([...items]);
+        break;
+      case 'footer_links':
+        setFooterLinks([...items]);
+        break;
+      default:
+        break;
+    }
+    return await updateDisplayOrder(tableName, items, orderField);
+  }, []);
+
   // --- PUBLIC ACTIVE PRODUCTS HELPER ---
   // Public website consumes active products transformed into UI format
   const activePublicProducts = products
@@ -266,9 +438,9 @@ export function CMSProvider({ children }) {
         setMediaList,
         loading,
         refreshAllData,
-        saveCmsItem,
-        deleteCmsItem,
-        updateDisplayOrder,
+        saveCmsItem: handleSaveCmsItem,
+        deleteCmsItem: handleDeleteCmsItem,
+        updateDisplayOrder: handleUpdateDisplayOrder,
         logActivity
       }}
     >
@@ -284,3 +456,4 @@ export function useCMS() {
   }
   return context;
 }
+

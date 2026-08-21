@@ -69,9 +69,7 @@ export default function BannersManager({ adminEmail }) {
         is_active: editingBanner ? editingBanner.is_active : true,
         display_order: editingBanner ? editingBanner.display_order : banners.length + 1,
         buttons: buttonsList,
-        subheadings: subheadingsList,
-        badges_data: badgesList,
-        // Legacy fallbacks to prevent breaking old apps
+        badges: badgesList,
         subheading: subheadingsList.length > 0 ? subheadingsList[0].text : formData.get('subheading') || '',
         button_text: buttonsList.length > 0 ? buttonsList[0].text : 'Explore Deals',
         button_link: buttonsList.length > 0 ? buttonsList[0].link : 'offers',
@@ -81,7 +79,7 @@ export default function BannersManager({ adminEmail }) {
       await logActivity(adminEmail, editingBanner?.id ? 'EDITED' : 'ADDED', 'Banners', payload.title_name);
       await refreshAllData();
       setEditingBanner(null);
-      showToast('Banner Saved Successfully to Supabase.');
+      showToast('Banner Saved Successfully.');
     } catch (err) {
       alert('Error saving banner: ' + err.message);
     } finally {
@@ -165,7 +163,7 @@ export default function BannersManager({ adminEmail }) {
       const res = await uploadToCloudinary(file, 'banners');
       const inputEl = document.getElementById(inputId);
       if (inputEl) inputEl.value = res.url;
-      showToast('Banner Image Uploaded to Cloudinary!');
+      showToast('Banner Image Uploaded Successfully!');
     } catch (err) {
       alert('Upload failed: ' + err.message);
     } finally {

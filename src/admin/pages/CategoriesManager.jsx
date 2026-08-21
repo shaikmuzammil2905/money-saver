@@ -41,7 +41,7 @@ export default function CategoriesManager({ adminEmail }) {
       setSiteSettings(updatedValue);
       await logActivity(adminEmail, 'UPDATED', 'Categories Layout', `Category Display Style: ${newStyle.toUpperCase()}`);
       refreshAllData();
-      showToast(`Category Display Style saved to Supabase: ${newStyle.toUpperCase()}`);
+      showToast(`Category Display Style saved: ${newStyle.toUpperCase()}`);
     } catch (err) {
       alert('Error updating category layout style: ' + err.message);
     }
@@ -59,7 +59,7 @@ export default function CategoriesManager({ adminEmail }) {
     setCategories(newCats);
     await updateDisplayOrder('categories', newCats);
     await logActivity(adminEmail, 'REORDERED', 'Categories');
-    showToast('Category Order Updated in Supabase.');
+    showToast('Category Order Updated.');
   };
 
   const handleToggleStatus = async (cat) => {
@@ -97,7 +97,6 @@ export default function CategoriesManager({ adminEmail }) {
         ...(catId ? { id: catId } : {}),
         name: name,
         slug: editingCategory?.slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-        icon_mode: formData.get('icon_mode') || 'manual',
         icon: formData.get('icon') || 'Sparkles',
         image_url: formData.get('image_url') || '',
         group_name: formData.get('group_name') || 'Mobile / Gadgets',
@@ -125,7 +124,7 @@ export default function CategoriesManager({ adminEmail }) {
       const res = await uploadToCloudinary(file, 'categories');
       const inputEl = document.getElementById(inputId);
       if (inputEl) inputEl.value = res.url;
-      showToast('Category Image Uploaded!');
+      showToast('Category Image Uploaded Successfully!');
     } catch (err) {
       alert('Upload failed: ' + err.message);
     } finally {
@@ -163,10 +162,10 @@ export default function CategoriesManager({ adminEmail }) {
       {/* ADMIN CONTROL: All OTTs Category Display Style Setting */}
       <div className="bg-slate-900 border border-purple-500/30 rounded-2xl p-4 sm:p-5 shadow-xl space-y-3">
         <h2 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
-          <span>All OTTs → Category Display Style (Supabase Controlled)</span>
+          <span>All OTTs → Category Display Style</span>
         </h2>
         <p className="text-xs text-slate-400">
-          Choose how categories appear on the public "All OTTs" page. Stored directly in Supabase.
+          Choose how categories appear on the public "All OTTs" page. Stored directly in Database.
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">

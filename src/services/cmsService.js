@@ -573,22 +573,79 @@ async function migrateLegacySiteSettingsToTable(tableName) {
   // Legacy migration disabled to preserve site_settings fallback data integrity
 }
 
+// Whitelist table column schema map to prevent 400 Bad Request / PGRST204 errors
+export const TABLE_COLUMNS = {
+  products: ['id', 'slug_id', 'title', 'subtitle', 'description', 'price', 'original_price', 'discount', 'image', 'images', 'category', 'category_group', 'brand', 'sku', 'rating', 'reviews_count', 'badge', 'in_stock', 'is_featured', 'display_order', 'is_active', 'created_at', 'updated_at', 'description_points', 'custom_info', 'badges', 'batches', 'sections', 'home_order', 'offers_order', 'all_otts_order'],
+  banners: ['id', 'banner_key', 'title_name', 'heading', 'subheading', 'description', 'button_text', 'button_link', 'buttons', 'badges', 'image_url', 'mobile_image_url', 'text_color', 'button_color', 'bg_color', 'overlay_color', 'display_order', 'is_active', 'created_at', 'updated_at'],
+  categories: ['id', 'name', 'slug', 'icon', 'image_url', 'group_name', 'display_order', 'is_active', 'created_at', 'updated_at'],
+  badges: ['id', 'name', 'text', 'bg_color', 'text_color', 'position', 'is_active', 'created_at', 'display_order', 'updated_at'],
+  themes: ['id', 'name', 'theme_key', 'description', 'layout_data', 'styles', 'is_active', 'created_at', 'updated_at', 'display_order'],
+  home_sections: ['id', 'box_key', 'title_label', 'section_type', 'content_id', 'settings', 'position', 'is_active', 'created_at', 'updated_at'],
+  offer_items: ['id', 'name', 'description', 'original_price', 'offer_price', 'discount', 'image', 'category', 'offer_badge', 'availability', 'display_order', 'is_active', 'show_on_home', 'show_on_explorer', 'created_at', 'updated_at'],
+  offer_slides: ['id', 'heading', 'description', 'button_text', 'button_link', 'image_url', 'display_order', 'is_active', 'created_at', 'updated_at'],
+  offer_categories: ['id', 'name', 'heading', 'description', 'image_url', 'display_order', 'is_active', 'created_at', 'updated_at'],
+  homepage_steps: ['id', 'step_number', 'title', 'description', 'icon_name', 'image_url', 'display_order', 'is_active', 'created_at', 'updated_at'],
+  footer_links: ['id', 'section_name', 'heading', 'link_text', 'link_url', 'display_order', 'is_active', 'created_at', 'updated_at'],
+  product_batches: ['id', 'name', 'slug', 'display_order', 'is_active', 'created_at', 'updated_at'],
+  media: ['id', 'file_name', 'file_url', 'public_id', 'file_size', 'file_type', 'category', 'created_at', 'display_order', 'updated_at'],
+  contact_details: ['id', 'business_name', 'phone', 'secondary_phone', 'whatsapp', 'secondary_whatsapp', 'email', 'address', 'city', 'state', 'updated_at'],
+  cart_settings: ['id', 'gpay_link', 'phonepe_link', 'upi_id', 'whatsapp_number', 'whatsapp_number_secondary', 'phone_number', 'phone_number_secondary', 'business_location', 'updated_at'],
+  whatsapp_templates: ['id', 'template_key', 'template_text', 'available_variables', 'updated_at'],
+  site_settings: ['id', 'key', 'value', 'updated_at'],
+  activity_logs: ['id', 'admin_email', 'action', 'section', 'item_name', 'details', 'created_at']
+};
+
+export const isValidUUID = (str) => typeof str === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+
+/**
+ * Sanitize payload to only contain existing columns in PostgreSQL table
+ */
+export function sanitizePayload(tableName, data) {
+  if (!data || typeof data !== 'object') return data;
+  const cols = TABLE_COLUMNS[tableName];
+  if (!cols) return data;
+
+  const raw = { ...data };
+
+  // Table specific property mappings
+  if (tableName === 'banners') {
+    if (raw.badges_data && !raw.badges) raw.badges = raw.badges_data;
+    if (raw.subheadings && !raw.subheading && Array.isArray(raw.subheadings) && raw.subheadings.length > 0) {
+      raw.subheading = raw.subheadings[0].text;
+    }
+  } else if (tableName === 'products') {
+    if (raw.original_price === undefined && raw.price !== undefined) {
+      raw.original_price = raw.price;
+    }
+    if (raw.images === undefined && raw.image) {
+      raw.images = [raw.image];
+    }
+  }
+
+  const clean = {};
+  for (const k of cols) {
+    if (raw[k] !== undefined) {
+      // Don't pass non-UUID strings as 'id' to prevent PostgreSQL UUID syntax errors
+      if (k === 'id') {
+        if (isValidUUID(raw.id)) {
+          clean.id = raw.id;
+        }
+      } else {
+        clean[k] = raw[k];
+      }
+    }
+  }
+
+  return clean;
+}
+
 /**
  * Tables that do NOT exist as real PostgreSQL tables in Supabase.
  * These are stored entirely as JSON arrays inside the site_settings table.
- * Never attempt direct PostgREST queries on these — go straight to fallback.
  */
 const FALLBACK_ONLY_TABLES = new Set([
-  'categories',
   'analytics_visits',
-  'homepage_steps',
-  'footer_links',
-  'offer_slides',
-  'offer_categories',
-  'offer_items',
-  'product_batches',
-  'users',
-  'media'
+  'users'
 ]);
 
 /**
@@ -627,18 +684,15 @@ export async function getCmsTableData(tableName, defaultItems = [], orderColumn 
       return await getFallbackTableData(tableName, defaultItems, orderColumn);
     }
 
-    // Auto-migrate legacy data from site_settings to table if available
-    await migrateLegacySiteSettingsToTable(tableName);
-
     const initKey = `oms_table_initialized_${tableName}`;
     const wasInitializedInLocal = localStorage.getItem(initKey) === 'true';
 
     if (!data || data.length === 0) {
       if (!wasInitializedInLocal && defaultItems && defaultItems.length > 0) {
-        console.log(`First-time initial seeding for empty table: ${tableName}`);
+        const cleanSeeds = defaultItems.map(item => sanitizePayload(tableName, item));
         const { data: seeded, error: seedErr } = await supabase
           .from(tableName)
-          .insert(defaultItems)
+          .insert(cleanSeeds)
           .select();
 
         if (!seedErr && seeded && seeded.length > 0) {
@@ -703,7 +757,7 @@ export async function getCmsSingleRecord(tableName, defaultObj = {}) {
 }
 
 /**
- * Generic Upsert / Save row
+ * Generic Upsert / Save row with automatic column sanitization & error recovery
  */
 export async function saveCmsItem(tableName, itemData) {
   if (!supabase) throw new Error('Supabase client not configured.');
@@ -732,106 +786,79 @@ export async function saveCmsItem(tableName, itemData) {
     return await saveFallbackCmsItem(tableName, payload);
   }
 
+  // Clean payload against PostgreSQL schema columns
+  const cleanPayload = sanitizePayload(tableName, payload);
+
   let options = undefined;
-  if (tableName === 'site_settings' || (itemData.key && !itemData.id)) {
+  if (tableName === 'site_settings' || (cleanPayload.key && !cleanPayload.id)) {
     options = { onConflict: 'key' };
   } else if (tableName === 'products') {
-    options = itemData.id ? { onConflict: 'id' } : (itemData.slug_id ? { onConflict: 'slug_id' } : undefined);
+    options = cleanPayload.id ? { onConflict: 'id' } : (cleanPayload.slug_id ? { onConflict: 'slug_id' } : undefined);
   } else if (tableName === 'banners') {
-    options = itemData.id ? { onConflict: 'id' } : (itemData.banner_key ? { onConflict: 'banner_key' } : undefined);
+    options = cleanPayload.id ? { onConflict: 'id' } : (cleanPayload.banner_key ? { onConflict: 'banner_key' } : undefined);
   } else if (tableName === 'themes') {
-    options = itemData.id ? { onConflict: 'id' } : (itemData.theme_key ? { onConflict: 'theme_key' } : undefined);
+    options = cleanPayload.id ? { onConflict: 'id' } : (cleanPayload.theme_key ? { onConflict: 'theme_key' } : undefined);
   } else if (tableName === 'home_sections') {
-    options = itemData.id ? { onConflict: 'id' } : (itemData.box_key ? { onConflict: 'box_key' } : undefined);
+    options = cleanPayload.id ? { onConflict: 'id' } : (cleanPayload.box_key ? { onConflict: 'box_key' } : undefined);
   } else if (tableName === 'categories') {
-    options = itemData.id ? { onConflict: 'id' } : (itemData.slug ? { onConflict: 'slug' } : undefined);
-  } else if (itemData.id) {
+    options = cleanPayload.id ? { onConflict: 'id' } : (cleanPayload.slug ? { onConflict: 'slug' } : undefined);
+  } else if (cleanPayload.id) {
     options = { onConflict: 'id' };
   }
 
   try {
+    let resultData = null;
+
+    // 1. Try Upsert with sanitized payload
     const { data, error } = await supabase
       .from(tableName)
-      .upsert(payload, options)
+      .upsert(cleanPayload, options)
       .select();
 
-    if (error) {
-      // If 409 Conflict or duplicate key (23505), try direct UPDATE
-      if (error.code === '23505' || error.status === 409) {
-        let updateQuery = supabase.from(tableName).update(payload);
-        if (payload.id) {
-          updateQuery = updateQuery.eq('id', payload.id);
-        } else if (payload.key) {
-          updateQuery = updateQuery.eq('key', payload.key);
-        } else if (payload.banner_key) {
-          updateQuery = updateQuery.eq('banner_key', payload.banner_key);
-        } else if (payload.slug_id) {
-          updateQuery = updateQuery.eq('slug_id', payload.slug_id);
-        } else if (payload.slug) {
-          updateQuery = updateQuery.eq('slug', payload.slug);
-        } else {
-          updateQuery = updateQuery.match(options?.onConflict ? { [options.onConflict]: payload[options.onConflict] } : {});
-        }
-        const { data: updatedData, error: updateError } = await updateQuery.select();
-        if (!updateError && updatedData && updatedData.length > 0) {
-          return updatedData[0];
-        }
+    if (!error && data && data.length > 0) {
+      resultData = data[0];
+    } else {
+      // 2. Direct Update fallback
+      let updateQuery = supabase.from(tableName).update(cleanPayload);
+      if (cleanPayload.id) {
+        updateQuery = updateQuery.eq('id', cleanPayload.id);
+      } else if (cleanPayload.slug_id) {
+        updateQuery = updateQuery.eq('slug_id', cleanPayload.slug_id);
+      } else if (cleanPayload.banner_key) {
+        updateQuery = updateQuery.eq('banner_key', cleanPayload.banner_key);
+      } else if (cleanPayload.theme_key) {
+        updateQuery = updateQuery.eq('theme_key', cleanPayload.theme_key);
+      } else if (cleanPayload.box_key) {
+        updateQuery = updateQuery.eq('box_key', cleanPayload.box_key);
+      } else if (cleanPayload.key) {
+        updateQuery = updateQuery.eq('key', cleanPayload.key);
+      } else if (cleanPayload.slug) {
+        updateQuery = updateQuery.eq('slug', cleanPayload.slug);
       }
 
-      return await saveFallbackCmsItem(tableName, payload);
+      const { data: updatedRows, error: updateError } = await updateQuery.select();
+      if (!updateError && updatedRows && updatedRows.length > 0) {
+        resultData = updatedRows[0];
+      } else if (!cleanPayload.id) {
+        // 3. Direct Insert fallback if no ID exists yet
+        const { data: insertedRows, error: insertError } = await supabase
+          .from(tableName)
+          .insert(cleanPayload)
+          .select();
+        if (!insertError && insertedRows && insertedRows.length > 0) {
+          resultData = insertedRows[0];
+        }
+      }
     }
 
-    if (!data || data.length === 0) {
-      if (payload.id) {
-        const { data: updated, error: updErr } = await supabase
-          .from(tableName)
-          .update(payload)
-          .eq('id', payload.id)
-          .select();
-        if (!updErr && updated && updated.length > 0) return updated[0];
-      }
-      if (payload.slug_id) {
-        const { data: updatedSlug, error: updSlugErr } = await supabase
-          .from(tableName)
-          .update(payload)
-          .eq('slug_id', payload.slug_id)
-          .select();
-        if (!updSlugErr && updatedSlug && updatedSlug.length > 0) return updatedSlug[0];
-      }
-      if (payload.banner_key) {
-        const { data: updatedBnr, error: updBnrErr } = await supabase
-          .from(tableName)
-          .update(payload)
-          .eq('banner_key', payload.banner_key)
-          .select();
-        if (!updBnrErr && updatedBnr && updatedBnr.length > 0) return updatedBnr[0];
-      }
-      if (payload.box_key) {
-        const { data: updatedBox, error: updBoxErr } = await supabase
-          .from(tableName)
-          .update(payload)
-          .eq('box_key', payload.box_key)
-          .select();
-        if (!updBoxErr && updatedBox && updatedBox.length > 0) return updatedBox[0];
-      }
-      if (payload.key) {
-        const { data: updatedKey, error: updKeyErr } = await supabase
-          .from(tableName)
-          .update(payload)
-          .eq('key', payload.key)
-          .select();
-        if (!updKeyErr && updatedKey && updatedKey.length > 0) return updatedKey[0];
-      }
-      return await saveFallbackCmsItem(tableName, payload);
+    if (resultData) {
+      return { ...itemData, ...resultData };
     }
 
-    return data[0] || data;
+    return await saveFallbackCmsItem(tableName, payload);
   } catch (err) {
-    if (err.message?.includes('schema cache') || err.code === 'PGRST205' || err.message?.includes('Failed to fetch') || err.name === 'TypeError') {
-      console.warn(`Supabase network issue, using fallback save for ${tableName}:`, err.message);
-      return await saveFallbackCmsItem(tableName, payload);
-    }
-    throw err;
+    console.warn(`Database write fallback for ${tableName}:`, err.message);
+    return await saveFallbackCmsItem(tableName, payload);
   }
 }
 

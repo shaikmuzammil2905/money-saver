@@ -62,13 +62,10 @@ export default function AdminLogin({ onLoginSuccess }) {
             
             {errorMsg.toLowerCase().includes('confirm') && (
               <div className="mt-2 pt-2 border-t border-red-800/50 text-[11px] text-slate-300 space-y-1.5">
-                <span className="font-bold text-amber-400">💡 How to fix this in 10 seconds:</span>
-                <ol className="list-decimal list-inside space-y-1 pl-1">
-                  <li>Go to your <a href="https://supabase.com/dashboard" target="_blank" rel="noreferrer" className="text-[#008744] hover:underline font-bold">Supabase Dashboard</a></li>
-                  <li>Go to <span className="font-semibold text-white">Authentication</span> → <span className="font-semibold text-white">Providers</span> → <span className="font-semibold text-white">Email</span></li>
-                  <li>Turn <span className="text-red-400 font-bold">OFF</span> the toggle for <span className="underline">"Confirm email"</span> and click <span className="font-bold text-white">Save</span></li>
-                  <li>Go to <span className="font-semibold text-white">Users</span>, delete <span className="font-mono text-white">admin@ottmoneysaver.com</span>, and sign in again!</li>
-                </ol>
+                <span className="font-bold text-amber-400">💡 Administrator Guidance:</span>
+                <p className="text-slate-300">
+                  Please verify your credentials or ensure email confirmation is enabled for this administrator account.
+                </p>
               </div>
             )}
           </div>

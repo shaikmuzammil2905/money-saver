@@ -28,7 +28,7 @@ export default function WebsiteSettingsManager({ adminEmail }) {
       const res = await uploadToCloudinary(file, 'website-branding');
       const logoInput = document.getElementById('logo_url_input');
       if (logoInput) logoInput.value = res.url;
-      showToast('Logo Uploaded to Cloudinary!');
+      showToast('Logo Uploaded Successfully!');
     } catch (err) {
       alert('Upload failed: ' + err.message);
     } finally {

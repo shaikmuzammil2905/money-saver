@@ -51,7 +51,7 @@ export default function MediaManager({ adminEmail }) {
         await logActivity(adminEmail, 'UPLOADED_MEDIA', 'Media Library', file.name);
       }
       refreshAllData();
-      showToast(`${files.length} Image(s) Uploaded to Cloudinary!`);
+      showToast(`${files.length} Image(s) Uploaded Successfully!`);
     } catch (err) {
       alert('Error uploading media: ' + err.message);
     } finally {
@@ -72,7 +72,7 @@ export default function MediaManager({ adminEmail }) {
   };
 
   const filteredMedia = mediaList.filter((m) => {
-    const matchSearch = m.file_name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchSearch = (m.file_name || '').toLowerCase().includes(searchQuery.toLowerCase());
     const matchCat = selectedCategory === 'All' || m.category === selectedCategory;
     return matchSearch && matchCat;
   });
@@ -91,14 +91,14 @@ export default function MediaManager({ adminEmail }) {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
           <div>
             <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
-              <ImageIcon className="w-6 h-6 text-amber-400" /> Cloudinary Media Library
+              <ImageIcon className="w-6 h-6 text-amber-400" /> Media Library
             </h1>
             <p className="text-xs sm:text-sm text-slate-400 mt-1">
-              Upload, preview, manage, and copy Cloudinary CDN image URLs.
+              Upload, preview, manage, and copy CDN image URLs.
             </p>
           </div>
           <label className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#e50914] to-[#008744] hover:opacity-95 text-white font-bold text-xs flex items-center gap-2 shadow-lg cursor-pointer transition-all">
-            <Upload className="w-4 h-4" /> {uploading ? 'Uploading to Cloudinary...' : 'Upload Image'}
+            <Upload className="w-4 h-4" /> {uploading ? 'Uploading...' : 'Upload Image'}
             <input
               type="file"
               accept="image/*"
@@ -143,7 +143,7 @@ export default function MediaManager({ adminEmail }) {
       {/* Media Grid */}
       {filteredMedia.length === 0 ? (
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center text-slate-500 text-sm">
-          No media files uploaded yet. Click "Upload Image" to add files to Cloudinary.
+          No media files uploaded yet. Click "Upload Image" to add files.
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
@@ -160,13 +160,13 @@ export default function MediaManager({ adminEmail }) {
                   </button>
                   <button
                     onClick={() => handleCopyUrl(m.file_url, m.id)}
-                    className="p-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-500"
+                    className="p-2 rounded-xl bg-slate-800 text-white hover:bg-slate-700"
                   >
-                    {copiedId === m.id ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                    {copiedId === m.id ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
                   </button>
                   <button
                     onClick={() => handleDeleteMedia(m)}
-                    className="p-2 rounded-xl bg-red-900 text-white hover:bg-red-800"
+                    className="p-2 rounded-xl bg-red-950 text-red-400 hover:bg-red-900"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -174,14 +174,14 @@ export default function MediaManager({ adminEmail }) {
               </div>
 
               <div className="space-y-1">
-                <p className="text-xs font-bold text-white truncate">{m.file_name}</p>
+                <p className="text-white text-xs font-semibold truncate" title={m.file_name}>{m.file_name}</p>
                 <div className="flex items-center justify-between text-[10px] text-slate-400">
-                  <span className="uppercase font-mono">{m.file_type || 'IMG'}</span>
+                  <span className="uppercase">{m.category || 'general'}</span>
                   <button
                     onClick={() => handleCopyUrl(m.file_url, m.id)}
-                    className="text-emerald-400 hover:underline font-bold"
+                    className="text-[#008744] hover:underline font-bold"
                   >
-                    {copiedId === m.id ? 'Copied' : 'Copy URL'}
+                    {copiedId === m.id ? 'Copied!' : 'Copy URL'}
                   </button>
                 </div>
               </div>
@@ -190,13 +190,13 @@ export default function MediaManager({ adminEmail }) {
         </div>
       )}
 
-      {/* PREVIEW MODAL */}
+      {/* Media Detail Modal */}
       {previewMedia && (
-        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <h3 className="font-bold text-white text-sm truncate max-w-xs">{previewMedia.file_name}</h3>
-              <button onClick={() => setPreviewMedia(null)} className="text-slate-400 hover:text-white font-bold">✕</button>
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-lg w-full space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-white font-bold text-sm truncate">{previewMedia.file_name}</h3>
+              <button onClick={() => setPreviewMedia(null)} className="text-slate-400 hover:text-white">✕</button>
             </div>
 
             <div className="flex items-center justify-center bg-slate-950 p-2 rounded-xl border border-slate-800 max-h-96 overflow-hidden">
@@ -204,7 +204,7 @@ export default function MediaManager({ adminEmail }) {
             </div>
 
             <div className="space-y-2 text-xs">
-              <p className="text-slate-400">Cloudinary CDN URL:</p>
+              <p className="text-slate-400">Media URL:</p>
               <div className="flex gap-2">
                 <input
                   type="text"

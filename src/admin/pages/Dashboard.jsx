@@ -91,7 +91,7 @@ export default function Dashboard({ onNavigate }) {
               Admin CMS Dashboard
             </h1>
             <p className="text-slate-500 text-xs sm:text-sm mt-1">
-              Realtime database statistics from Supabase. Select a date to filter date-based statistics.
+              Realtime database statistics and activity monitoring. Select a date to filter date-based statistics.
             </p>
           </div>
 
@@ -274,7 +274,7 @@ export default function Dashboard({ onNavigate }) {
               onClick={() => onNavigate('media')}
               className="w-full text-left p-3 rounded-xl bg-slate-950 border border-slate-800 hover:border-slate-700 text-slate-200 hover:text-white text-xs font-bold flex items-center justify-between group transition-all"
             >
-              <span>Cloudinary Media Library</span>
+              <span>Media Library</span>
               <span className="text-[#008744] group-hover:translate-x-1 transition-transform">→</span>
             </button>
           </div>

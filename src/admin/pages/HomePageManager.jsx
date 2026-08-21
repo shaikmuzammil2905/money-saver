@@ -319,7 +319,7 @@ function HomePageManagerContent({ adminEmail }) {
       if (input) {
         input.value = result.url;
       }
-      showToast('Image uploaded to Cloudinary.');
+      showToast('Image uploaded successfully.');
     } catch (err) {
       alert('Upload failed: ' + err.message);
     } finally {
@@ -340,7 +340,7 @@ function HomePageManagerContent({ adminEmail }) {
     setHomeSections(newSections);
     await updateDisplayOrder('home_sections', newSections, 'position');
     await logActivity(adminEmail, 'REORDERED', 'Home Page Builder');
-    showToast('Home Page Section Order Saved to Supabase.');
+    showToast('Home Page Section Order Saved.');
   };
 
   const handleToggleSectionStatus = async (sec) => {
@@ -386,7 +386,7 @@ function HomePageManagerContent({ adminEmail }) {
       await logActivity(adminEmail, editingBox?.id ? 'EDITED' : 'ADDED', 'Home Page Builder', payload.title_label);
       refreshAllData();
       setEditingBox(null);
-      showToast('Section Configuration Saved to Supabase.');
+      showToast('Section Configuration Saved.');
     } catch (err) {
       alert('Error saving section box: ' + err.message);
     } finally {
@@ -402,7 +402,7 @@ function HomePageManagerContent({ adminEmail }) {
       }
       await logActivity(adminEmail, 'INITIALIZED', 'Home Page Builder', 'Default 8 Home Sections');
       refreshAllData();
-      showToast('Initialized All 8 Default Home Sections in Supabase!');
+      showToast('Initialized All 8 Default Home Sections!');
     } catch (err) {
       alert('Error initializing home sections: ' + err.message);
     } finally {
@@ -428,7 +428,7 @@ function HomePageManagerContent({ adminEmail }) {
               <Home className="w-6 h-6 text-[#e50914]" /> Home Page Builder &amp; CMS
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 mt-1">
-              Control the structure, section ordering, themes, banners, and home items dynamically on Supabase.
+              Control the structure, section ordering, themes, banners, and home items dynamically.
             </p>
           </div>
         </div>

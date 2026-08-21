@@ -162,13 +162,9 @@ export default function ProductsManager({ adminEmail }) {
         images: [formData.get('image')],
         category: formData.get('category'),
         category_group: formData.get('category_group') || formData.get('category'),
-        subcategory: formData.get('subcategory') || '',
         brand: formData.get('brand'),
         sku: formData.get('sku'),
-        badge_type: badgeType,
         badge: badgeText,
-        badge_color: formData.get('badge_color') || '#e50914',
-        badge_position: formData.get('badge_position') || 'top-right',
         badges: selectedBadgesArr.length > 0 ? selectedBadgesArr : (badgeText ? [badgeText] : []),
         batches: selectedBatchesArr,
         sections: sectionsSelected,
@@ -197,7 +193,7 @@ export default function ProductsManager({ adminEmail }) {
       const res = await uploadToCloudinary(file, 'products');
       const inputEl = document.getElementById(inputId);
       if (inputEl) inputEl.value = res.url;
-      showToast('Product Image Uploaded to Cloudinary!');
+      showToast('Product Image Uploaded Successfully!');
     } catch (err) {
       alert('Upload failed: ' + err.message);
     } finally {
