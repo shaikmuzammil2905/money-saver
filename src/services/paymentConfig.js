@@ -6,10 +6,10 @@ export async function getPaymentConfig() {
   try {
     if (supabase) {
       const { data, error } = await supabase
-        .from('settings')
+        .from('site_settings')
         .select('*')
-        .eq('key', 'payment_config')
-        .single();
+        .in('key', ['cms_cart_settings', 'payment_config'])
+        .maybeSingle();
 
       if (!error && data && data.value) {
         return {
@@ -19,7 +19,7 @@ export async function getPaymentConfig() {
       }
     }
   } catch (err) {
-    console.warn('Supabase payment settings fetch fallback to default config:', err.message);
+    // Gracefully fallback to default payment config without throwing error
   }
 
   return DEFAULT_PAYMENT_CONFIG;
