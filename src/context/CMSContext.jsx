@@ -104,6 +104,8 @@ export function CMSProvider({ children }) {
         btchs,
         usersList,
         hSections,
+        hSlides,
+        hItems,
         tThemes,
         steps,
         contact,
