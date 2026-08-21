@@ -458,7 +458,7 @@ async function markTableInitializedInSupabase(tableName) {
         key: 'initialized_tables',
         value: updated,
         updated_at: new Date().toISOString()
-      });
+      }, { onConflict: 'key' });
     }
   } catch (e) {
     console.warn('Mark table initialized warning:', e.message);
@@ -620,10 +620,10 @@ export async function getCmsTableData(tableName, defaultItems = [], orderColumn 
     }
 
     if (error) {
-      if (error.code === 'PGRST205' || error.message?.includes('schema cache')) {
+      if (error.code === 'PGRST205' || error.code === 'PGRST116' || error.status === 404 || error.message?.includes('schema cache') || error.message?.includes('does not exist')) {
         return await getFallbackTableData(tableName, defaultItems, orderColumn);
       }
-      console.warn(`Supabase fetch error for ${tableName}:`, error.message);
+      console.warn(`Supabase fetch notice for ${tableName}:`, error.message);
       return await getFallbackTableData(tableName, defaultItems, orderColumn);
     }
 
@@ -632,12 +632,9 @@ export async function getCmsTableData(tableName, defaultItems = [], orderColumn 
 
     const initKey = `oms_table_initialized_${tableName}`;
     const wasInitializedInLocal = localStorage.getItem(initKey) === 'true';
-    const wasInitializedInDb = await isTableInitializedInSupabase(tableName);
-    const wasInitialized = wasInitializedInLocal || wasInitializedInDb;
 
     if (!data || data.length === 0) {
-      // ONLY perform first-time initial seed if table has NEVER been initialized
-      if (!wasInitialized && defaultItems && defaultItems.length > 0) {
+      if (!wasInitializedInLocal && defaultItems && defaultItems.length > 0) {
         console.log(`First-time initial seeding for empty table: ${tableName}`);
         const { data: seeded, error: seedErr } = await supabase
           .from(tableName)
@@ -646,20 +643,18 @@ export async function getCmsTableData(tableName, defaultItems = [], orderColumn 
 
         if (!seedErr && seeded && seeded.length > 0) {
           localStorage.setItem(initKey, 'true');
-          await markTableInitializedInSupabase(tableName);
+          markTableInitializedInSupabase(tableName).catch(() => {});
           return seeded;
         }
       }
       localStorage.setItem(initKey, 'true');
-      await markTableInitializedInSupabase(tableName);
       return [];
     }
 
     localStorage.setItem(initKey, 'true');
-    await markTableInitializedInSupabase(tableName);
     return data;
   } catch (err) {
-    console.error(`Exception reading ${tableName}:`, err);
+    console.warn(`Exception reading ${tableName}:`, err.message);
     return await getFallbackTableData(tableName, defaultItems, orderColumn);
   }
 }
@@ -670,19 +665,25 @@ export async function getCmsTableData(tableName, defaultItems = [], orderColumn 
 export async function getCmsSingleRecord(tableName, defaultObj = {}) {
   if (!supabase) return defaultObj;
   try {
-    const { data, error } = await supabase.from(tableName).select('*').limit(1).single();
+    let query = supabase.from(tableName).select('*');
+    if (defaultObj?.key) {
+      query = query.eq('key', defaultObj.key);
+    }
+    const { data, error } = await query.limit(1).maybeSingle();
     if (!error && data) return data;
 
-    if ((error?.code === 'PGRST116' || !data) && Object.keys(defaultObj).length > 0) {
+    if (!data && Object.keys(defaultObj).length > 0) {
+      const payload = { ...defaultObj };
+      const options = payload.key ? { onConflict: 'key' } : undefined;
       const { data: inserted, error: insertErr } = await supabase
         .from(tableName)
-        .insert(defaultObj)
+        .upsert(payload, options)
         .select()
-        .single();
+        .maybeSingle();
       if (!insertErr && inserted) return inserted;
     }
   } catch (err) {
-    console.warn(`Single record fetch warning for ${tableName}:`, err.message);
+    console.warn(`Single record fetch notice for ${tableName}:`, err.message);
   }
   return defaultObj;
 }
