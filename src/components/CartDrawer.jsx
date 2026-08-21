@@ -32,9 +32,8 @@ export default function CartDrawer({
   onOpenAuthModal
 }) {
   const { cartSettings, whatsAppTemplate } = useCMS();
-  const [paymentConfig, setPaymentConfig] = useState(cartSettings || null);
+  const [paymentConfig, setPaymentConfig] = useState(cartSettings || DEFAULT_PAYMENT_CONFIG);
 
-  
   // Independent fields state
   const [customerName, setCustomerName] = useState(() => {
     return localStorage.getItem('customerName') || '';
@@ -64,8 +63,10 @@ export default function CartDrawer({
   const [createdOrder, setCreatedOrder] = useState(null);
 
   useEffect(() => {
-    getPaymentConfig().then((cfg) => setPaymentConfig(cfg));
-  }, []);
+    if (cartSettings) {
+      setPaymentConfig(cartSettings);
+    }
+  }, [cartSettings]);
 
   // Autofill fields when user logs in/registers, but only if they are currently empty
   useEffect(() => {
