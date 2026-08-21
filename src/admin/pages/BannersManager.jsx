@@ -82,13 +82,16 @@ export default function BannersManager({ adminEmail }) {
         is_active: editingBanner ? editingBanner.is_active !== false : true,
         display_order: editingBanner ? editingBanner.display_order : banners.length + 1,
         buttons: buttonsList,
-        badges: { 
-          badges_list: badgesList, 
-          feature_items: featureItemsList,
-          badge_config: badgeConfig,
-          secondary_image_url: secondaryImageUrl,
-          secondary_image_caption: secondaryImageCaption
-        },
+        badges: [
+          { id: 'badge_config', type: 'badge_config', ...badgeConfig },
+          { id: 'feature_items', type: 'feature_items', items: featureItemsList },
+          ...featureItemsList.map(f => ({ ...f, type: 'feature_item' })),
+          { id: 'secondary_image', type: 'secondary_image', url: secondaryImageUrl, caption: secondaryImageCaption }
+        ],
+        badge_config: badgeConfig,
+        feature_items: featureItemsList,
+        secondary_image_url: secondaryImageUrl,
+        secondary_image_caption: secondaryImageCaption,
         subheading: subheadingsList.length > 0 ? subheadingsList[0].text : (formData.get('subheading') || ''),
         button_text: buttonsList.length > 0 ? buttonsList[0].text : 'Explore Deals',
         button_link: buttonsList.length > 0 ? buttonsList[0].link : 'offers',

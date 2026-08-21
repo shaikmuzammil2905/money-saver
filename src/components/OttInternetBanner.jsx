@@ -14,13 +14,23 @@ export default function OttInternetBanner({ onExplorePlans }) {
     image_url: '/image.png'
   };
 
-  // Parse dynamic feature items from CMS
+  // Parse dynamic feature items from CMS (supporting object, array, and direct properties)
   let featureItems = [];
-  if (banner.badges && typeof banner.badges === 'object' && Array.isArray(banner.badges.feature_items)) {
+  if (banner.badges && typeof banner.badges === 'object' && !Array.isArray(banner.badges) && Array.isArray(banner.badges.feature_items)) {
     featureItems = banner.badges.feature_items;
+  } else if (Array.isArray(banner.badges)) {
+    const featEntry = banner.badges.find(item => item.id === 'feature_items' || item.type === 'feature_item');
+    if (featEntry && Array.isArray(featEntry.items)) {
+      featureItems = featEntry.items;
+    } else {
+      const individualFeats = banner.badges.filter(item => item.type === 'feature_item');
+      if (individualFeats.length > 0) featureItems = individualFeats;
+    }
   } else if (Array.isArray(banner.feature_items)) {
     featureItems = banner.feature_items;
-  } else {
+  }
+
+  if (!featureItems || featureItems.length === 0) {
     featureItems = [
       { id: 'feat_1', icon: 'Tv', title: 'OTT Subscriptions', subtitle: 'Top Premium Platforms', color: '#e50914', is_active: true },
       { id: 'feat_2', icon: 'Wifi', title: 'Fiber Broadband', subtitle: 'High-Speed Internet Plans', color: '#38bdf8', is_active: true },
@@ -31,8 +41,20 @@ export default function OttInternetBanner({ onExplorePlans }) {
   const activeFeatures = featureItems.filter(f => f.is_active !== false);
 
   // Badge config
-  const badgeConfig = banner.badges?.badge_config || {};
-  const isBadgeEnabled = badgeConfig.enabled && badgeConfig.text;
+  let badgeConfig = { enabled: false, text: '', position: 'top-left', bg_color: '#e50914', text_color: '#ffffff' };
+  if (banner.badges && typeof banner.badges === 'object' && !Array.isArray(banner.badges) && banner.badges.badge_config) {
+    badgeConfig = { ...badgeConfig, ...banner.badges.badge_config };
+  } else if (Array.isArray(banner.badges)) {
+    const badgeEntry = banner.badges.find(item => item.id === 'badge_config' || item.type === 'badge_config' || item.text);
+    if (badgeEntry) {
+      badgeConfig = { ...badgeConfig, ...badgeEntry, enabled: badgeEntry.enabled !== false && Boolean(badgeEntry.text) };
+    }
+  }
+  if (banner.badge_config) {
+    badgeConfig = { ...badgeConfig, ...banner.badge_config };
+  }
+
+  const isBadgeEnabled = badgeConfig.enabled && Boolean(badgeConfig.text);
   const badgePos = badgeConfig.position || 'top-left';
 
   const getBadgePositionClasses = (pos) => {
@@ -47,8 +69,21 @@ export default function OttInternetBanner({ onExplorePlans }) {
   };
 
   // Secondary Image and Caption
-  const secondaryImgUrl = banner.badges?.secondary_image_url || banner.secondary_image_url || 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=500&auto=format&fit=crop&q=80';
-  const secondaryCaption = banner.badges?.secondary_image_caption || banner.secondary_image_caption || '🔥 High-Speed Fiber Internet + OTT Combo';
+  let secondaryImgUrl = 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=500&auto=format&fit=crop&q=80';
+  let secondaryCaption = '🔥 High-Speed Fiber Internet + OTT Combo';
+
+  if (banner.badges && typeof banner.badges === 'object' && !Array.isArray(banner.badges)) {
+    if (banner.badges.secondary_image_url) secondaryImgUrl = banner.badges.secondary_image_url;
+    if (banner.badges.secondary_image_caption) secondaryCaption = banner.badges.secondary_image_caption;
+  } else if (Array.isArray(banner.badges)) {
+    const imgEntry = banner.badges.find(item => item.id === 'secondary_image' || item.type === 'secondary_image' || item.url);
+    if (imgEntry) {
+      if (imgEntry.url) secondaryImgUrl = imgEntry.url;
+      if (imgEntry.caption) secondaryCaption = imgEntry.caption;
+    }
+  }
+  if (banner.secondary_image_url) secondaryImgUrl = banner.secondary_image_url;
+  if (banner.secondary_image_caption) secondaryCaption = banner.secondary_image_caption;
 
   const renderIcon = (iconName, color = '#e50914') => {
     const props = { className: 'w-6 h-6 shrink-0', style: { color } };
