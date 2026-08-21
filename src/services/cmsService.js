@@ -667,50 +667,78 @@ export async function getCmsTableData(tableName, defaultItems = [], orderColumn 
     const isPositionOrder = tableName === 'home_sections';
     const sortField = isPositionOrder ? 'position' : orderColumn;
 
-    let data, error;
+    // 1. Fetch from PostgreSQL table
+    let tableRows = [];
+    try {
+      const result = await supabase
+        .from(tableName)
+        .select('*')
+        .order(sortField, { ascending: true });
 
-    // First attempt: with ordering
-    const result = await supabase
-      .from(tableName)
-      .select('*')
-      .order(sortField, { ascending: true });
-    data = result.data;
-    error = result.error;
-
-    // If sort column doesn't exist, retry WITHOUT ordering so real DB data is always returned
-    if (error && error.message?.includes('column') && error.message?.includes('does not exist')) {
-      const retryResult = await supabase.from(tableName).select('*');
-      data = retryResult.data;
-      error = retryResult.error;
+      if (!result.error && Array.isArray(result.data)) {
+        tableRows = result.data;
+      } else if (result.error && result.error.message?.includes('column') && result.error.message?.includes('does not exist')) {
+        const retryResult = await supabase.from(tableName).select('*');
+        if (!retryResult.error && Array.isArray(retryResult.data)) {
+          tableRows = retryResult.data;
+        }
+      }
+    } catch (e) {
+      // Table query failed
     }
 
-    if (error) {
-      return await getFallbackTableData(tableName, defaultItems, orderColumn);
+    // 2. Fetch from site_settings fallback JSON array
+    const fallbackRows = await getFallbackTableData(tableName, []);
+
+    // 3. Merge: Fallback rows contain rich JSON structures and latest updates
+    let combined = [];
+    if (fallbackRows.length > 0 && tableRows.length > 0) {
+      const fallbackMap = new Map();
+      fallbackRows.forEach(item => {
+        const key = item.id || item.banner_key || item.box_key || item.theme_key || item.slug_id || item.slug;
+        if (key) fallbackMap.set(key, item);
+      });
+
+      const mergedIds = new Set();
+      tableRows.forEach(tRow => {
+        const key = tRow.id || tRow.banner_key || tRow.box_key || tRow.theme_key || tRow.slug_id || tRow.slug;
+        if (key && fallbackMap.has(key)) {
+          const fItem = fallbackMap.get(key);
+          combined.push({ ...tRow, ...fItem });
+          mergedIds.add(key);
+        } else {
+          combined.push(tRow);
+        }
+      });
+
+      fallbackRows.forEach(fItem => {
+        const key = fItem.id || fItem.banner_key || fItem.box_key || fItem.theme_key || fItem.slug_id || fItem.slug;
+        if (key && !mergedIds.has(key)) {
+          combined.push(fItem);
+        }
+      });
+    } else if (fallbackRows.length > 0) {
+      combined = fallbackRows;
+    } else if (tableRows.length > 0) {
+      combined = tableRows;
     }
 
+    if (combined.length > 0) {
+      combined.sort((a, b) => (a[sortField] || 0) - (b[sortField] || 0));
+      return combined;
+    }
+
+    // First-time seed if both are empty
     const initKey = `oms_table_initialized_${tableName}`;
     const wasInitializedInLocal = localStorage.getItem(initKey) === 'true';
 
-    if (!data || data.length === 0) {
-      if (!wasInitializedInLocal && defaultItems && defaultItems.length > 0) {
-        const cleanSeeds = defaultItems.map(item => sanitizePayload(tableName, item));
-        const { data: seeded, error: seedErr } = await supabase
-          .from(tableName)
-          .insert(cleanSeeds)
-          .select();
-
-        if (!seedErr && seeded && seeded.length > 0) {
-          localStorage.setItem(initKey, 'true');
-          markTableInitializedInSupabase(tableName).catch(() => {});
-          return seeded;
-        }
-      }
+    if (!wasInitializedInLocal && defaultItems && defaultItems.length > 0) {
       localStorage.setItem(initKey, 'true');
-      return [];
+      const seeded = await getFallbackTableData(tableName, defaultItems, orderColumn);
+      return seeded;
     }
 
-    localStorage.setItem(initKey, 'true');
-    return data;
+    return [];
   } catch (err) {
     return await getFallbackTableData(tableName, defaultItems, orderColumn);
   }
@@ -884,7 +912,8 @@ export async function saveCmsItem(tableName, itemData) {
     }
 
     if (resultData) {
-      return { ...itemData, ...resultData };
+      await saveFallbackCmsItem(tableName, { ...payload, ...resultData }).catch(() => {});
+      return { ...payload, ...resultData };
     }
 
     return await saveFallbackCmsItem(tableName, payload);
