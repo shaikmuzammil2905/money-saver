@@ -1,25 +1,16 @@
 import React from 'react';
 import { Tv, Globe, Smartphone, Headphones, Laptop, Flame, Sparkles, Tag, Zap, Shield } from 'lucide-react';
-import { useCMS } from '../context/CMSContext';
-
-const DEFAULT_CATEGORIES = [
-  { id: 'ott', name: 'OTT Platforms', iconName: 'Tv' },
-  { id: 'fiber', name: 'Fiber Internet', iconName: 'Globe' },
-  { id: 'mobiles', name: 'Mobiles Smartphones', iconName: 'Smartphone' },
-  { id: 'gadgets', name: 'Mobile Gadgets', iconName: 'Headphones' },
-  { id: 'electronics', name: 'Electronics Devices', iconName: 'Laptop' },
-  { id: 'offers', name: 'Today\'s Offers', iconName: 'Flame' },
-  { id: 'combos', name: 'Combo Bundles', iconName: 'Sparkles' },
-  { id: 'accessories', name: 'Smart Accessories', iconName: 'Zap' },
-];
+import { useCMS, DEFAULT_MAIN_CATEGORIES } from '../context/CMSContext';
 
 export default function CategoryCards({ onSelectCategory }) {
-  const { categories: cmsCategories } = useCMS();
+  const { mainCategories, categories } = useCMS();
 
-  // Active Categories list from CMS or default fallback list
-  const activeCategories = (cmsCategories && cmsCategories.length > 0)
-    ? cmsCategories.filter(c => c.is_active !== false)
-    : DEFAULT_CATEGORIES;
+  // Active Main Categories list from CMS
+  const activeCategories = (mainCategories && mainCategories.length > 0)
+    ? mainCategories.filter(c => c.is_active !== false)
+    : (categories && categories.length > 0 ? categories.filter(c => c.is_active !== false) : DEFAULT_MAIN_CATEGORIES);
+
+  if (activeCategories.length === 0) return null;
 
   const renderCategoryIcon = (cat) => {
     if (cat.image_url) {
@@ -59,15 +50,15 @@ export default function CategoryCards({ onSelectCategory }) {
     <section className="py-3 sm:py-6 bg-slate-50 border-b border-slate-200 font-sans">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         
-        {/* 4-Column Wrapped Grid Layout (Desktop & Mobile Responsive) */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-4 gap-2.5 sm:gap-4.5">
+        {/* Responsive Grid for Main Category Cards (Up to 6 columns) */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-4">
           {activeCategories.map((cat) => {
-            const catIdentifier = cat.slug || cat.id || cat.name;
+            const target = cat.link_url || cat.slug || cat.id || cat.name;
             return (
               <button
-                key={cat.id || catIdentifier}
-                onClick={() => onSelectCategory(catIdentifier)}
-                className="group bg-white rounded-xl sm:rounded-2xl p-2.5 sm:p-4 border border-slate-200/90 shadow-sm hover:shadow-md hover:border-[#e50914]/30 transition-all duration-200 cursor-pointer flex flex-col items-center text-center justify-center w-full hover:-translate-y-0.5"
+                key={cat.id || target}
+                onClick={() => onSelectCategory(target)}
+                className="group bg-white rounded-xl sm:rounded-2xl p-2.5 sm:p-4 border border-slate-200/90 shadow-sm hover:shadow-md hover:border-purple-400 transition-all duration-200 cursor-pointer flex flex-col items-center text-center justify-center w-full hover:-translate-y-0.5"
               >
                 <div className="w-10 h-10 sm:w-13 sm:h-13 rounded-full bg-slate-50 border border-slate-200/80 flex items-center justify-center mb-1.5 group-hover:scale-105 transition-transform shadow-inner overflow-hidden">
                   {renderCategoryIcon(cat)}

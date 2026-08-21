@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { 
-  Home, Image as ImageIcon, ArrowUp, ArrowDown, Power, Edit3, Trash2, Plus, Upload, Check, AlertCircle, Phone, FileText, Layers, ListOrdered, ChevronRight 
+  Home, Image as ImageIcon, ArrowUp, ArrowDown, Power, Edit3, Trash2, Plus, Upload, Check, AlertCircle, Phone, FileText, Layers, ListOrdered, ChevronRight, HelpCircle, MessageSquare, ExternalLink, Link as LinkIcon, Instagram, Send, Globe, MapPin, Sparkles, MessageCircle, Quote
 } from 'lucide-react';
-import { useCMS } from '../../context/CMSContext';
+import { useCMS, DEFAULT_SUPPORT_CARDS } from '../../context/CMSContext';
 import { uploadToCloudinary } from '../../services/cloudinary';
 import { DEFAULT_HOME_SECTIONS } from '../../services/cmsService';
 
@@ -73,6 +73,11 @@ function HomePageManagerContent({ adminEmail }) {
   const setContactDetails = cmsContext.setContactDetails || (() => {});
   const footerLinks = Array.isArray(cmsContext.footerLinks) ? cmsContext.footerLinks : [];
   const setFooterLinks = cmsContext.setFooterLinks || (() => {});
+  const supportCards = Array.isArray(cmsContext.supportCards) && cmsContext.supportCards.length > 0 ? cmsContext.supportCards : DEFAULT_SUPPORT_CARDS;
+  const setSupportCards = cmsContext.setSupportCards || (() => {});
+  const siteSettings = cmsContext.siteSettings || {};
+  const setSiteSettings = cmsContext.setSiteSettings || (() => {});
+  const saveSiteConfigKey = cmsContext.saveSiteConfigKey || (async () => {});
 
   const saveCmsItem = cmsContext.saveCmsItem || (async () => {});
   const deleteCmsItem = cmsContext.deleteCmsItem || (async () => {});
@@ -80,7 +85,7 @@ function HomePageManagerContent({ adminEmail }) {
   const logActivity = cmsContext.logActivity || (async () => {});
   const refreshAllData = cmsContext.refreshAllData || (() => {});
 
-  const [activeSubTab, setActiveSubTab] = useState('builder'); // 'builder', 'items', '2nd-slide', 'steps', 'contact', 'footer'
+  const [activeSubTab, setActiveSubTab] = useState('builder'); // 'builder', 'items', '2nd-slide', 'steps', 'support-cards', 'contact', 'footer'
   const [editingBox, setEditingBox] = useState(null);
 
   // Modals & Form states
@@ -88,6 +93,7 @@ function HomePageManagerContent({ adminEmail }) {
   const [isQuickAddOpen, setIsQuickAddOpen] = useState(false);
   const [editingStep, setEditingStep] = useState(null);
   const [editingFooterLink, setEditingFooterLink] = useState(null);
+  const [editingSupportCard, setEditingSupportCard] = useState(null);
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
@@ -321,6 +327,151 @@ function HomePageManagerContent({ adminEmail }) {
     }
   };
 
+  const handleDeleteFooterLink = async (id, linkText) => {
+    if (!window.confirm(`Are you sure you want to delete footer link "${linkText}"?`)) return;
+    try {
+      await deleteCmsItem('footer_links', id);
+      await logActivity(adminEmail, 'DELETED', 'Footer Links', linkText);
+      refreshAllData();
+      showToast('Footer link deleted.');
+    } catch (err) {
+      alert('Error deleting footer link: ' + err.message);
+    }
+  };
+
+  const handleToggleFooterLinkStatus = async (link) => {
+    try {
+      const updated = { ...link, is_active: link.is_active === false ? true : false };
+      await saveCmsItem('footer_links', updated);
+      await logActivity(adminEmail, updated.is_active ? 'ENABLED' : 'DISABLED', 'Footer Links', link.link_text);
+      refreshAllData();
+      showToast(updated.is_active ? 'Link Enabled' : 'Link Hidden');
+    } catch (err) {
+      alert('Error toggling footer link: ' + err.message);
+    }
+  };
+
+  // --- SUPPORT CARDS (NEED HELP SECTION) HANDLERS ---
+  const handleToggleSupportCardStatus = async (card, index) => {
+    const list = [...supportCards];
+    list[index] = { ...card, is_active: card.is_active === false ? true : false };
+    setSupportCards(list);
+    await saveSiteConfigKey('support_cards', list);
+    await logActivity(adminEmail, list[index].is_active ? 'ENABLED' : 'DISABLED', 'Support Cards', card.title);
+    showToast(list[index].is_active ? 'Support Box Enabled' : 'Support Box Disabled');
+  };
+
+  const handleMoveSupportCard = async (index, direction) => {
+    const list = [...supportCards];
+    const targetIdx = direction === 'UP' ? index - 1 : index + 1;
+    if (targetIdx < 0 || targetIdx >= list.length) return;
+
+    const temp = list[index];
+    list[index] = list[targetIdx];
+    list[targetIdx] = temp;
+
+    setSupportCards(list);
+    await saveSiteConfigKey('support_cards', list);
+    await logActivity(adminEmail, 'REORDERED', 'Support Cards');
+    showToast('Support Boxes Reordered.');
+  };
+
+  const handleDeleteSupportCard = async (index, title) => {
+    if (!window.confirm(`Delete support box "${title}"?`)) return;
+    const list = supportCards.filter((_, i) => i !== index);
+    setSupportCards(list);
+    await saveSiteConfigKey('support_cards', list);
+    await logActivity(adminEmail, 'DELETED', 'Support Cards', title);
+    showToast('Support Box Deleted.');
+  };
+
+  const handleSaveSupportCardForm = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const formData = new FormData(e.target);
+      const list = [...supportCards];
+      const payload = {
+        id: editingSupportCard?.id || `sup_${Date.now()}`,
+        title: formData.get('title'),
+        value: formData.get('value'),
+        link: formData.get('link') || '',
+        icon: formData.get('icon') || 'Phone',
+        color: formData.get('color') || '#e50914',
+        is_active: editingSupportCard ? (editingSupportCard.is_active !== false) : true
+      };
+
+      if (editingSupportCard?.index !== undefined && editingSupportCard.index >= 0) {
+        list[editingSupportCard.index] = payload;
+      } else {
+        list.push(payload);
+      }
+
+      setSupportCards(list);
+      await saveSiteConfigKey('support_cards', list);
+      await logActivity(adminEmail, editingSupportCard?.id ? 'EDITED' : 'ADDED', 'Support Cards', payload.title);
+      setEditingSupportCard(null);
+      showToast('Support Box Saved Successfully.');
+    } catch (err) {
+      alert('Error saving support box: ' + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveNeedHelpHeaders = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const formData = new FormData(e.target);
+      const updatedValue = {
+        ...(siteSettings || {}),
+        need_help_title: formData.get('need_help_title'),
+        need_help_subtitle: formData.get('need_help_subtitle')
+      };
+      const payload = {
+        id: siteSettings?.id,
+        key: 'global_config',
+        value: updatedValue
+      };
+      await saveCmsItem('site_settings', payload);
+      setSiteSettings(updatedValue);
+      await logActivity(adminEmail, 'UPDATED', 'Need Help Headers');
+      showToast('Need Help Section Titles Saved.');
+    } catch (err) {
+      alert('Error saving section headers: ' + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveFooterBrandInfo = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const formData = new FormData(e.target);
+      const updatedValue = {
+        ...(siteSettings || {}),
+        footer_tagline: formData.get('footer_tagline'),
+        footer_quote: formData.get('footer_quote'),
+        show_admin_footer_link: formData.get('show_admin_footer_link') === 'on'
+      };
+      const payload = {
+        id: siteSettings?.id,
+        key: 'global_config',
+        value: updatedValue
+      };
+      await saveCmsItem('site_settings', payload);
+      setSiteSettings(updatedValue);
+      await logActivity(adminEmail, 'UPDATED', 'Footer Brand Info');
+      showToast('Footer Brand Information Saved.');
+    } catch (err) {
+      alert('Error saving footer info: ' + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   // Image Upload Handler helper for Forms
   const handleImageUploadInput = async (e, inputId) => {
     const file = e.target.files[0];
@@ -454,8 +605,9 @@ function HomePageManagerContent({ adminEmail }) {
             { id: 'items', label: 'Home Items', icon: Layers },
             { id: '2nd-slide', label: '2nd Slide Banner', icon: ImageIcon },
             { id: 'steps', label: 'Easy Step Guide', icon: ListOrdered },
+            { id: 'support-cards', label: 'Support & Help Cards', icon: HelpCircle },
             { id: 'contact', label: 'Contact Details', icon: Phone },
-            { id: 'footer', label: 'Footer Links', icon: FileText }
+            { id: 'footer', label: 'Footer Links & Brand', icon: FileText }
           ].map(tab => {
             const IconComp = tab.icon;
             return (
@@ -946,45 +1098,415 @@ function HomePageManagerContent({ adminEmail }) {
       )}
 
       {/* ================================================== */}
-      {/* SUB TAB 5: FOOTER LINKS */}
+      {/* SUB TAB: SUPPORT & HELP CARDS (NEED HELP SECTION) */}
+      {/* ================================================== */}
+      {activeSubTab === 'support-cards' && (
+        <div className="space-y-6 font-sans">
+          
+          {/* Section Titles Config Card */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
+            <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+              <HelpCircle className="w-4 h-4 text-purple-600" /> Need Help Section Title &amp; Description
+            </h2>
+            <form onSubmit={handleSaveNeedHelpHeaders} className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Section Main Heading</label>
+                  <input
+                    type="text"
+                    name="need_help_title"
+                    defaultValue={siteSettings?.need_help_title || 'Need Help Finding the Best Deal?'}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 text-xs font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Section Subtitle / Description</label>
+                  <input
+                    type="text"
+                    name="need_help_subtitle"
+                    defaultValue={siteSettings?.need_help_subtitle || 'Our expert support team is available 24/7 to assist you.'}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 text-xs"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-black text-xs shadow-md"
+                >
+                  Save Section Titles
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Cards List Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-black text-slate-900">Support &amp; Contact Boxes ({supportCards.length} Cards)</h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Add, edit, reorder, or attach link boxes (Phone, WhatsApp, Instagram, Telegram, Email, Custom) to each card.
+              </p>
+            </div>
+            <button
+              onClick={() => setEditingSupportCard({ icon: 'Phone', color: '#e50914', is_active: true })}
+              className="px-4 py-2 rounded-xl bg-[#008744] hover:bg-emerald-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-md self-start sm:self-auto"
+            >
+              <Plus className="w-4 h-4" /> Add Support Box
+            </button>
+          </div>
+
+          {/* Cards Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {supportCards.map((card, idx) => (
+              <div 
+                key={card.id || idx}
+                className={`bg-white rounded-2xl p-4 border transition-all shadow-sm flex flex-col justify-between ${
+                  card.is_active !== false ? 'border-slate-200' : 'border-red-200 opacity-60 bg-red-50/20'
+                }`}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-slate-100 text-slate-700">
+                      Card #{idx + 1}
+                    </span>
+                    <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded ${
+                      card.is_active !== false ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
+                    }`}>
+                      {card.is_active !== false ? 'ACTIVE' : 'HIDDEN'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div 
+                      style={{ backgroundColor: `${card.color || '#6366f1'}18`, color: card.color || '#6366f1' }}
+                      className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 font-bold"
+                    >
+                      <Sparkles className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-extrabold text-slate-900 text-sm truncate">{card.value || card.title}</h4>
+                      <p className="text-xs text-slate-500 font-medium truncate">{card.title}</p>
+                    </div>
+                  </div>
+
+                  {card.link && (
+                    <div className="mt-2.5 p-2 rounded-lg bg-slate-50 border border-slate-100 text-[11px] font-mono text-slate-600 truncate flex items-center gap-1">
+                      <LinkIcon className="w-3 h-3 text-slate-400 shrink-0" />
+                      <span className="truncate">{card.link}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between pt-3 mt-3 border-t border-slate-100">
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => handleMoveSupportCard(idx, 'UP')}
+                      disabled={idx === 0}
+                      className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 disabled:opacity-30 text-slate-700"
+                      title="Move Left/Up"
+                    >
+                      <ArrowUp className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleMoveSupportCard(idx, 'DOWN')}
+                      disabled={idx === supportCards.length - 1}
+                      className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 disabled:opacity-30 text-slate-700"
+                      title="Move Right/Down"
+                    >
+                      <ArrowDown className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleSupportCardStatus(card, idx)}
+                      className={`px-2.5 py-1.5 rounded-lg text-[11px] font-extrabold flex items-center gap-1 transition-all ${
+                        card.is_active !== false
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : 'bg-red-50 text-red-700 border border-red-200'
+                      }`}
+                    >
+                      <Power className="w-3.5 h-3.5" />
+                      <span>{card.is_active !== false ? 'ON' : 'OFF'}</span>
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setEditingSupportCard({ ...card, index: idx })}
+                      className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs flex items-center gap-1"
+                    >
+                      <Edit3 className="w-3.5 h-3.5 text-purple-600" /> Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteSupportCard(idx, card.title)}
+                      className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600"
+                      title="Delete Support Box"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+        </div>
+      )}
+
+      {/* ================================================== */}
+      {/* SUB TAB 5: FOOTER LINKS & BRAND INFO */}
       {/* ================================================== */}
       {activeSubTab === 'footer' && (
         <div className="space-y-6 font-sans">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-white">Footer Links ({footerLinks.length})</h2>
+          
+          {/* Brand Tagline & Quote Customizer Card */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
+            <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+              <Quote className="w-4 h-4 text-amber-500" /> Footer Brand Quote &amp; Tagline
+            </h2>
+            <form onSubmit={handleSaveFooterBrandInfo} className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Footer Brand Tagline</label>
+                <textarea
+                  name="footer_tagline"
+                  rows="2"
+                  defaultValue={siteSettings?.footer_tagline || 'Save Money Smartly. Enjoy More. OTT subscriptions, high-speed fiber internet, smartphones, gadgets, and electronics at unbeatable prices.'}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Brand Highlight Quote (Italic)</label>
+                <input
+                  type="text"
+                  name="footer_quote"
+                  defaultValue={siteSettings?.footer_quote || '"We compromise on Money but not in Service."'}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 text-xs font-bold"
+                />
+              </div>
+
+              <div className="flex items-center justify-between pt-1">
+                <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-700">
+                  <input
+                    type="checkbox"
+                    name="show_admin_footer_link"
+                    defaultChecked={siteSettings?.show_admin_footer_link !== false}
+                    className="w-4 h-4 text-purple-600 rounded"
+                  />
+                  <span>Show "Administrator CMS Login" Button in Footer</span>
+                </label>
+
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-black text-xs shadow-md"
+                >
+                  Save Footer Brand Settings
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Links Section Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-black text-slate-900">Footer Links ({footerLinks.length} Links)</h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Organize navigation links into "Quick Links" and "Customer Support" columns with direct link boxes.
+              </p>
+            </div>
             <button
-              onClick={() => setEditingFooterLink({})}
-              className="px-4 py-2 rounded-xl bg-[#008744] hover:bg-emerald-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-md"
+              onClick={() => setEditingFooterLink({ section_name: 'Quick Links', is_active: true, link_url: 'home' })}
+              className="px-4 py-2 rounded-xl bg-[#008744] hover:bg-emerald-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-md self-start sm:self-auto"
             >
               <Plus className="w-4 h-4" /> Add Footer Link
             </button>
           </div>
 
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-            <table className="w-full text-left text-xs text-slate-300">
-              <thead className="bg-slate-950 text-slate-400 font-bold uppercase tracking-wider text-[10px] border-b border-slate-800">
+          <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+            <table className="w-full text-left text-xs text-slate-700">
+              <thead className="bg-slate-100 text-slate-600 font-bold uppercase tracking-wider text-[10px] border-b border-slate-200">
                 <tr>
-                  <th className="py-3.5 px-4">Section Name</th>
-                  <th className="py-3.5 px-4">Link Text</th>
-                  <th className="py-3.5 px-4">URL</th>
+                  <th className="py-3.5 px-4">Column Section</th>
+                  <th className="py-3.5 px-4">Link Display Text</th>
+                  <th className="py-3.5 px-4">Target Link URL Box</th>
+                  <th className="py-3.5 px-4">Status</th>
                   <th className="py-3.5 px-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800">
+              <tbody className="divide-y divide-slate-100">
                 {footerLinks.map((link) => (
-                  <tr key={link.id}>
-                    <td className="py-3 px-4 font-bold text-white">{link.section_name || link.heading}</td>
-                    <td className="py-3 px-4 text-slate-200">{link.link_text}</td>
-                    <td className="py-3 px-4 text-slate-400 font-mono">{link.link_url}</td>
-                    <td className="py-3 px-4 text-right">
-                      <button onClick={() => setEditingFooterLink(link)} className="p-1.5 rounded-lg bg-slate-800 text-white">
-                        <Edit3 className="w-3.5 h-3.5 text-purple-400" />
+                  <tr key={link.id} className="hover:bg-slate-50/80 transition-colors">
+                    <td className="py-3 px-4 font-bold text-purple-700">
+                      <span className="px-2 py-0.5 rounded bg-purple-50 text-purple-700 text-[11px]">
+                        {link.section_name || link.heading || 'Quick Links'}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 font-extrabold text-slate-900">{link.link_text}</td>
+                    <td className="py-3 px-4 text-slate-600 font-mono text-[11px] flex items-center gap-1">
+                      <LinkIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <span>{link.link_url}</span>
+                    </td>
+                    <td className="py-3 px-4">
+                      <button
+                        onClick={() => handleToggleFooterLinkStatus(link)}
+                        className={`px-2 py-1 rounded text-[10px] font-black uppercase ${
+                          link.is_active !== false ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
+                        }`}
+                      >
+                        {link.is_active !== false ? 'ACTIVE' : 'HIDDEN'}
                       </button>
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => setEditingFooterLink(link)}
+                          className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700"
+                          title="Edit Link"
+                        >
+                          <Edit3 className="w-3.5 h-3.5 text-purple-600" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteFooterLink(link.id, link.link_text)}
+                          className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600"
+                          title="Delete Link"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT SUPPORT BOX MODAL */}
+      {editingSupportCard && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-slate-200 font-sans">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="font-extrabold text-slate-900 text-base">
+                {editingSupportCard.id ? 'Edit Support Card' : 'Add New Support Box'}
+              </h3>
+              <button onClick={() => setEditingSupportCard(null)} className="text-slate-400 hover:text-slate-700 font-bold">✕</button>
+            </div>
+
+            <form onSubmit={handleSaveSupportCardForm} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Card Title / Action Name *</label>
+                <input
+                  type="text"
+                  name="title"
+                  required
+                  defaultValue={editingSupportCard.title || ''}
+                  placeholder="e.g. Call Us, WhatsApp Us, Instagram, Telegram"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 text-xs font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Display Text / Contact Value *</label>
+                <input
+                  type="text"
+                  name="value"
+                  required
+                  defaultValue={editingSupportCard.value || ''}
+                  placeholder="e.g. 6305151531, @ottmoneysaver, Chat with Expert"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 text-xs font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Direct Link Box (Opens on click) *</label>
+                <div className="flex gap-1.5">
+                  <input
+                    type="text"
+                    name="link"
+                    defaultValue={editingSupportCard.link || ''}
+                    placeholder="e.g. tel:6305151531, https://wa.me/916305151531, https://instagram.com/..."
+                    className="flex-1 bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 text-xs font-mono"
+                  />
+                  <select
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        const input = e.target.form?.elements['link'];
+                        if (input) input.value = e.target.value;
+                      }
+                    }}
+                    className="w-28 bg-slate-100 border border-slate-300 rounded-xl p-2 text-xs font-bold text-slate-700"
+                  >
+                    <option value="">Presets ▾</option>
+                    <option value="tel:6305151531">Phone Call</option>
+                    <option value="https://wa.me/916305151531">WhatsApp</option>
+                    <option value="mailto:Ottmoneysaver@gmail.com">Email</option>
+                    <option value="https://instagram.com/ottmoneysaver">Instagram</option>
+                    <option value="https://t.me/ottmoneysaver">Telegram</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Icon Symbol</label>
+                  <select
+                    name="icon"
+                    defaultValue={editingSupportCard.icon || 'Phone'}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 text-xs font-bold"
+                  >
+                    <option value="Phone">Phone 📞</option>
+                    <option value="MessageCircle">WhatsApp 💬</option>
+                    <option value="MessageSquare">Chat Bubble 🗨️</option>
+                    <option value="Mail">Email ✉️</option>
+                    <option value="Instagram">Instagram 📸</option>
+                    <option value="Send">Telegram ✈️</option>
+                    <option value="Globe">Globe 🌐</option>
+                    <option value="MapPin">Location 📍</option>
+                    <option value="CheckCircle">Checkmark ✓</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Icon Accent Color</label>
+                  <select
+                    name="color"
+                    defaultValue={editingSupportCard.color || '#e50914'}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 text-xs font-bold"
+                  >
+                    <option value="#e50914">Red (#e50914)</option>
+                    <option value="#059669">Emerald Green (#059669)</option>
+                    <option value="#0284c7">Sky Blue (#0284c7)</option>
+                    <option value="#9333ea">Purple (#9333ea)</option>
+                    <option value="#e11d48">Pink / Rose (#e11d48)</option>
+                    <option value="#d97706">Amber Gold (#d97706)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingSupportCard(null)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-6 py-2 rounded-xl bg-[#008744] hover:bg-emerald-600 text-white text-xs font-black shadow-md"
+                >
+                  {saving ? 'Saving...' : 'Save Support Box'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
@@ -1067,28 +1589,69 @@ function HomePageManagerContent({ adminEmail }) {
 
       {/* EDIT FOOTER LINK MODAL */}
       {editingFooterLink && (
-        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-start sm:items-center justify-center p-2 sm:p-4 overflow-y-auto pt-16 sm:pt-4 font-sans">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 max-h-[85vh] overflow-y-auto font-sans">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <h3 className="font-bold text-white text-base">{editingFooterLink.id ? 'Edit Footer Link' : 'Add Footer Link'}</h3>
-              <button onClick={() => setEditingFooterLink(null)} className="text-slate-400 hover:text-white font-bold">✕</button>
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 font-sans">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-slate-200 font-sans">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="font-extrabold text-slate-900 text-base">{editingFooterLink.id ? 'Edit Footer Link' : 'Add Footer Link'}</h3>
+              <button onClick={() => setEditingFooterLink(null)} className="text-slate-400 hover:text-slate-700 font-bold">✕</button>
             </div>
-            <form onSubmit={handleSaveFooterLink} className="space-y-4">
+            <form onSubmit={handleSaveFooterLink} className="space-y-3.5">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Section Name / Heading *</label>
-                <input type="text" name="section_name" required defaultValue={editingFooterLink.section_name || editingFooterLink.heading || 'Quick Links'} className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white text-xs" />
+                <label className="block text-xs font-bold text-slate-700 mb-1">Column / Section *</label>
+                <select
+                  name="section_name"
+                  defaultValue={editingFooterLink.section_name || editingFooterLink.heading || 'Quick Links'}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 text-xs font-bold"
+                >
+                  <option value="Quick Links">Quick Links</option>
+                  <option value="Customer Support">Customer Support</option>
+                </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Link Display Text *</label>
-                <input type="text" name="link_text" required defaultValue={editingFooterLink.link_text || ''} className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white text-xs" />
+                <label className="block text-xs font-bold text-slate-700 mb-1">Link Display Text *</label>
+                <input
+                  type="text"
+                  name="link_text"
+                  required
+                  defaultValue={editingFooterLink.link_text || ''}
+                  placeholder="e.g. OTT Plans, Contact Us"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 text-xs font-bold"
+                />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Link URL *</label>
-                <input type="text" name="link_url" required defaultValue={editingFooterLink.link_url || '#'} className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white text-xs" />
+                <label className="block text-xs font-bold text-slate-700 mb-1">Target Link URL Box *</label>
+                <div className="flex gap-1.5">
+                  <input
+                    type="text"
+                    name="link_url"
+                    required
+                    defaultValue={editingFooterLink.link_url || 'home'}
+                    placeholder="e.g. home, ott-plans, fiber, mobiles, electronics, offers, contact"
+                    className="flex-1 bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 text-xs font-mono"
+                  />
+                  <select
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        const input = e.target.form?.elements['link_url'];
+                        if (input) input.value = e.target.value;
+                      }
+                    }}
+                    className="w-28 bg-slate-100 border border-slate-300 rounded-xl p-2 text-xs font-bold text-slate-700"
+                  >
+                    <option value="">Presets ▾</option>
+                    <option value="home">Home</option>
+                    <option value="ott-plans">OTT Plans</option>
+                    <option value="fiber">Fiber Internet</option>
+                    <option value="mobiles">Mobiles</option>
+                    <option value="electronics">Electronics</option>
+                    <option value="offers">Offers</option>
+                    <option value="contact">Contact</option>
+                  </select>
+                </div>
               </div>
-              <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
-                <button type="button" onClick={() => setEditingFooterLink(null)} className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-bold">Cancel</button>
-                <button type="submit" disabled={saving} className="px-6 py-2 rounded-xl bg-[#008744] text-white text-xs font-bold shadow-lg">Save Link</button>
+              <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
+                <button type="button" onClick={() => setEditingFooterLink(null)} className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold">Cancel</button>
+                <button type="submit" disabled={saving} className="px-6 py-2 rounded-xl bg-[#008744] hover:bg-emerald-600 text-white text-xs font-black shadow-md">Save Link</button>
               </div>
             </form>
           </div>

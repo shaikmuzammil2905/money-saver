@@ -37,17 +37,22 @@ export default function PromoBanner({ onViewOffers }) {
                     <button
                       key={btn.id || idx}
                       onClick={() => {
-                        if (btn.is_external) {
-                          window.open(btn.link, btn.target || '_blank');
+                        const link = btn.link || 'offers';
+                        if (btn.is_external || link.startsWith('http') || link.startsWith('tel:') || link.startsWith('mailto:')) {
+                          window.open(link, btn.target || '_blank');
+                        } else if (link === 'offers' || link === '/offers') {
+                          if (typeof onViewOffers === 'function') onViewOffers();
                         } else {
-                          if (btn.link === 'offers' || btn.link === '/offers') onViewOffers();
-                          else if (btn.link) window.open(btn.link, btn.target || '_self');
+                          if (typeof onViewOffers === 'function') onViewOffers(link.replace(/^\//, ''));
+                          else window.location.href = link;
                         }
                       }}
                       style={{
-                        transform: `translate(${btn.position_x || 0}px, ${btn.position_y || 0}px)`
+                        transform: (btn.position_x || btn.position_y) ? `translate(${btn.position_x || 0}px, ${btn.position_y || 0}px)` : undefined,
+                        backgroundColor: btn.button_color || '#020617',
+                        color: btn.text_color || '#ffffff'
                       }}
-                      className="px-8 py-3.5 rounded-xl font-extrabold text-sm sm:text-base shadow-2xl transition-all hover:scale-105 inline-flex items-center gap-2 group cursor-pointer relative bg-slate-950 hover:bg-slate-900 text-white"
+                      className="px-8 py-3.5 rounded-xl font-extrabold text-sm sm:text-base shadow-2xl transition-all hover:scale-105 inline-flex items-center gap-2 group cursor-pointer relative"
                     >
                       <span>{btn.text || 'Click Here'}</span>
                       <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />

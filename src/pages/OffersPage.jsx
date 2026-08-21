@@ -1,14 +1,22 @@
 import React from 'react';
-import { Flame, Zap, Tag } from 'lucide-react';
+import { Flame, Zap, Tag, ArrowRight } from 'lucide-react';
 import { useCMS } from '../context/CMSContext';
 import ProductCard from '../components/ProductCard';
 
-export default function OffersPage({ onAddToCart, onQuickView, wishlistIds = [], onToggleWishlist }) {
-  const { activePublicProducts, offerSlides, offerItems } = useCMS();
+export default function OffersPage({ onAddToCart, onQuickView, wishlistIds = [], onToggleWishlist, onNavigate }) {
+  const { activePublicProducts, banners, offerSlides, offerItems } = useCMS();
 
-  // Active Offer Slides
-  const activeSlides = (offerSlides || []).filter(s => s && s.is_active !== false);
-  const topSlide = activeSlides.length > 0 ? activeSlides[0] : null;
+  // Active Offers Top Banner from CMS
+  const offersBanner = (banners && banners.find(b => b.banner_key === 'offers_top' || b.banner_key === 'offers_main')) || (offerSlides && offerSlides[0]) || {};
+  const isBannerVisible = offersBanner.is_active !== false;
+
+  const badgesList = Array.isArray(offersBanner.badges) && offersBanner.badges.length > 0
+    ? offersBanner.badges.map(b => typeof b === 'string' ? { text: b } : b)
+    : (offersBanner.subheading ? [{ text: offersBanner.subheading }] : [{ text: 'MEGA DISCOUNT CARNIVAL' }]);
+
+  const buttonsList = Array.isArray(offersBanner.buttons) && offersBanner.buttons.length > 0
+    ? offersBanner.buttons.filter(b => b.is_active !== false)
+    : (offersBanner.button_text ? [{ text: offersBanner.button_text, link: offersBanner.button_link || '#offers' }] : []);
 
   // Active Offer Items mapped to UI product format
   const mappedOfferItems = (offerItems || [])
@@ -47,19 +55,80 @@ export default function OffersPage({ onAddToCart, onQuickView, wishlistIds = [],
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Offers Top Slide Banner */}
-        <div className="relative rounded-3xl bg-gradient-to-r from-red-600 via-rose-600 to-orange-500 text-white p-6 sm:p-10 mb-8 shadow-2xl overflow-hidden">
-          <div className="relative z-10 max-w-3xl space-y-4">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/30 border border-white/30 text-white text-xs font-black uppercase tracking-wider">
-              <Flame className="w-4 h-4 fill-amber-300 text-amber-300 animate-bounce" /> Mega Discount Carnival
-            </span>
-            <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tight leading-tight">
-              {topSlide?.heading || 'Exclusive Offers & Deals Up To 75% OFF'}
-            </h1>
-            <p className="text-white/90 text-sm sm:text-base leading-relaxed">
-              {topSlide?.description || 'Grab daily flash discounts on OTT subscriptions, high speed fiber internet, mobiles, earbuds, smartwatches & gadgets.'}
-            </p>
+        {isBannerVisible && (
+          <div 
+            style={{
+              backgroundColor: offersBanner.bg_color || undefined
+            }}
+            className={`relative rounded-3xl text-white p-6 sm:p-10 mb-8 shadow-2xl overflow-hidden ${
+              !offersBanner.bg_color ? 'bg-gradient-to-r from-[#e50914] via-rose-600 to-orange-500' : ''
+            }`}
+          >
+            {/* Background Image if uploaded */}
+            {offersBanner.image_url && (
+              <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
+                <img src={offersBanner.image_url} alt="Offer Background" className="w-full h-full object-cover" />
+              </div>
+            )}
+
+            <div className="relative z-10 max-w-3xl space-y-4">
+              {/* Dynamic Badges */}
+              <div className="flex flex-wrap items-center gap-2">
+                {badgesList.map((bdg, i) => (
+                  <span 
+                    key={bdg.id || i}
+                    style={{
+                      transform: (bdg.position_x || bdg.position_y) ? `translate(${bdg.position_x || 0}px, ${bdg.position_y || 0}px)` : undefined,
+                      backgroundColor: bdg.bg_color || 'rgba(0,0,0,0.3)',
+                      color: bdg.text_color || '#ffffff'
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-white/30 text-xs font-black uppercase tracking-wider shadow-sm"
+                  >
+                    <Flame className="w-4 h-4 fill-amber-300 text-amber-300 animate-bounce" />
+                    {bdg.text || bdg.name || 'MEGA DISCOUNT CARNIVAL'}
+                  </span>
+                ))}
+              </div>
+
+              <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tight leading-tight drop-shadow-md">
+                {offersBanner.heading || 'Exclusive Offers & Deals Up To 75% OFF'}
+              </h1>
+              <p className="text-white/90 text-sm sm:text-base leading-relaxed max-w-2xl">
+                {offersBanner.description || 'Grab daily flash discounts on OTT subscriptions, high speed fiber internet, mobiles, earbuds, smartwatches & gadgets.'}
+              </p>
+
+              {/* Dynamic Action Buttons */}
+              {buttonsList.length > 0 && (
+                <div className="pt-2 flex flex-wrap gap-3">
+                  {buttonsList.map((btn, i) => (
+                    <button
+                      key={btn.id || i}
+                      onClick={() => {
+                        const link = btn.link || '/view-all';
+                        if (btn.is_external || link.startsWith('http') || link.startsWith('tel:') || link.startsWith('mailto:')) {
+                          window.open(link, btn.target || '_blank');
+                        } else if (typeof onNavigate === 'function') {
+                          onNavigate(link.replace(/^\//, ''));
+                        } else {
+                          window.location.href = link;
+                        }
+                      }}
+                      style={{
+                        transform: (btn.position_x || btn.position_y) ? `translate(${btn.position_x || 0}px, ${btn.position_y || 0}px)` : undefined,
+                        backgroundColor: btn.button_color || '#000000',
+                        color: btn.text_color || '#ffffff'
+                      }}
+                      className="px-6 py-3 rounded-xl font-extrabold text-sm shadow-xl hover:scale-105 transition-all flex items-center gap-2 cursor-pointer"
+                    >
+                      <span>{btn.text || 'Explore Offers'}</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         <h2 className="text-2xl font-black text-slate-900 mb-6 flex items-center gap-2">
           <Zap className="w-6 h-6 text-[#e50914] fill-red-500" /> Today's Highest Discount Deals ({combinedOffers.length})

@@ -9,12 +9,15 @@ export default function Footer({ onNavClick }) {
 
   const businessName = siteSettings?.business_name || 'OTTMoneySaver';
   const logoUrl = siteSettings?.logo_url || '/image.png';
+  const footerTagline = siteSettings?.footer_tagline || 'Save Money Smartly. Enjoy More. OTT subscriptions, high-speed fiber internet, smartphones, gadgets, and electronics at unbeatable prices.';
+  const footerQuote = siteSettings?.footer_quote || '"We compromise on Money but not in Service."';
+  const showAdminLink = siteSettings?.show_admin_footer_link !== false;
   const address = contactDetails?.address || 'Hyderabad, Telangana, India';
   const phone = contactDetails?.phone || '6305151531';
   const secondaryPhone = contactDetails?.secondary_phone || '7013931261';
   const emailAddr = contactDetails?.email || 'support@ottmoneysaver.com';
 
-  const quickLinks = footerLinks.filter(f => f.section_name === 'Quick Links' && f.is_active !== false);
+  const quickLinks = footerLinks.filter(f => (f.section_name === 'Quick Links' || !f.section_name) && f.is_active !== false);
   const supportLinks = footerLinks.filter(f => f.section_name === 'Customer Support' && f.is_active !== false);
 
   const handleSubscribe = (e) => {
@@ -50,21 +53,23 @@ export default function Footer({ onNavClick }) {
             </div>
 
             <p className="text-xs text-slate-400 leading-relaxed max-w-sm">
-              Save Money Smartly. Enjoy More. OTT subscriptions, high-speed fiber internet, smartphones, gadgets, and electronics at unbeatable prices.
+              {footerTagline}
             </p>
 
             <div className="text-xs text-amber-400 font-semibold italic">
-              "We compromise on Money but not in Service."
+              {footerQuote}
             </div>
 
-            <div>
-              <a
-                href="/admin"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white text-xs font-bold transition-colors"
-              >
-                <Lock className="w-3.5 h-3.5 text-amber-400" /> Administrator CMS Login
-              </a>
-            </div>
+            {showAdminLink && (
+              <div>
+                <a
+                  href="/admin"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white text-xs font-bold transition-colors"
+                >
+                  <Lock className="w-3.5 h-3.5 text-amber-400" /> Administrator CMS Login
+                </a>
+              </div>
+            )}
           </div>
 
           {/* Col 2: Quick Links */}

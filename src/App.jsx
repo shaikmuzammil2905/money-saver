@@ -332,6 +332,10 @@ function PublicWebsite() {
             onQuickView={(prod) => setProductDetailModal(prod)}
             wishlistIds={wishlistIds}
             onToggleWishlist={handleToggleWishlist}
+            onNavigate={(tab) => {
+              setActiveTab(tab);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
           />
         );
       case 'contact':

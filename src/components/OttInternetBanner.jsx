@@ -1,5 +1,7 @@
 import React from 'react';
-import { Tv, Wifi, Layers, ArrowRight } from 'lucide-react';
+import { 
+  Tv, Wifi, Layers, Flame, Zap, Shield, Sparkles, Smartphone, Headphones, Laptop, Gift, Star, Clock, CheckCircle, Globe, Tag, ArrowRight 
+} from 'lucide-react';
 import { useCMS } from '../context/CMSContext';
 
 export default function OttInternetBanner({ onExplorePlans }) {
@@ -10,6 +12,61 @@ export default function OttInternetBanner({ onExplorePlans }) {
     description: 'Single dashboard access for Netflix, Prime, Hotstar, ZEE5, SonyLIV & 7 more apps.',
     button_text: 'Claim Offer',
     image_url: '/image.png'
+  };
+
+  // Parse dynamic feature items from CMS
+  let featureItems = [];
+  if (banner.badges && typeof banner.badges === 'object' && Array.isArray(banner.badges.feature_items)) {
+    featureItems = banner.badges.feature_items;
+  } else if (Array.isArray(banner.feature_items)) {
+    featureItems = banner.feature_items;
+  } else {
+    featureItems = [
+      { id: 'feat_1', icon: 'Tv', title: 'OTT Subscriptions', subtitle: 'Top Premium Platforms', color: '#e50914', is_active: true },
+      { id: 'feat_2', icon: 'Wifi', title: 'Fiber Broadband', subtitle: 'High-Speed Internet Plans', color: '#38bdf8', is_active: true },
+      { id: 'feat_3', icon: 'Layers', title: 'Combo Packages', subtitle: 'Save More with Combo Offers', color: '#f59e0b', is_active: true }
+    ];
+  }
+
+  const activeFeatures = featureItems.filter(f => f.is_active !== false);
+
+  const renderIcon = (iconName, color = '#e50914') => {
+    const props = { className: 'w-6 h-6 shrink-0', style: { color } };
+    switch ((iconName || '').toLowerCase()) {
+      case 'tv': return <Tv {...props} />;
+      case 'wifi': return <Wifi {...props} />;
+      case 'layers': return <Layers {...props} />;
+      case 'flame': return <Flame {...props} />;
+      case 'zap': return <Zap {...props} />;
+      case 'shield': return <Shield {...props} />;
+      case 'sparkles': return <Sparkles {...props} />;
+      case 'smartphone': return <Smartphone {...props} />;
+      case 'headphones': return <Headphones {...props} />;
+      case 'laptop': return <Laptop {...props} />;
+      case 'gift': return <Gift {...props} />;
+      case 'star': return <Star {...props} />;
+      case 'clock': return <Clock {...props} />;
+      case 'checkcircle': return <CheckCircle {...props} />;
+      case 'globe': return <Globe {...props} />;
+      case 'tag': return <Tag {...props} />;
+      default: return <Sparkles {...props} />;
+    }
+  };
+
+  const handleButtonClick = (btn) => {
+    const link = btn.link || 'offers';
+    if (btn.is_external || link.startsWith('http') || link.startsWith('tel:') || link.startsWith('mailto:')) {
+      window.open(link, btn.target || '_blank');
+    } else {
+      if (link === 'offers' || link === '/offers') {
+        if (typeof onExplorePlans === 'function') onExplorePlans('offers');
+      } else if (link === 'ott-plans' || link === '/ott-plans') {
+        if (typeof onExplorePlans === 'function') onExplorePlans('ott-plans');
+      } else {
+        if (typeof onExplorePlans === 'function') onExplorePlans(link.replace(/^\//, ''));
+        else window.location.href = link;
+      }
+    }
   };
 
   return (
@@ -38,31 +95,17 @@ export default function OttInternetBanner({ onExplorePlans }) {
               </div>
 
 
-              {/* 3 Features */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-                <div className="flex items-start gap-3 bg-slate-900/90 p-3.5 rounded-2xl border border-slate-800">
-                  <Tv className="w-6 h-6 text-brand-red shrink-0" />
-                  <div>
-                    <h4 className="text-xs font-bold text-white">OTT Subscriptions</h4>
-                    <p className="text-[11px] text-slate-400">Top Premium Platforms</p>
+              {/* Dynamic Feature Lines / Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 pt-2">
+                {activeFeatures.map((feat, idx) => (
+                  <div key={feat.id || idx} className="flex items-start gap-3 bg-slate-900/90 p-3.5 rounded-2xl border border-slate-800 shadow-md hover:border-slate-700 transition-colors">
+                    {renderIcon(feat.icon, feat.color || '#e50914')}
+                    <div>
+                      <h4 className="text-xs font-bold text-white leading-snug">{feat.title}</h4>
+                      <p className="text-[11px] text-slate-400 leading-tight mt-0.5">{feat.subtitle}</p>
+                    </div>
                   </div>
-                </div>
-
-                <div className="flex items-start gap-3 bg-slate-900/90 p-3.5 rounded-2xl border border-slate-800">
-                  <Wifi className="w-6 h-6 text-sky-400 shrink-0" />
-                  <div>
-                    <h4 className="text-xs font-bold text-white">Fiber Broadband</h4>
-                    <p className="text-[11px] text-slate-400">High-Speed Internet Plans</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3 bg-slate-900/90 p-3.5 rounded-2xl border border-slate-800">
-                  <Layers className="w-6 h-6 text-amber-400 shrink-0" />
-                  <div>
-                    <h4 className="text-xs font-bold text-white">Combo Packages</h4>
-                    <p className="text-[11px] text-slate-400">Save More with Combo Offers</p>
-                  </div>
-                </div>
+                ))}
               </div>
 
               {/* Action buttons */}
@@ -71,19 +114,13 @@ export default function OttInternetBanner({ onExplorePlans }) {
                   banner.buttons.filter(b => b.is_active !== false).map((btn, idx) => (
                     <button
                       key={btn.id || idx}
-                      onClick={() => {
-                        if (btn.is_external) {
-                          window.open(btn.link, btn.target || '_blank');
-                        } else {
-                          if (btn.link === 'offers' || btn.link === '/offers') onExplorePlans();
-                          else if (btn.link === 'ott-plans' || btn.link === '/ott-plans') onExplorePlans();
-                          else if (btn.link) window.open(btn.link, btn.target || '_self');
-                        }
-                      }}
+                      onClick={() => handleButtonClick(btn)}
                       style={{
-                        transform: `translate(${btn.position_x || 0}px, ${btn.position_y || 0}px)`
+                        transform: (btn.position_x || btn.position_y) ? `translate(${btn.position_x || 0}px, ${btn.position_y || 0}px)` : undefined,
+                        backgroundColor: btn.button_color || '#e50914',
+                        color: btn.text_color || '#ffffff'
                       }}
-                      className="px-7 py-3 rounded-xl font-extrabold text-sm shadow-lg shadow-red-900/30 transition-all flex items-center gap-2 group cursor-pointer relative bg-[#e50914] hover:bg-red-700 text-white"
+                      className="px-7 py-3 rounded-xl font-extrabold text-sm shadow-lg shadow-red-900/30 transition-all flex items-center gap-2 group cursor-pointer relative hover:scale-105"
                     >
                       <span>{btn.text || 'Click Here'}</span>
                       <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -91,7 +128,7 @@ export default function OttInternetBanner({ onExplorePlans }) {
                   ))
                 ) : (
                   <button
-                    onClick={onExplorePlans}
+                    onClick={() => onExplorePlans && onExplorePlans('ott-plans')}
                     className="px-7 py-3 rounded-xl bg-[#e50914] hover:bg-red-700 text-white font-extrabold text-sm shadow-lg shadow-red-900/30 transition-all flex items-center gap-2 group cursor-pointer"
                   >
                     <span>{banner.button_text || 'View All Plans'}</span>

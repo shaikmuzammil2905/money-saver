@@ -23,6 +23,35 @@ import {
 import { ALL_PRODUCTS, PRIMARY_CATEGORIES, VALUE_PROPOSITIONS } from '../data/products';
 import { DEFAULT_PAYMENT_CONFIG } from '../config/payment';
 
+export const DEFAULT_MAIN_CATEGORIES = [
+  { id: 'mc_1', name: 'All Products', icon: 'Sparkles', image_url: '', link_url: 'view-all', is_active: true, display_order: 1 },
+  { id: 'mc_2', name: 'HEllo', icon: 'Sparkles', image_url: '', link_url: 'offers', is_active: true, display_order: 2 },
+  { id: 'mc_3', name: 'OTT Platforms', icon: 'Tv', image_url: '', link_url: 'ott-plans', is_active: true, display_order: 3 },
+  { id: 'mc_4', name: 'Internet Fiber', icon: 'Globe', image_url: '', link_url: 'fiber', is_active: true, display_order: 4 },
+  { id: 'mc_5', name: 'Mobile / Gadgets', icon: 'Smartphone', image_url: '', link_url: 'mobiles', is_active: true, display_order: 5 },
+  { id: 'mc_6', name: 'Other Products', icon: 'Laptop', image_url: '', link_url: 'electronics', is_active: true, display_order: 6 },
+];
+
+export const DEFAULT_SUB_CATEGORIES = [
+  { id: 'sc_1', name: 'Smartphones', icon: 'Smartphone', image: 'https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=300&auto=format&fit=crop&q=80', is_active: true, display_order: 1 },
+  { id: 'sc_2', name: 'Smartwatches', icon: 'Watch', image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=300&auto=format&fit=crop&q=80', is_active: true, display_order: 2 },
+  { id: 'sc_3', name: 'Earbuds', icon: 'Radio', image: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=300&auto=format&fit=crop&q=80', is_active: true, display_order: 3 },
+  { id: 'sc_4', name: 'Neckbands', icon: 'Headphones', image: 'https://images.unsplash.com/photo-1572536147248-ac59a8abfa4b?w=300&auto=format&fit=crop&q=80', is_active: true, display_order: 4 },
+  { id: 'sc_5', name: 'Speakers', icon: 'Speaker', image: 'https://images.unsplash.com/photo-1545454675-3531b543be5d?w=300&auto=format&fit=crop&q=80', is_active: true, display_order: 5 },
+  { id: 'sc_6', name: 'Headphones', icon: 'Headphones', image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&auto=format&fit=crop&q=80', is_active: true, display_order: 6 },
+  { id: 'sc_7', name: 'Power Banks', icon: 'BatteryCharging', image: 'https://images.unsplash.com/photo-1609592424089-98048f07a049?w=300&auto=format&fit=crop&q=80', is_active: true, display_order: 7 },
+  { id: 'sc_8', name: 'Chargers', icon: 'Zap', image: 'https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=300&auto=format&fit=crop&q=80', is_active: true, display_order: 8 },
+  { id: 'sc_9', name: 'Smart TVs', icon: 'Tv', image: 'https://images.unsplash.com/photo-1593784991095-a205069470b6?w=300&auto=format&fit=crop&q=80', is_active: true, display_order: 9 },
+  { id: 'sc_10', name: 'Laptops', icon: 'Laptop', image: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=300&auto=format&fit=crop&q=80', is_active: true, display_order: 10 }
+];
+
+export const DEFAULT_SUPPORT_CARDS = [
+  { id: 'sup_1', title: 'Call Us', value: '6305151531', link: 'tel:6305151531', icon: 'Phone', color: '#0f172a', is_active: true, display_order: 1 },
+  { id: 'sup_2', title: 'WhatsApp Us', value: '6305151531 / 7013931261', link: 'https://wa.me/916305151531', icon: 'MessageCircle', color: '#059669', is_active: true, display_order: 2 },
+  { id: 'sup_3', title: 'Email Us', value: 'Ottmoneysaver@gmail.com', link: 'mailto:Ottmoneysaver@gmail.com', icon: 'Mail', color: '#0284c7', is_active: true, display_order: 3 },
+  { id: 'sup_4', title: 'Chat on WhatsApp', value: '24/7 Live Agent Support', link: 'https://wa.me/916305151531', icon: 'MessageSquare', color: '#059669', is_active: true, display_order: 4 }
+];
+
 const CMSContext = createContext(null);
 
 export function CMSProvider({ children }) {
@@ -30,6 +59,9 @@ export function CMSProvider({ children }) {
   const [products, setProducts] = useState([]);
   const [banners, setBanners] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [mainCategories, setMainCategories] = useState(DEFAULT_MAIN_CATEGORIES);
+  const [subCategories, setSubCategories] = useState(DEFAULT_SUB_CATEGORIES);
+  const [supportCards, setSupportCards] = useState(DEFAULT_SUPPORT_CARDS);
   const [badges, setBadges] = useState([]);
   const [batches, setBatches] = useState([]);
   const [members, setMembers] = useState([]);
@@ -158,7 +190,12 @@ export function CMSProvider({ children }) {
       setOfferItems(oItems || []);
       if (cart) setCartSettings(cart);
       if (waTemp?.template_text) setWhatsAppTemplate(waTemp.template_text);
-      if (sSettings?.value) setSiteSettings(sSettings.value);
+      if (sSettings?.value) {
+        setSiteSettings(sSettings.value);
+        if (Array.isArray(sSettings.value.main_categories)) setMainCategories(sSettings.value.main_categories);
+        if (Array.isArray(sSettings.value.sub_categories)) setSubCategories(sSettings.value.sub_categories);
+        if (Array.isArray(sSettings.value.support_cards)) setSupportCards(sSettings.value.support_cards);
+      }
       setMediaList(media || []);
 
     } catch (err) {
@@ -412,7 +449,29 @@ export function CMSProvider({ children }) {
       reviewsCount: p.reviews_count || 100
     }));
 
-  const valueProps = VALUE_PROPOSITIONS;
+  // Helper to save sub-arrays to site_settings global_config
+  const saveSiteConfigKey = useCallback(async (keyName, dataArray) => {
+    try {
+      const updatedValue = {
+        ...(siteSettings || {}),
+        [keyName]: dataArray
+      };
+      const payload = {
+        id: siteSettings?.id,
+        key: 'global_config',
+        value: updatedValue
+      };
+      await handleSaveCmsItem('site_settings', payload);
+      setSiteSettings(updatedValue);
+      if (keyName === 'main_categories') setMainCategories(dataArray);
+      if (keyName === 'sub_categories') setSubCategories(dataArray);
+      if (keyName === 'support_cards') setSupportCards(dataArray);
+      return true;
+    } catch (e) {
+      console.error(`Error saving site config ${keyName}:`, e);
+      return false;
+    }
+  }, [siteSettings, handleSaveCmsItem]);
 
   return (
     <CMSContext.Provider
@@ -424,6 +483,12 @@ export function CMSProvider({ children }) {
         setBanners,
         categories,
         setCategories,
+        mainCategories,
+        setMainCategories,
+        subCategories,
+        setSubCategories,
+        supportCards,
+        setSupportCards,
         badges,
         setBadges,
         batches,
@@ -460,6 +525,7 @@ export function CMSProvider({ children }) {
         setMediaList,
         loading,
         refreshAllData,
+        saveSiteConfigKey,
         saveCmsItem: handleSaveCmsItem,
         deleteCmsItem: handleDeleteCmsItem,
         updateDisplayOrder: handleUpdateDisplayOrder,

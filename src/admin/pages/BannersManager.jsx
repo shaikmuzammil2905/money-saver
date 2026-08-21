@@ -54,6 +54,7 @@ export default function BannersManager({ adminEmail }) {
       const buttonsList = Array.isArray(editingBanner?.buttons) ? editingBanner.buttons : [];
       const subheadingsList = Array.isArray(editingBanner?.subheadings) ? editingBanner.subheadings : [];
       const badgesList = Array.isArray(editingBanner?.badges_data) ? editingBanner.badges_data : [];
+      const featureItemsList = Array.isArray(editingBanner?.feature_items) ? editingBanner.feature_items : [];
 
       const payload = {
         id: editingBanner?.id,
@@ -69,7 +70,7 @@ export default function BannersManager({ adminEmail }) {
         is_active: editingBanner ? editingBanner.is_active : true,
         display_order: editingBanner ? editingBanner.display_order : banners.length + 1,
         buttons: buttonsList,
-        badges: badgesList,
+        badges: { badges_list: badgesList, feature_items: featureItemsList },
         subheading: subheadingsList.length > 0 ? subheadingsList[0].text : formData.get('subheading') || '',
         button_text: buttonsList.length > 0 ? buttonsList[0].text : 'Explore Deals',
         button_link: buttonsList.length > 0 ? buttonsList[0].link : 'offers',
@@ -155,6 +156,19 @@ export default function BannersManager({ adminEmail }) {
     setEditingBanner({ ...editingBanner, badges_data: current });
   };
 
+  const handleAddFeatureItem = () => {
+    const current = Array.isArray(editingBanner.feature_items) ? [...editingBanner.feature_items] : [];
+    current.push({
+      id: `feat_${Date.now()}`,
+      icon: 'Tv',
+      title: 'New Feature Item',
+      subtitle: 'Top Premium Platforms',
+      color: '#e50914',
+      is_active: true
+    });
+    setEditingBanner({ ...editingBanner, feature_items: current });
+  };
+
   const handleImageUploadInput = async (e, inputId) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -184,11 +198,46 @@ export default function BannersManager({ adminEmail }) {
         id: 'sub_1', text: b.subheading, is_active: true, position_x: 0, position_y: 0
       }] : [];
     }
-    if (!Array.isArray(safeBanner.badges_data)) {
-      safeBanner.badges_data = Array.isArray(b.badges) ? b.badges.map((bdg, i) => ({
-        id: `bdg_${i}`, text: typeof bdg === 'string' ? bdg : bdg.text, is_active: true, position_x: 0, position_y: 0
-      })) : [];
+    
+    // Parse badges and feature_items from JSONB column
+    let extractedBadges = [];
+    let extractedFeatures = [];
+
+    if (b.badges && typeof b.badges === 'object') {
+      if (Array.isArray(b.badges)) {
+        extractedBadges = b.badges;
+      } else {
+        if (Array.isArray(b.badges.badges_list)) extractedBadges = b.badges.badges_list;
+        if (Array.isArray(b.badges.feature_items)) extractedFeatures = b.badges.feature_items;
+      }
     }
+
+    if (!Array.isArray(safeBanner.badges_data)) {
+      safeBanner.badges_data = extractedBadges.map((bdg, i) => ({
+        id: `bdg_${i}`,
+        text: typeof bdg === 'string' ? bdg : (bdg.text || bdg.name || ''),
+        bg_color: bdg.bg_color || '',
+        text_color: bdg.text_color || '',
+        is_active: bdg.is_active !== false,
+        position_x: bdg.position_x || 0,
+        position_y: bdg.position_y || 0
+      }));
+    }
+
+    if (!Array.isArray(safeBanner.feature_items)) {
+      if (extractedFeatures.length > 0) {
+        safeBanner.feature_items = extractedFeatures;
+      } else if (b.banner_key === 'home_middle_big') {
+        safeBanner.feature_items = [
+          { id: 'feat_1', icon: 'Tv', title: 'OTT Subscriptions', subtitle: 'Top Premium Platforms', color: '#e50914', is_active: true },
+          { id: 'feat_2', icon: 'Wifi', title: 'Fiber Broadband', subtitle: 'High-Speed Internet Plans', color: '#38bdf8', is_active: true },
+          { id: 'feat_3', icon: 'Layers', title: 'Combo Packages', subtitle: 'Save More with Combo Offers', color: '#f59e0b', is_active: true }
+        ];
+      } else {
+        safeBanner.feature_items = [];
+      }
+    }
+
     setEditingBanner(safeBanner);
   };
 
@@ -403,7 +452,7 @@ export default function BannersManager({ adminEmail }) {
               <div className="bg-purple-50/50 p-4 rounded-xl border border-purple-200 space-y-4">
                 <div className="flex items-center justify-between">
                   <h4 className="text-xs font-black uppercase text-purple-900 tracking-wider flex items-center gap-1.5">
-                    <Link className="w-4 h-4" /> Dynamic Buttons
+                    <Link className="w-4 h-4" /> Dynamic Buttons &amp; Direct Links
                   </h4>
                   <button type="button" onClick={handleAddButton} className="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-bold text-[11px] shadow-sm flex items-center gap-1">
                     <Plus className="w-3 h-3" /> Add Button
@@ -412,7 +461,7 @@ export default function BannersManager({ adminEmail }) {
 
                 <div className="space-y-3">
                   {Array.isArray(editingBanner.buttons) && editingBanner.buttons.map((btn, btnIdx) => (
-                    <div key={btn.id || btnIdx} className="bg-white p-3 rounded-xl border border-purple-200 shadow-sm space-y-3">
+                    <div key={btn.id || btnIdx} className="bg-white p-3.5 rounded-xl border border-purple-200 shadow-sm space-y-3">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-black text-purple-700">Button #{btnIdx + 1}</span>
                         <div className="flex items-center gap-2">
@@ -421,36 +470,66 @@ export default function BannersManager({ adminEmail }) {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-                        <input type="text" placeholder="Button Text" value={btn.text || ''} onChange={(e) => updateElementField('buttons', btnIdx, 'text', e.target.value)} className="bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold text-slate-900" />
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-2.5">
+                        <div className="lg:col-span-3">
+                          <label className="text-[10px] font-bold text-slate-600 block mb-1">Button Text</label>
+                          <input type="text" placeholder="Button Text" value={btn.text || ''} onChange={(e) => updateElementField('buttons', btnIdx, 'text', e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold text-slate-900" />
+                        </div>
                         
-                        <div className="flex gap-1 lg:col-span-2">
-                           <select value={btn.is_external ? 'external' : 'internal'} onChange={(e) => { updateElementField('buttons', btnIdx, 'is_external', e.target.value === 'external'); updateElementField('buttons', btnIdx, 'link', ''); }} className="w-24 shrink-0 bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold">
-                             <option value="internal">Internal</option>
-                             <option value="external">External</option>
-                           </select>
-                           
-                           {btn.is_external ? (
-                             <input type="url" placeholder="https://..." value={btn.link || ''} onChange={(e) => updateElementField('buttons', btnIdx, 'link', e.target.value)} className="flex-1 bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold" />
-                           ) : (
-                             <select value={btn.link || '/offers'} onChange={(e) => updateElementField('buttons', btnIdx, 'link', e.target.value)} className="flex-1 bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold">
-                               <option value="/offers">Offers Page (/offers)</option>
-                               <option value="/ott-plans">OTT Plans Page (/ott-plans)</option>
-                               <option value="/fiber-internet">Fiber Broadband Page (/fiber-internet)</option>
-                               <option value="/mobiles">Mobiles &amp; Gadgets (/mobiles)</option>
-                               <option value="/electronics">Electronics Page (/electronics)</option>
-                               <option value="/contact">Contact Support Page (/contact)</option>
-                               <option value="/view-all">All Products Explorer (/view-all)</option>
-                             </select>
-                           )}
+                        {/* Direct Link Box & Preset Selector */}
+                        <div className="lg:col-span-5 space-y-1">
+                          <div className="flex items-center justify-between">
+                            <label className="text-[10px] font-bold text-slate-600">Link URL Box (Internal or External)</label>
+                            {btn.link && (
+                              <button 
+                                type="button" 
+                                onClick={() => window.open(btn.link.startsWith('http') || btn.link.startsWith('tel:') || btn.link.startsWith('mailto:') ? btn.link : `/${btn.link.replace(/^\//, '')}`, '_blank')}
+                                className="text-[10px] font-bold text-purple-600 hover:text-purple-800 underline flex items-center gap-0.5"
+                              >
+                                🔗 Test Link
+                              </button>
+                            )}
+                          </div>
+                          <div className="flex gap-1">
+                            <input 
+                              type="text" 
+                              placeholder="e.g. /offers, /ott-plans, https://..." 
+                              value={btn.link || ''} 
+                              onChange={(e) => updateElementField('buttons', btnIdx, 'link', e.target.value)} 
+                              className="flex-1 bg-slate-50 border border-purple-300 focus:border-purple-600 rounded-lg p-2 text-xs font-bold text-purple-900" 
+                            />
+                            <select 
+                              onChange={(e) => {
+                                if (e.target.value) {
+                                  updateElementField('buttons', btnIdx, 'link', e.target.value);
+                                }
+                              }} 
+                              className="w-28 shrink-0 bg-slate-100 border border-slate-300 rounded-lg p-1.5 text-[11px] font-bold text-slate-700"
+                            >
+                              <option value="">Presets ▾</option>
+                              <option value="/offers">Offers Page (/offers)</option>
+                              <option value="/ott-plans">OTT Plans (/ott-plans)</option>
+                              <option value="/fiber-internet">Fiber Internet (/fiber-internet)</option>
+                              <option value="/mobiles">Mobiles &amp; Gadgets (/mobiles)</option>
+                              <option value="/electronics">Electronics (/electronics)</option>
+                              <option value="/contact">Contact Us (/contact)</option>
+                              <option value="/view-all">All Products (/view-all)</option>
+                              <option value="https://wa.me/916305151531">WhatsApp Chat</option>
+                            </select>
+                          </div>
                         </div>
 
-                        <div className="flex gap-1">
-                          <select value={btn.target || '_self'} onChange={(e) => updateElementField('buttons', btnIdx, 'target', e.target.value)} className="flex-1 bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold">
+                        <div className="lg:col-span-2">
+                          <label className="text-[10px] font-bold text-slate-600 block mb-1">Target Tab</label>
+                          <select value={btn.target || '_self'} onChange={(e) => updateElementField('buttons', btnIdx, 'target', e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold">
                             <option value="_self">Same Tab</option>
                             <option value="_blank">New Tab</option>
                           </select>
-                          <select value={btn.is_active !== false ? 'true' : 'false'} onChange={(e) => updateElementField('buttons', btnIdx, 'is_active', e.target.value === 'true')} className="flex-1 bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold">
+                        </div>
+
+                        <div className="lg:col-span-2">
+                          <label className="text-[10px] font-bold text-slate-600 block mb-1">Visibility</label>
+                          <select value={btn.is_active !== false ? 'true' : 'false'} onChange={(e) => updateElementField('buttons', btnIdx, 'is_active', e.target.value === 'true')} className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold">
                             <option value="true">Show</option><option value="false">Hide</option>
                           </select>
                         </div>
@@ -467,6 +546,113 @@ export default function BannersManager({ adminEmail }) {
                         </div>
                       </div>
 
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* DYNAMIC MIDDLE FEATURE ITEMS (Lines / Highlights with Symbols) */}
+              <div className="bg-amber-50/60 p-4 rounded-xl border border-amber-200 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-xs font-black uppercase text-amber-900 tracking-wider flex items-center gap-1.5">
+                      <Layers className="w-4 h-4 text-amber-600" /> Middle Feature Lines &amp; Symbols (OTT/Promo Cards)
+                    </h4>
+                    <p className="text-[10px] text-amber-800">Add, edit symbols/icons, titles, subtitles, and colors for feature cards</p>
+                  </div>
+                  <button type="button" onClick={handleAddFeatureItem} className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-[11px] shadow-sm flex items-center gap-1">
+                    <Plus className="w-3 h-3" /> Add Feature Item
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {Array.isArray(editingBanner.feature_items) && editingBanner.feature_items.map((feat, featIdx) => (
+                    <div key={feat.id || featIdx} className="bg-white p-3 rounded-xl border border-amber-200 shadow-sm space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-black text-amber-800">Feature #{featIdx + 1}</span>
+                        <button type="button" onClick={() => removeElement('feature_items', featIdx)} className="text-[10px] text-red-600 font-bold hover:underline">Remove</button>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-600 block mb-1">Symbol / Icon</label>
+                          <select 
+                            value={feat.icon || 'Tv'} 
+                            onChange={(e) => updateElementField('feature_items', featIdx, 'icon', e.target.value)}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold"
+                          >
+                            <option value="Tv">Tv (OTT Platforms)</option>
+                            <option value="Wifi">Wifi (Fiber Broadband)</option>
+                            <option value="Layers">Layers (Combo Packages)</option>
+                            <option value="Flame">Flame (Flash Deals)</option>
+                            <option value="Zap">Zap (Lightning Fast)</option>
+                            <option value="Shield">Shield (100% Secure)</option>
+                            <option value="Sparkles">Sparkles (Exclusive)</option>
+                            <option value="Smartphone">Smartphone (Mobile)</option>
+                            <option value="Headphones">Headphones (Audio)</option>
+                            <option value="Laptop">Laptop (Devices)</option>
+                            <option value="Gift">Gift (Bonus Rewards)</option>
+                            <option value="Star">Star (Top Rated)</option>
+                            <option value="Clock">Clock (24/7 Access)</option>
+                            <option value="CheckCircle">CheckCircle (Verified)</option>
+                            <option value="Globe">Globe (Global Content)</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-600 block mb-1">Title</label>
+                          <input 
+                            type="text" 
+                            placeholder="e.g. OTT Subscriptions" 
+                            value={feat.title || ''} 
+                            onChange={(e) => updateElementField('feature_items', featIdx, 'title', e.target.value)} 
+                            className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold text-slate-900" 
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-600 block mb-1">Subtitle / Details</label>
+                          <input 
+                            type="text" 
+                            placeholder="e.g. Top Premium Platforms" 
+                            value={feat.subtitle || ''} 
+                            onChange={(e) => updateElementField('feature_items', featIdx, 'subtitle', e.target.value)} 
+                            className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold text-slate-900" 
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-600 block mb-1">Icon Color</label>
+                            <div className="flex items-center gap-1.5">
+                              <input 
+                                type="color" 
+                                value={feat.color && feat.color.startsWith('#') ? feat.color : '#e50914'} 
+                                onChange={(e) => updateElementField('feature_items', featIdx, 'color', e.target.value)} 
+                                className="w-8 h-8 rounded border border-slate-200 cursor-pointer p-0.5" 
+                              />
+                              <input 
+                                type="text" 
+                                value={feat.color || '#e50914'} 
+                                onChange={(e) => updateElementField('feature_items', featIdx, 'color', e.target.value)} 
+                                className="w-full bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-[11px] font-bold" 
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-600 block mb-1">Status</label>
+                            <select 
+                              value={feat.is_active !== false ? 'true' : 'false'} 
+                              onChange={(e) => updateElementField('feature_items', featIdx, 'is_active', e.target.value === 'true')}
+                              className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold"
+                            >
+                              <option value="true">Show</option>
+                              <option value="false">Hide</option>
+                            </select>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
