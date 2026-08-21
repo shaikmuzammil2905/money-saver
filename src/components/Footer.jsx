@@ -172,7 +172,7 @@ export default function Footer({ onNavClick }) {
         {/* Bottom Bar */}
         <div className="mt-12 pt-6 border-t border-slate-900 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-4">
           <p>© {new Date().getFullYear()} {businessName}. All Rights Reserved.</p>
-          <p className="text-amber-400 font-medium">"We compromise on Money but not in Service."</p>
+          <p className="text-amber-400 font-medium italic">{footerQuote}</p>
         </div>
 
       </div>

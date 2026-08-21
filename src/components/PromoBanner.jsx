@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, Flame } from 'lucide-react';
+import { ArrowRight, Flame, Sparkles } from 'lucide-react';
 import { useCMS } from '../context/CMSContext';
 
 export default function PromoBanner({ onViewOffers }) {
@@ -10,12 +10,42 @@ export default function PromoBanner({ onViewOffers }) {
     button_text: 'View All Offers'
   };
 
+  const badgeConfig = banner.badges?.badge_config || {};
+  const isBadgeEnabled = badgeConfig.enabled && badgeConfig.text;
+  const badgePos = badgeConfig.position || 'top-left';
+
+  const getBadgePositionClasses = (pos) => {
+    switch (pos) {
+      case 'top-right': return 'top-4 right-4 sm:top-6 sm:right-6';
+      case 'bottom-left': return 'bottom-4 left-4 sm:bottom-6 sm:left-6';
+      case 'bottom-right': return 'bottom-4 right-4 sm:bottom-6 sm:right-6';
+      case 'top-left':
+      default:
+        return 'top-4 left-4 sm:top-6 sm:left-6';
+    }
+  };
+
   return (
     <section className="py-8 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         <div className="relative rounded-3xl bg-gradient-to-r from-[#e50914] via-red-600 to-orange-500 text-white p-6 sm:p-10 overflow-hidden shadow-xl">
           
+          {/* Optional Badge Display */}
+          {isBadgeEnabled && (
+            <div className={`absolute z-20 ${getBadgePositionClasses(badgePos)}`}>
+              <span 
+                style={{
+                  backgroundColor: badgeConfig.bg_color || '#020617',
+                  color: badgeConfig.text_color || '#ffffff'
+                }}
+                className="px-3.5 py-1.5 rounded-full text-xs font-black uppercase tracking-wider shadow-xl border border-white/30 inline-flex items-center gap-1 animate-pulse"
+              >
+                <Sparkles className="w-3.5 h-3.5" /> {badgeConfig.text}
+              </span>
+            </div>
+          )}
+
           {/* Decorative Pattern Background */}
           <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none" />
 
@@ -31,14 +61,14 @@ export default function PromoBanner({ onViewOffers }) {
                 {banner.description || 'Discover smart deals on entertainment, internet, gadgets and electronics.'}
               </p>
 
-              <div className="pt-2 flex flex-wrap gap-3">
+              <div className="pt-2 flex flex-wrap gap-3 justify-center lg:justify-start">
                 {Array.isArray(banner.buttons) && banner.buttons.length > 0 ? (
                   banner.buttons.filter(b => b.is_active !== false).map((btn, idx) => (
                     <button
                       key={btn.id || idx}
                       onClick={() => {
                         const link = btn.link || 'offers';
-                        if (btn.is_external || link.startsWith('http') || link.startsWith('tel:') || link.startsWith('mailto:')) {
+                        if (btn.link_type === 'external' || btn.is_external || link.startsWith('http') || link.startsWith('tel:') || link.startsWith('mailto:')) {
                           window.open(link, btn.target || '_blank');
                         } else if (link === 'offers' || link === '/offers') {
                           if (typeof onViewOffers === 'function') onViewOffers();

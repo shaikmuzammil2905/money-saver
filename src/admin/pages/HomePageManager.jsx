@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { 
-  Home, Image as ImageIcon, ArrowUp, ArrowDown, Power, Edit3, Trash2, Plus, Upload, Check, AlertCircle, Phone, FileText, Layers, ListOrdered, ChevronRight, HelpCircle, MessageSquare, ExternalLink, Link as LinkIcon, Instagram, Send, Globe, MapPin, Sparkles, MessageCircle, Quote
+  Home, Image as ImageIcon, ArrowUp, ArrowDown, Power, Edit3, Trash2, Plus, Upload, Check, AlertCircle, Phone, FileText, Layers, ListOrdered, ChevronRight, HelpCircle, MessageSquare, ExternalLink, Link as LinkIcon, Instagram, Send, Globe, MapPin, Sparkles, MessageCircle, Quote, HelpCircle as FaqIcon, Clock
 } from 'lucide-react';
-import { useCMS, DEFAULT_SUPPORT_CARDS } from '../../context/CMSContext';
+import { useCMS, DEFAULT_SUPPORT_CARDS, DEFAULT_CONTACT_PAGE_CARDS, DEFAULT_FAQS } from '../../context/CMSContext';
 import { uploadToCloudinary } from '../../services/cloudinary';
 import { DEFAULT_HOME_SECTIONS } from '../../services/cmsService';
 
@@ -75,6 +75,10 @@ function HomePageManagerContent({ adminEmail }) {
   const setFooterLinks = cmsContext.setFooterLinks || (() => {});
   const supportCards = Array.isArray(cmsContext.supportCards) && cmsContext.supportCards.length > 0 ? cmsContext.supportCards : DEFAULT_SUPPORT_CARDS;
   const setSupportCards = cmsContext.setSupportCards || (() => {});
+  const contactCards = Array.isArray(cmsContext.contactCards) && cmsContext.contactCards.length > 0 ? cmsContext.contactCards : DEFAULT_CONTACT_PAGE_CARDS;
+  const setContactCards = cmsContext.setContactCards || (() => {});
+  const faqs = Array.isArray(cmsContext.faqs) && cmsContext.faqs.length > 0 ? cmsContext.faqs : DEFAULT_FAQS;
+  const setFaqs = cmsContext.setFaqs || (() => {});
   const siteSettings = cmsContext.siteSettings || {};
   const setSiteSettings = cmsContext.setSiteSettings || (() => {});
   const saveSiteConfigKey = cmsContext.saveSiteConfigKey || (async () => {});
@@ -94,6 +98,8 @@ function HomePageManagerContent({ adminEmail }) {
   const [editingStep, setEditingStep] = useState(null);
   const [editingFooterLink, setEditingFooterLink] = useState(null);
   const [editingSupportCard, setEditingSupportCard] = useState(null);
+  const [editingContactCard, setEditingContactCard] = useState(null);
+  const [editingFaq, setEditingFaq] = useState(null);
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
@@ -294,6 +300,136 @@ function HomePageManagerContent({ adminEmail }) {
       showToast('Contact Details Updated Successfully.');
     } catch (err) {
       alert('Error updating contact details: ' + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // --- CONTACT PAGE 4 CARDS HANDLERS ---
+  const handleToggleContactCardStatus = async (card, index) => {
+    const list = [...contactCards];
+    list[index] = { ...card, is_active: card.is_active === false ? true : false };
+    setContactCards(list);
+    await saveSiteConfigKey('contact_cards', list);
+    await logActivity(adminEmail, list[index].is_active ? 'ENABLED' : 'DISABLED', 'Contact Cards', card.title);
+    showToast(list[index].is_active ? 'Contact Box Enabled' : 'Contact Box Disabled');
+  };
+
+  const handleMoveContactCard = async (index, direction) => {
+    const list = [...contactCards];
+    const targetIdx = direction === 'UP' ? index - 1 : index + 1;
+    if (targetIdx < 0 || targetIdx >= list.length) return;
+    const temp = list[index];
+    list[index] = list[targetIdx];
+    list[targetIdx] = temp;
+    setContactCards(list);
+    await saveSiteConfigKey('contact_cards', list);
+    await logActivity(adminEmail, 'REORDERED', 'Contact Cards');
+    showToast('Contact Boxes Reordered.');
+  };
+
+  const handleDeleteContactCard = async (index, title) => {
+    if (!window.confirm(`Delete contact card "${title}"?`)) return;
+    const list = contactCards.filter((_, i) => i !== index);
+    setContactCards(list);
+    await saveSiteConfigKey('contact_cards', list);
+    await logActivity(adminEmail, 'DELETED', 'Contact Cards', title);
+    showToast('Contact Card Deleted.');
+  };
+
+  const handleSaveContactCardForm = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const formData = new FormData(e.target);
+      const list = [...contactCards];
+      const payload = {
+        id: editingContactCard?.id || `cpc_${Date.now()}`,
+        title: formData.get('title'),
+        value: formData.get('value'),
+        subtitle: formData.get('subtitle') || '',
+        link: formData.get('link') || '',
+        icon: formData.get('icon') || 'Phone',
+        color: formData.get('color') || '#e50914',
+        is_active: editingContactCard ? (editingContactCard.is_active !== false) : true
+      };
+
+      if (editingContactCard?.index !== undefined && editingContactCard.index >= 0) {
+        list[editingContactCard.index] = payload;
+      } else {
+        list.push(payload);
+      }
+
+      setContactCards(list);
+      await saveSiteConfigKey('contact_cards', list);
+      await logActivity(adminEmail, editingContactCard?.id ? 'EDITED' : 'ADDED', 'Contact Cards', payload.title);
+      setEditingContactCard(null);
+      showToast('Contact Box Saved Successfully.');
+    } catch (err) {
+      alert('Error saving contact box: ' + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // --- CONTACT FAQS HANDLERS ---
+  const handleToggleFaqStatus = async (faq, index) => {
+    const list = [...faqs];
+    list[index] = { ...faq, is_active: faq.is_active === false ? true : false };
+    setFaqs(list);
+    await saveSiteConfigKey('faqs', list);
+    await logActivity(adminEmail, list[index].is_active ? 'ENABLED' : 'DISABLED', 'Contact FAQs', faq.q);
+    showToast(list[index].is_active ? 'FAQ Enabled' : 'FAQ Disabled');
+  };
+
+  const handleMoveFaq = async (index, direction) => {
+    const list = [...faqs];
+    const targetIdx = direction === 'UP' ? index - 1 : index + 1;
+    if (targetIdx < 0 || targetIdx >= list.length) return;
+    const temp = list[index];
+    list[index] = list[targetIdx];
+    list[targetIdx] = temp;
+    setFaqs(list);
+    await saveSiteConfigKey('faqs', list);
+    await logActivity(adminEmail, 'REORDERED', 'Contact FAQs');
+    showToast('FAQs Reordered.');
+  };
+
+  const handleDeleteFaq = async (index) => {
+    if (!window.confirm('Delete this FAQ item?')) return;
+    const list = faqs.filter((_, i) => i !== index);
+    setFaqs(list);
+    await saveSiteConfigKey('faqs', list);
+    await logActivity(adminEmail, 'DELETED', 'Contact FAQs');
+    showToast('FAQ Deleted.');
+  };
+
+  const handleSaveFaqForm = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const formData = new FormData(e.target);
+      const list = [...faqs];
+      const payload = {
+        id: editingFaq?.id || `faq_${Date.now()}`,
+        q: formData.get('q'),
+        a: formData.get('a'),
+        is_active: editingFaq ? (editingFaq.is_active !== false) : true
+      };
+
+      if (editingFaq?.index !== undefined && editingFaq.index >= 0) {
+        list[editingFaq.index] = payload;
+      } else {
+        list.push(payload);
+      }
+
+      setFaqs(list);
+      await saveSiteConfigKey('faqs', list);
+      await logActivity(adminEmail, editingFaq?.id ? 'EDITED' : 'ADDED', 'Contact FAQs', payload.q);
+      setEditingFaq(null);
+      showToast('FAQ Saved Successfully.');
+    } catch (err) {
+      alert('Error saving FAQ: ' + err.message);
     } finally {
       setSaving(false);
     }
@@ -1062,38 +1198,261 @@ function HomePageManagerContent({ adminEmail }) {
       )}
 
       {/* ================================================== */}
-      {/* SUB TAB 4: CONTACT DETAILS */}
+      {/* SUB TAB 4: CONTACT PAGE & FAQS CMS */}
       {/* ================================================== */}
       {activeSubTab === 'contact' && (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl max-w-2xl font-sans">
-          <h2 className="text-lg font-bold text-white mb-4">Edit Business Contact Information</h2>
-          <form onSubmit={handleSaveContactDetails} className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Business Name</label>
-              <input type="text" name="business_name" defaultValue={contactDetails.business_name} className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white text-xs" />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-8 font-sans">
+          
+          {/* SECTION 1: 4 TOP CONTACT PAGE CARDS */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Primary Phone</label>
-                <input type="text" name="phone" defaultValue={contactDetails.phone} className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white text-xs" />
+                <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
+                  <Phone className="w-5 h-5 text-[#e50914]" /> Contact Page Top Cards ({contactCards.length} Cards)
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Manage the 4 prominent boxes displayed at the top of the Contact Page (Phone Hotline, WhatsApp Chat, Location, Hours).
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingContactCard({ title: 'New Contact Box', value: '6305151531', subtitle: '24/7 Support', link: 'tel:6305151531', icon: 'Phone', color: '#e50914', is_active: true })}
+                className="px-4 py-2 rounded-xl bg-[#008744] hover:bg-emerald-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-md self-start sm:self-auto"
+              >
+                <Plus className="w-4 h-4" /> Add Contact Box
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {contactCards.map((card, idx) => (
+                <div 
+                  key={card.id || idx}
+                  className={`bg-slate-50 rounded-2xl p-4 border transition-all shadow-sm flex flex-col justify-between ${
+                    card.is_active !== false ? 'border-slate-200 bg-white' : 'border-red-200 opacity-60 bg-red-50/20'
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-2.5">
+                      <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-slate-100 text-slate-700">
+                        Box #{idx + 1}
+                      </span>
+                      <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded ${
+                        card.is_active !== false ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
+                      }`}>
+                        {card.is_active !== false ? 'ACTIVE' : 'HIDDEN'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <div 
+                        style={{ backgroundColor: `${card.color || '#e50914'}18`, color: card.color || '#e50914' }}
+                        className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 font-bold"
+                      >
+                        <Sparkles className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-extrabold text-slate-900 text-sm truncate">{card.value || card.title}</h4>
+                        <p className="text-xs text-slate-500 font-medium truncate">{card.title}</p>
+                      </div>
+                    </div>
+
+                    {card.subtitle && (
+                      <p className="text-[11px] text-slate-400 mt-2 truncate font-medium">{card.subtitle}</p>
+                    )}
+
+                    {card.link && (
+                      <div className="mt-2 p-1.5 rounded-lg bg-slate-100 border border-slate-200 text-[10px] font-mono text-slate-600 truncate flex items-center gap-1">
+                        <LinkIcon className="w-3 h-3 text-slate-400 shrink-0" />
+                        <span className="truncate">{card.link}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between pt-3 mt-3 border-t border-slate-100">
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleMoveContactCard(idx, 'UP')}
+                        disabled={idx === 0}
+                        className="p-1 rounded bg-slate-100 hover:bg-slate-200 disabled:opacity-30 text-slate-700"
+                        title="Move Left"
+                      >
+                        <ArrowUp className="w-3 h-3" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleMoveContactCard(idx, 'DOWN')}
+                        disabled={idx === contactCards.length - 1}
+                        className="p-1 rounded bg-slate-100 hover:bg-slate-200 disabled:opacity-30 text-slate-700"
+                        title="Move Right"
+                      >
+                        <ArrowDown className="w-3 h-3" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleContactCardStatus(card, idx)}
+                        className={`px-2 py-1 rounded text-[10px] font-black uppercase transition-all ${
+                          card.is_active !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'
+                        }`}
+                      >
+                        {card.is_active !== false ? 'ON' : 'OFF'}
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setEditingContactCard({ ...card, index: idx })}
+                        className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs"
+                        title="Edit Box"
+                      >
+                        <Edit3 className="w-3.5 h-3.5 text-purple-600" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteContactCard(idx, card.title)}
+                        className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600"
+                        title="Delete Box"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* SECTION 2: FREQUENTLY ASKED QUESTIONS (FAQS) */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+              <div>
+                <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
+                  <FaqIcon className="w-5 h-5 text-purple-600" /> Frequently Asked Questions ({faqs.length} FAQs)
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Add, edit, reorder or toggle customer questions and answers appearing on the Contact Page.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingFaq({ q: 'New Customer Question?', a: 'Detailed answer explanation here.', is_active: true })}
+                className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-md self-start sm:self-auto"
+              >
+                <Plus className="w-4 h-4" /> Add FAQ Item
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {faqs.map((faq, idx) => (
+                <div 
+                  key={faq.id || idx}
+                  className={`p-4 rounded-xl border transition-all ${
+                    faq.is_active !== false ? 'bg-slate-50 border-slate-200' : 'bg-red-50/20 border-red-200 opacity-60'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="space-y-1 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-purple-100 text-purple-700">
+                          FAQ #{idx + 1}
+                        </span>
+                        <h4 className="font-extrabold text-slate-900 text-xs sm:text-sm">{faq.q}</h4>
+                      </div>
+                      <p className="text-xs text-slate-600 leading-relaxed pl-1">{faq.a}</p>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => handleMoveFaq(idx, 'UP')}
+                        disabled={idx === 0}
+                        className="p-1 rounded bg-white border border-slate-200 text-slate-600 disabled:opacity-30"
+                        title="Move Up"
+                      >
+                        <ArrowUp className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleMoveFaq(idx, 'DOWN')}
+                        disabled={idx === faqs.length - 1}
+                        className="p-1 rounded bg-white border border-slate-200 text-slate-600 disabled:opacity-30"
+                        title="Move Down"
+                      >
+                        <ArrowDown className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleFaqStatus(faq, idx)}
+                        className={`px-2 py-1 rounded text-[10px] font-black uppercase ${
+                          faq.is_active !== false ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
+                        }`}
+                      >
+                        {faq.is_active !== false ? 'ACTIVE' : 'OFF'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditingFaq({ ...faq, index: idx })}
+                        className="p-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-purple-600"
+                        title="Edit FAQ"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteFaq(idx)}
+                        className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600"
+                        title="Delete FAQ"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* SECTION 3: BUSINESS CONTACT INFORMATION */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-sm max-w-2xl font-sans">
+            <h2 className="text-base font-black text-slate-900 mb-4 flex items-center gap-2">
+              <Phone className="w-4 h-4 text-emerald-600" /> Business Contact &amp; Office Information
+            </h2>
+            <form onSubmit={handleSaveContactDetails} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Business Name</label>
+                <input type="text" name="business_name" defaultValue={contactDetails.business_name || 'OTTMoneySaver'} className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 text-xs font-bold" />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Primary Phone</label>
+                  <input type="text" name="phone" defaultValue={contactDetails.phone || '6305151531'} className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 text-xs" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Secondary Phone / Hotline</label>
+                  <input type="text" name="secondary_phone" defaultValue={contactDetails.secondary_phone || '7013931261'} className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 text-xs" />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">WhatsApp Number</label>
+                  <input type="text" name="whatsapp" defaultValue={contactDetails.whatsapp || '6305151531'} className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 text-xs" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Support Email</label>
+                  <input type="email" name="email" defaultValue={contactDetails.email || 'support@ottmoneysaver.com'} className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 text-xs" />
+                </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">WhatsApp Number</label>
-                <input type="text" name="whatsapp" defaultValue={contactDetails.whatsapp} className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white text-xs" />
+                <label className="block text-xs font-bold text-slate-700 mb-1">Office Address</label>
+                <textarea name="address" rows="2" defaultValue={contactDetails.address || 'Hyderabad, Telangana, India'} className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 text-xs"></textarea>
               </div>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Support Email</label>
-              <input type="email" name="email" defaultValue={contactDetails.email} className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white text-xs" />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Address</label>
-              <textarea name="address" rows="2" defaultValue={contactDetails.address} className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white text-xs"></textarea>
-            </div>
-            <button type="submit" disabled={saving} className="px-6 py-2.5 rounded-xl bg-[#008744] hover:bg-emerald-600 text-white font-bold text-xs shadow-md">
-              Save Contact Details
-            </button>
-          </form>
+              <button type="submit" disabled={saving} className="px-6 py-2.5 rounded-xl bg-[#008744] hover:bg-emerald-600 text-white font-bold text-xs shadow-md cursor-pointer">
+                Save Business Contact Info
+              </button>
+            </form>
+          </div>
+
         </div>
       )}
 
@@ -1652,6 +2011,183 @@ function HomePageManagerContent({ adminEmail }) {
               <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
                 <button type="button" onClick={() => setEditingFooterLink(null)} className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold">Cancel</button>
                 <button type="submit" disabled={saving} className="px-6 py-2 rounded-xl bg-[#008744] hover:bg-emerald-600 text-white text-xs font-black shadow-md">Save Link</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT CONTACT PAGE CARD MODAL */}
+      {editingContactCard && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-slate-200 font-sans">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="font-extrabold text-slate-900 text-base">
+                {editingContactCard.id ? 'Edit Contact Box' : 'Add New Contact Box'}
+              </h3>
+              <button onClick={() => setEditingContactCard(null)} className="text-slate-400 hover:text-slate-700 font-bold">✕</button>
+            </div>
+
+            <form onSubmit={handleSaveContactCardForm} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Header Title *</label>
+                <input
+                  type="text"
+                  name="title"
+                  required
+                  defaultValue={editingContactCard.title || ''}
+                  placeholder="e.g. PHONE HOTLINE, WHATSAPP CHAT, OFFICE LOCATION"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 text-xs font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Display Value / Text *</label>
+                <input
+                  type="text"
+                  name="value"
+                  required
+                  defaultValue={editingContactCard.value || ''}
+                  placeholder="e.g. 6305151531, Instant Chat →, Hyderabad"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 text-xs font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Subtitle / Timing / Details</label>
+                <input
+                  type="text"
+                  name="subtitle"
+                  defaultValue={editingContactCard.subtitle || ''}
+                  placeholder="e.g. Mon - Sun: 24 Hours Active, Average reply in 2 mins"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Direct Link Box (Click action)</label>
+                <div className="flex gap-1.5">
+                  <input
+                    type="text"
+                    name="link"
+                    defaultValue={editingContactCard.link || ''}
+                    placeholder="e.g. tel:6305151531, https://wa.me/916305151531"
+                    className="flex-1 bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 text-xs font-mono"
+                  />
+                  <select
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        const input = e.target.form?.elements['link'];
+                        if (input) input.value = e.target.value;
+                      }
+                    }}
+                    className="w-28 bg-slate-100 border border-slate-300 rounded-xl p-2 text-xs font-bold text-slate-700"
+                  >
+                    <option value="">Presets ▾</option>
+                    <option value="tel:6305151531">Phone Call</option>
+                    <option value="https://wa.me/916305151531">WhatsApp</option>
+                    <option value="mailto:support@ottmoneysaver.com">Email</option>
+                    <option value="https://instagram.com/ottmoneysaver">Instagram</option>
+                    <option value="https://t.me/ottmoneysaver">Telegram</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Icon Symbol</label>
+                  <select
+                    name="icon"
+                    defaultValue={editingContactCard.icon || 'Phone'}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 text-xs font-bold"
+                  >
+                    <option value="Phone">Phone 📞</option>
+                    <option value="MessageCircle">WhatsApp 💬</option>
+                    <option value="MapPin">Location 📍</option>
+                    <option value="Clock">Clock / Hours ⏰</option>
+                    <option value="Mail">Email ✉️</option>
+                    <option value="Instagram">Instagram 📸</option>
+                    <option value="Send">Telegram ✈️</option>
+                    <option value="Globe">Globe 🌐</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Accent Color</label>
+                  <select
+                    name="color"
+                    defaultValue={editingContactCard.color || '#e50914'}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 text-xs font-bold"
+                  >
+                    <option value="#e50914">Red (#e50914)</option>
+                    <option value="#059669">Emerald Green (#059669)</option>
+                    <option value="#d97706">Amber Gold (#d97706)</option>
+                    <option value="#0284c7">Sky Blue (#0284c7)</option>
+                    <option value="#9333ea">Purple (#9333ea)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingContactCard(null)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-6 py-2 rounded-xl bg-[#008744] hover:bg-emerald-600 text-white text-xs font-black shadow-md"
+                >
+                  {saving ? 'Saving...' : 'Save Contact Box'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT FAQ MODAL */}
+      {editingFaq && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 font-sans">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 border border-slate-200 font-sans">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="font-extrabold text-slate-900 text-base">
+                {editingFaq.id ? 'Edit FAQ Item' : 'Add New FAQ Item'}
+              </h3>
+              <button onClick={() => setEditingFaq(null)} className="text-slate-400 hover:text-slate-700 font-bold">✕</button>
+            </div>
+
+            <form onSubmit={handleSaveFaqForm} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Customer Question *</label>
+                <input
+                  type="text"
+                  name="q"
+                  required
+                  defaultValue={editingFaq.q || ''}
+                  placeholder="e.g. How fast do I receive my OTT subscription?"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 text-xs font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Detailed Answer *</label>
+                <textarea
+                  name="a"
+                  required
+                  rows={4}
+                  defaultValue={editingFaq.a || ''}
+                  placeholder="Explain clearly to the customer..."
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-slate-900 text-xs"
+                ></textarea>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
+                <button type="button" onClick={() => setEditingFaq(null)} className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold">Cancel</button>
+                <button type="submit" disabled={saving} className="px-6 py-2 rounded-xl bg-[#008744] hover:bg-emerald-600 text-white text-xs font-black shadow-md">Save FAQ</button>
               </div>
             </form>
           </div>

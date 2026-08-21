@@ -30,6 +30,26 @@ export default function OttInternetBanner({ onExplorePlans }) {
 
   const activeFeatures = featureItems.filter(f => f.is_active !== false);
 
+  // Badge config
+  const badgeConfig = banner.badges?.badge_config || {};
+  const isBadgeEnabled = badgeConfig.enabled && badgeConfig.text;
+  const badgePos = badgeConfig.position || 'top-left';
+
+  const getBadgePositionClasses = (pos) => {
+    switch (pos) {
+      case 'top-right': return 'top-4 right-4 sm:top-6 sm:right-6';
+      case 'bottom-left': return 'bottom-4 left-4 sm:bottom-6 sm:left-6';
+      case 'bottom-right': return 'bottom-4 right-4 sm:bottom-6 sm:right-6';
+      case 'top-left':
+      default:
+        return 'top-4 left-4 sm:top-6 sm:left-6';
+    }
+  };
+
+  // Secondary Image and Caption
+  const secondaryImgUrl = banner.badges?.secondary_image_url || banner.secondary_image_url || 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=500&auto=format&fit=crop&q=80';
+  const secondaryCaption = banner.badges?.secondary_image_caption || banner.secondary_image_caption || '🔥 High-Speed Fiber Internet + OTT Combo';
+
   const renderIcon = (iconName, color = '#e50914') => {
     const props = { className: 'w-6 h-6 shrink-0', style: { color } };
     switch ((iconName || '').toLowerCase()) {
@@ -55,7 +75,7 @@ export default function OttInternetBanner({ onExplorePlans }) {
 
   const handleButtonClick = (btn) => {
     const link = btn.link || 'offers';
-    if (btn.is_external || link.startsWith('http') || link.startsWith('tel:') || link.startsWith('mailto:')) {
+    if (btn.link_type === 'external' || btn.is_external || link.startsWith('http') || link.startsWith('tel:') || link.startsWith('mailto:')) {
       window.open(link, btn.target || '_blank');
     } else {
       if (link === 'offers' || link === '/offers') {
@@ -75,6 +95,21 @@ export default function OttInternetBanner({ onExplorePlans }) {
         
         <div className="relative rounded-3xl bg-slate-950 text-white p-6 sm:p-10 lg:p-12 overflow-hidden shadow-2xl border border-slate-800">
           
+          {/* Optional Badge Display */}
+          {isBadgeEnabled && (
+            <div className={`absolute z-20 ${getBadgePositionClasses(badgePos)}`}>
+              <span 
+                style={{
+                  backgroundColor: badgeConfig.bg_color || '#e50914',
+                  color: badgeConfig.text_color || '#ffffff'
+                }}
+                className="px-3.5 py-1.5 rounded-full text-xs font-black uppercase tracking-wider shadow-xl border border-white/20 inline-flex items-center gap-1 animate-pulse"
+              >
+                <Sparkles className="w-3.5 h-3.5" /> {badgeConfig.text}
+              </span>
+            </div>
+          )}
+
           {/* Ambient Glow */}
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(229,9,20,0.2),transparent_60%)] pointer-events-none" />
 
@@ -94,8 +129,7 @@ export default function OttInternetBanner({ onExplorePlans }) {
                 </p>
               </div>
 
-
-              {/* Dynamic Feature Lines / Cards */}
+              {/* Dynamic Feature Lines / Cards (OTT / Fiber / Combo Packages) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 pt-2">
                 {activeFeatures.map((feat, idx) => (
                   <div key={feat.id || idx} className="flex items-start gap-3 bg-slate-900/90 p-3.5 rounded-2xl border border-slate-800 shadow-md hover:border-slate-700 transition-colors">
@@ -139,29 +173,33 @@ export default function OttInternetBanner({ onExplorePlans }) {
 
             </div>
 
-            {/* Right Visual: Realistic TV Artwork & Router */}
+            {/* Right Visual: Realistic TV Artwork & Separate Secondary Picture */}
             <div className="lg:col-span-5 flex flex-col items-center justify-center relative">
               <div className="relative w-full max-w-sm bg-slate-900/95 border border-slate-800 p-4 rounded-3xl shadow-2xl backdrop-blur-md space-y-4">
                 
-                {/* TV Logo Graphic */}
+                {/* 1. Primary Banner Artwork / TV Logo Graphic */}
                 <div className="bg-slate-950 p-2 rounded-2xl border border-slate-800 overflow-hidden shadow-inner">
                   <img
-                    src="/image.png"
-                    alt="OTT Platforms TV Logo"
+                    src={banner.image_url || '/image.png'}
+                    alt="OTT Platforms Artwork"
                     className="w-full h-auto object-contain rounded-xl hover:scale-105 transition-transform"
                   />
                 </div>
 
-                {/* Router image */}
-                <div className="rounded-2xl overflow-hidden h-28 border border-slate-800 relative">
+                {/* 2. Separate Secondary Picture (Fiber Router / Combo Graphic) */}
+                <div className="rounded-2xl overflow-hidden h-28 border border-slate-800 relative bg-slate-950">
                   <img
-                    src="https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=500&auto=format&fit=crop&q=80"
-                    alt="High Speed Broadband Router"
+                    src={secondaryImgUrl}
+                    alt="High Speed Broadband Fiber / Combo"
                     className="w-full h-full object-cover"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 to-transparent flex items-end p-3">
-                    <span className="text-xs font-extrabold text-amber-400">🔥 High-Speed Fiber Internet + OTT Combo</span>
-                  </div>
+                  {secondaryCaption && (
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/40 to-transparent flex items-end p-3">
+                      <span className="text-xs font-extrabold text-amber-400 leading-tight drop-shadow-md">
+                        {secondaryCaption}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
               </div>

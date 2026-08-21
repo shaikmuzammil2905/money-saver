@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { Mail, Phone, MapPin, MessageCircle, Clock, Send, CheckCircle2, HelpCircle } from 'lucide-react';
+import { 
+  Mail, Phone, MapPin, MessageCircle, Clock, Send, CheckCircle2, HelpCircle, Globe, Instagram, MessageSquare, Sparkles 
+} from 'lucide-react';
 import { useCMS } from '../context/CMSContext';
 
 export default function ContactPage({ onOpenWhatsApp }) {
-  const { contactDetails } = useCMS();
+  const { contactDetails, contactCards, faqs } = useCMS();
   const [formData, setFormData] = useState({ name: '', phone: '', email: '', message: '' });
   const [submitted, setSubmitted] = useState(false);
 
@@ -21,24 +23,63 @@ export default function ContactPage({ onOpenWhatsApp }) {
     }, 4000);
   };
 
-  const faqs = [
-    {
-      q: 'How fast do I receive my OTT subscription login details?',
-      a: 'All OTT subscriptions are activated instantly within 5 to 15 minutes of order placement via WhatsApp and SMS.'
-    },
-    {
-      q: 'Are the high-speed fiber internet plans truly unlimited?',
-      a: 'Yes, all our high-speed broadband fiber plans offer 100% truly unlimited data downloads and uploads with symmetric gigabit speeds.'
-    },
-    {
-      q: 'What is your customer support contact number?',
-      a: 'You can reach our dedicated support team 24/7 at +91 6305151531 or chat directly via WhatsApp.'
-    },
-    {
-      q: 'Do smartphones & gadgets come with official brand warranty?',
-      a: 'Yes, 100% of physical products and mobile devices sold on OTTMoneySaver come with original manufacturer GST invoice and brand warranty.'
+  const activeCards = Array.isArray(contactCards) && contactCards.length > 0 
+    ? contactCards.filter(c => c.is_active !== false)
+    : [
+        { id: 'cpc_1', title: 'PHONE HOTLINE', value: phoneDisplay, subtitle: 'Mon - Sun: 24 Hours Active', link: `tel:${phoneDisplay}`, icon: 'Phone', color: '#e50914' },
+        { id: 'cpc_2', title: 'WHATSAPP CHAT', value: 'Instant Chat →', subtitle: 'Average reply in 2 mins', link: 'https://wa.me/916305151531', icon: 'MessageCircle', color: '#059669' },
+        { id: 'cpc_3', title: 'OFFICE LOCATION', value: addressDisplay, subtitle: 'India - 500001', link: '', icon: 'MapPin', color: '#d97706' },
+        { id: 'cpc_4', title: 'SUPPORT HOURS', value: '24/7 Everyday', subtitle: 'Including Holidays', link: '', icon: 'Clock', color: '#0284c7' }
+      ];
+
+  const activeFaqs = Array.isArray(faqs) && faqs.length > 0 
+    ? faqs.filter(f => f.is_active !== false)
+    : [
+        {
+          id: 'faq_1',
+          q: 'How fast do I receive my OTT subscription login details?',
+          a: 'All OTT subscriptions are activated instantly within 5 to 15 minutes of order placement via WhatsApp and SMS.'
+        },
+        {
+          id: 'faq_2',
+          q: 'Are the high-speed fiber internet plans truly unlimited?',
+          a: 'Yes, all our high-speed broadband fiber plans offer 100% truly unlimited data downloads and uploads with symmetric gigabit speeds.'
+        },
+        {
+          id: 'faq_3',
+          q: 'What is your customer support contact number?',
+          a: 'You can reach our dedicated support team 24/7 at +91 6305151531 or chat directly via WhatsApp.'
+        },
+        {
+          id: 'faq_4',
+          q: 'Do smartphones & gadgets come with official brand warranty?',
+          a: 'Yes, 100% of physical products and mobile devices sold on OTTMoneySaver come with original manufacturer GST invoice and brand warranty.'
+        }
+      ];
+
+  const renderIcon = (iconName, color = '#e50914') => {
+    const props = { className: 'w-6 h-6 shrink-0', style: { color } };
+    switch ((iconName || '').toLowerCase()) {
+      case 'phone': return <Phone {...props} />;
+      case 'messagecircle': return <MessageCircle {...props} className="w-6 h-6 shrink-0 fill-current" />;
+      case 'messagesquare': return <MessageSquare {...props} />;
+      case 'mappin': return <MapPin {...props} />;
+      case 'clock': return <Clock {...props} />;
+      case 'mail': return <Mail {...props} />;
+      case 'globe': return <Globe {...props} />;
+      case 'instagram': return <Instagram {...props} />;
+      default: return <Sparkles {...props} />;
     }
-  ];
+  };
+
+  const handleCardClick = (card) => {
+    if (!card.link) return;
+    if (card.link.startsWith('http') || card.link.startsWith('tel:') || card.link.startsWith('mailto:')) {
+      window.open(card.link, '_blank');
+    } else {
+      window.location.href = card.link;
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 py-8 font-sans">
@@ -62,57 +103,27 @@ export default function ContactPage({ onOpenWhatsApp }) {
 
         {/* Contact Info Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-start gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-red-50 border border-red-200 flex items-center justify-center text-[#e50914] shrink-0">
-              <Phone className="w-6 h-6" />
+          {activeCards.map((card, idx) => (
+            <div 
+              key={card.id || idx} 
+              onClick={() => handleCardClick(card)}
+              className={`bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-start gap-4 transition-all ${card.link ? 'cursor-pointer hover:shadow-md hover:border-slate-300 hover:scale-[1.02]' : ''}`}
+            >
+              <div 
+                style={{ backgroundColor: `${card.color || '#e50914'}15`, borderColor: `${card.color || '#e50914'}30` }}
+                className="w-12 h-12 rounded-2xl border flex items-center justify-center shrink-0"
+              >
+                {renderIcon(card.icon, card.color || '#e50914')}
+              </div>
+              <div className="overflow-hidden">
+                <h4 className="text-xs font-extrabold uppercase text-slate-400">{card.title}</h4>
+                <div className="text-sm sm:text-base font-black text-slate-900 truncate mt-0.5" style={{ color: card.link ? (card.color || '#0f172a') : undefined }}>
+                  {card.value}
+                </div>
+                {card.subtitle && <p className="text-[11px] text-slate-500 mt-1">{card.subtitle}</p>}
+              </div>
             </div>
-            <div>
-              <h4 className="text-xs font-extrabold uppercase text-slate-400">Phone Hotline</h4>
-              <a href="tel:6305151531" className="text-base font-black text-slate-900 hover:text-[#e50914] block mt-0.5">
-                6305151531
-              </a>
-              <p className="text-[11px] text-slate-500 mt-1">Mon - Sun: 24 Hours Active</p>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-start gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 shrink-0">
-              <MessageCircle className="w-6 h-6 fill-current" />
-            </div>
-            <div>
-              <h4 className="text-xs font-extrabold uppercase text-slate-400">WhatsApp Chat</h4>
-              <button onClick={onOpenWhatsApp} className="text-base font-black text-emerald-600 hover:underline block mt-0.5">
-                Instant Chat →
-              </button>
-              <p className="text-[11px] text-slate-500 mt-1">Average reply in 2 mins</p>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-start gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600 shrink-0">
-              <MapPin className="w-6 h-6" />
-            </div>
-            <div>
-              <h4 className="text-xs font-extrabold uppercase text-slate-400">Office Location</h4>
-              <span className="text-sm font-black text-slate-900 block mt-0.5">
-                Hyderabad, Telangana
-              </span>
-              <p className="text-[11px] text-slate-500 mt-1">India - 500001</p>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-start gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 shrink-0">
-              <Clock className="w-6 h-6" />
-            </div>
-            <div>
-              <h4 className="text-xs font-extrabold uppercase text-slate-400">Support Hours</h4>
-              <span className="text-sm font-black text-slate-900 block mt-0.5">
-                24/7 Everyday
-              </span>
-              <p className="text-[11px] text-slate-500 mt-1">Including Holidays</p>
-            </div>
-          </div>
+          ))}
         </div>
 
         {/* Contact Form & FAQ Grid */}
@@ -181,7 +192,7 @@ export default function ContactPage({ onOpenWhatsApp }) {
 
                 <button
                   type="submit"
-                  className="w-full py-3 bg-[#e50914] hover:bg-red-700 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-red-600/30 transition-colors flex items-center justify-center gap-2"
+                  className="w-full py-3 bg-[#e50914] hover:bg-red-700 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-red-600/30 transition-colors flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Send className="w-4 h-4" /> Send Message
                 </button>
@@ -197,8 +208,8 @@ export default function ContactPage({ onOpenWhatsApp }) {
               </h3>
 
               <div className="space-y-3">
-                {faqs.map((faq, index) => (
-                  <div key={index} className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
+                {activeFaqs.map((faq, index) => (
+                  <div key={faq.id || index} className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
                     <h4 className="text-xs font-bold text-slate-900 mb-1">{faq.q}</h4>
                     <p className="text-xs text-slate-600 leading-relaxed">{faq.a}</p>
                   </div>

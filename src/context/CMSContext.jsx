@@ -52,6 +52,44 @@ export const DEFAULT_SUPPORT_CARDS = [
   { id: 'sup_4', title: 'Chat on WhatsApp', value: '24/7 Live Agent Support', link: 'https://wa.me/916305151531', icon: 'MessageSquare', color: '#059669', is_active: true, display_order: 4 }
 ];
 
+export const DEFAULT_CONTACT_PAGE_CARDS = [
+  { id: 'cpc_1', title: 'PHONE HOTLINE', value: '6305151531', subtitle: 'Mon - Sun: 24 Hours Active', link: 'tel:6305151531', icon: 'Phone', color: '#e50914', is_active: true },
+  { id: 'cpc_2', title: 'WHATSAPP CHAT', value: 'Instant Chat →', subtitle: 'Average reply in 2 mins', link: 'https://wa.me/916305151531', icon: 'MessageCircle', color: '#059669', is_active: true },
+  { id: 'cpc_3', title: 'OFFICE LOCATION', value: 'Hyderabad, Telangana', subtitle: 'India - 500001', link: '', icon: 'MapPin', color: '#d97706', is_active: true },
+  { id: 'cpc_4', title: 'SUPPORT HOURS', value: '24/7 Everyday', subtitle: 'Including Holidays', link: '', icon: 'Clock', color: '#0284c7', is_active: true }
+];
+
+export const DEFAULT_FAQS = [
+  {
+    id: 'faq_1',
+    q: 'How fast do I receive my OTT subscription login details?',
+    a: 'All OTT subscriptions are activated instantly within 5 to 15 minutes of order placement via WhatsApp and SMS.',
+    is_active: true,
+    display_order: 1
+  },
+  {
+    id: 'faq_2',
+    q: 'Are the high-speed fiber internet plans truly unlimited?',
+    a: 'Yes, all our high-speed broadband fiber plans offer 100% truly unlimited data downloads and uploads with symmetric gigabit speeds.',
+    is_active: true,
+    display_order: 2
+  },
+  {
+    id: 'faq_3',
+    q: 'What is your customer support contact number?',
+    a: 'You can reach our dedicated support team 24/7 at +91 6305151531 or chat directly via WhatsApp.',
+    is_active: true,
+    display_order: 3
+  },
+  {
+    id: 'faq_4',
+    q: 'Do smartphones & gadgets come with official brand warranty?',
+    a: 'Yes, 100% of physical products and mobile devices sold on OTTMoneySaver come with original manufacturer GST invoice and brand warranty.',
+    is_active: true,
+    display_order: 4
+  }
+];
+
 const CMSContext = createContext(null);
 
 export function CMSProvider({ children }) {
@@ -62,6 +100,8 @@ export function CMSProvider({ children }) {
   const [mainCategories, setMainCategories] = useState(DEFAULT_MAIN_CATEGORIES);
   const [subCategories, setSubCategories] = useState(DEFAULT_SUB_CATEGORIES);
   const [supportCards, setSupportCards] = useState(DEFAULT_SUPPORT_CARDS);
+  const [contactCards, setContactCards] = useState(DEFAULT_CONTACT_PAGE_CARDS);
+  const [faqs, setFaqs] = useState(DEFAULT_FAQS);
   const [badges, setBadges] = useState([]);
   const [batches, setBatches] = useState([]);
   const [members, setMembers] = useState([]);
@@ -195,6 +235,8 @@ export function CMSProvider({ children }) {
         if (Array.isArray(sSettings.value.main_categories)) setMainCategories(sSettings.value.main_categories);
         if (Array.isArray(sSettings.value.sub_categories)) setSubCategories(sSettings.value.sub_categories);
         if (Array.isArray(sSettings.value.support_cards)) setSupportCards(sSettings.value.support_cards);
+        if (Array.isArray(sSettings.value.contact_cards)) setContactCards(sSettings.value.contact_cards);
+        if (Array.isArray(sSettings.value.faqs)) setFaqs(sSettings.value.faqs);
       }
       setMediaList(media || []);
 
@@ -466,6 +508,8 @@ export function CMSProvider({ children }) {
       if (keyName === 'main_categories') setMainCategories(dataArray);
       if (keyName === 'sub_categories') setSubCategories(dataArray);
       if (keyName === 'support_cards') setSupportCards(dataArray);
+      if (keyName === 'contact_cards') setContactCards(dataArray);
+      if (keyName === 'faqs') setFaqs(dataArray);
       return true;
     } catch (e) {
       console.error(`Error saving site config ${keyName}:`, e);
@@ -489,6 +533,10 @@ export function CMSProvider({ children }) {
         setSubCategories,
         supportCards,
         setSupportCards,
+        contactCards,
+        setContactCards,
+        faqs,
+        setFaqs,
         badges,
         setBadges,
         batches,
