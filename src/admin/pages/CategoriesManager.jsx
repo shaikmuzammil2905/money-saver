@@ -92,8 +92,9 @@ export default function CategoriesManager({ adminEmail }) {
     try {
       const formData = new FormData(e.target);
       const name = formData.get('name');
+      const catId = editingCategory?.id && !String(editingCategory.id).startsWith('seed_') ? editingCategory.id : undefined;
       const payload = {
-        id: editingCategory?.id,
+        ...(catId ? { id: catId } : {}),
         name: name,
         slug: editingCategory?.slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
         icon_mode: formData.get('icon_mode') || 'manual',

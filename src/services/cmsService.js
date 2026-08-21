@@ -570,25 +570,7 @@ async function updateFallbackDisplayOrder(tableName, items, orderField = 'displa
 }
 
 async function migrateLegacySiteSettingsToTable(tableName) {
-  try {
-    const key = `cms_table_${tableName}`;
-    const { data: settingRow } = await supabase
-      .from('site_settings')
-      .select('*')
-      .eq('key', key)
-      .maybeSingle();
-
-    if (settingRow && Array.isArray(settingRow.value) && settingRow.value.length > 0) {
-      console.log(`Migrating ${settingRow.value.length} legacy items from site_settings to real table '${tableName}'...`);
-      for (const item of settingRow.value) {
-        await supabase.from(tableName).upsert(item);
-      }
-      await supabase.from('site_settings').delete().eq('key', key);
-      console.log(`✅ Data migration to real table '${tableName}' completed!`);
-    }
-  } catch (err) {
-    console.warn(`Data migration notice for '${tableName}':`, err.message);
-  }
+  // Legacy migration disabled to preserve site_settings fallback data integrity
 }
 
 /**
@@ -773,10 +755,7 @@ export async function saveCmsItem(tableName, itemData) {
         }
       }
 
-      if (error.code === 'PGRST205' || error.message?.includes('schema cache')) {
-        return await saveFallbackCmsItem(tableName, payload);
-      }
-      throw new Error(`Supabase save error (${error.code || 'ERR'}): ${error.message}`);
+      return await saveFallbackCmsItem(tableName, payload);
     }
 
     if (!data || data.length === 0) {
