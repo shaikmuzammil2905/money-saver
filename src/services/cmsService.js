@@ -598,6 +598,11 @@ async function migrateLegacySiteSettingsToTable(tableName) {
 export async function getCmsTableData(tableName, defaultItems = [], orderColumn = 'display_order') {
   if (!supabase) return defaultItems;
   try {
+    // If table is analytics_visits and not created in Supabase yet, return fallback silently
+    if (tableName === 'analytics_visits') {
+      return await getFallbackTableData(tableName, defaultItems, orderColumn);
+    }
+
     const isPositionOrder = tableName === 'home_sections';
     const sortField = isPositionOrder ? 'position' : orderColumn;
 
@@ -613,17 +618,12 @@ export async function getCmsTableData(tableName, defaultItems = [], orderColumn 
 
     // If sort column doesn't exist, retry WITHOUT ordering so real DB data is always returned
     if (error && error.message?.includes('column') && error.message?.includes('does not exist')) {
-      console.warn(`Sort column '${sortField}' missing in '${tableName}', retrying without order...`);
       const retryResult = await supabase.from(tableName).select('*');
       data = retryResult.data;
       error = retryResult.error;
     }
 
     if (error) {
-      if (error.code === 'PGRST205' || error.code === 'PGRST116' || error.status === 404 || error.message?.includes('schema cache') || error.message?.includes('does not exist')) {
-        return await getFallbackTableData(tableName, defaultItems, orderColumn);
-      }
-      console.warn(`Supabase fetch notice for ${tableName}:`, error.message);
       return await getFallbackTableData(tableName, defaultItems, orderColumn);
     }
 
@@ -654,9 +654,24 @@ export async function getCmsTableData(tableName, defaultItems = [], orderColumn 
     localStorage.setItem(initKey, 'true');
     return data;
   } catch (err) {
-    console.warn(`Exception reading ${tableName}:`, err.message);
     return await getFallbackTableData(tableName, defaultItems, orderColumn);
   }
+}
+
+async function getFallbackSingleRecord(tableName, defaultObj = {}) {
+  try {
+    const key = `cms_single_${tableName}`;
+    const { data } = await supabase
+      .from('site_settings')
+      .select('*')
+      .eq('key', key)
+      .maybeSingle();
+
+    if (data && data.value) {
+      return { ...defaultObj, ...data.value };
+    }
+  } catch (err) {}
+  return defaultObj;
 }
 
 /**
@@ -672,6 +687,11 @@ export async function getCmsSingleRecord(tableName, defaultObj = {}) {
     const { data, error } = await query.limit(1).maybeSingle();
     if (!error && data) return data;
 
+    // If query returned error (e.g. table missing / 400 Bad Request / 404), return fallback
+    if (error) {
+      return await getFallbackSingleRecord(tableName, defaultObj);
+    }
+
     if (!data && Object.keys(defaultObj).length > 0) {
       const payload = { ...defaultObj };
       const options = payload.key ? { onConflict: 'key' } : undefined;
@@ -681,9 +701,11 @@ export async function getCmsSingleRecord(tableName, defaultObj = {}) {
         .select()
         .maybeSingle();
       if (!insertErr && inserted) return inserted;
+
+      return await getFallbackSingleRecord(tableName, defaultObj);
     }
   } catch (err) {
-    console.warn(`Single record fetch notice for ${tableName}:`, err.message);
+    return await getFallbackSingleRecord(tableName, defaultObj);
   }
   return defaultObj;
 }
