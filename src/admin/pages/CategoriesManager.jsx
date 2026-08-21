@@ -96,8 +96,9 @@ export default function CategoriesManager({ adminEmail }) {
         id: editingCategory?.id,
         name: name,
         slug: editingCategory?.slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        icon_mode: formData.get('icon_mode') || 'manual',
         icon: formData.get('icon') || 'Sparkles',
-        image_url: formData.get('image_url'),
+        image_url: formData.get('image_url') || '',
         group_name: formData.get('group_name') || 'Mobile / Gadgets',
         is_active: editingCategory ? editingCategory.is_active : true,
         display_order: editingCategory ? editingCategory.display_order : categories.length + 1
@@ -147,11 +148,11 @@ export default function CategoriesManager({ adminEmail }) {
             <Layers className="w-6 h-6 text-purple-600" /> Categories Management
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Add, edit, reorder, and enable/disable website product categories.
+            Add, edit, reorder, and configure manual/uploaded icons for website categories.
           </p>
         </div>
         <button
-          onClick={() => setEditingCategory({ icon: 'Sparkles', group_name: 'Mobile / Gadgets' })}
+          onClick={() => setEditingCategory({ icon: 'Sparkles', icon_mode: 'manual', group_name: 'Mobile / Gadgets' })}
           className="px-4 py-2.5 rounded-xl bg-[#008744] hover:bg-emerald-600 text-white font-bold text-xs flex items-center gap-2 shadow-sm transition-all"
         >
           <Plus className="w-4 h-4" /> Add Category
@@ -212,10 +213,10 @@ export default function CategoriesManager({ adminEmail }) {
         </div>
       </div>
 
-      {/* Categories Grid (Left Picture - Right Details & Controls Layout) */}
+      {/* Categories Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {categories.map((cat, index) => (
-          <div key={cat.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col sm:flex-row items-center sm:items-stretch gap-4 font-sans">
+          <div key={cat.id || index} className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col sm:flex-row items-center sm:items-stretch gap-4 font-sans">
             
             {/* Left: Large Category Picture */}
             <div className="w-full sm:w-32 h-28 sm:h-auto rounded-xl bg-slate-950 border border-slate-800 overflow-hidden relative shrink-0 flex items-center justify-center">
@@ -224,7 +225,7 @@ export default function CategoriesManager({ adminEmail }) {
               ) : (
                 <div className="text-slate-400 font-bold text-xs flex flex-col items-center gap-1">
                   <span className="text-base">{cat.icon || '✨'}</span>
-                  <span>No Picture</span>
+                  <span>{cat.icon ? `Icon: ${cat.icon}` : 'No Picture'}</span>
                 </div>
               )}
               <span className="absolute top-2 left-2 text-[9px] font-black uppercase px-2 py-0.5 bg-black/80 text-purple-300 rounded">
@@ -313,7 +314,7 @@ export default function CategoriesManager({ adminEmail }) {
                   name="name"
                   required
                   defaultValue={editingCategory.name || ''}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white text-xs"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white text-xs font-bold"
                 />
               </div>
 
@@ -327,35 +328,68 @@ export default function CategoriesManager({ adminEmail }) {
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Icon Name (Lucide Icon)</label>
-                <input
-                  type="text"
-                  name="icon"
-                  defaultValue={editingCategory.icon || 'Sparkles'}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white text-xs"
-                />
-              </div>
+              {/* ICON MODE CHOICES */}
+              <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-3">
+                <label className="block text-xs font-bold text-purple-400 uppercase tracking-wider">Category Icon / Image Options</label>
+                
+                <div>
+                  <label className="block text-[11px] text-slate-400 mb-1">Icon Selection Mode</label>
+                  <select
+                    name="icon_mode"
+                    defaultValue={editingCategory.icon_mode || 'manual'}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white text-xs font-bold"
+                  >
+                    <option value="manual">Option A — Manual Icon Selection</option>
+                    <option value="upload">Option B — Upload Custom Icon / Image</option>
+                    <option value="default">Option D — Automatic / Default Fallback</option>
+                  </select>
+                </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Category Image URL</label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    name="image_url"
-                    id="cat_image_input"
-                    defaultValue={editingCategory.image_url || ''}
-                    className="flex-1 bg-slate-950 border border-slate-700 rounded-xl p-3 text-white text-xs"
-                  />
-                  <label className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-xs flex items-center gap-1 cursor-pointer shrink-0">
-                    <Upload className="w-3.5 h-3.5" /> Upload
+                <div>
+                  <label className="block text-[11px] text-slate-400 mb-1">Manual Icon Selection (Lucide)</label>
+                  <select
+                    name="icon"
+                    defaultValue={editingCategory.icon || 'Sparkles'}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white text-xs font-bold"
+                  >
+                    <option value="Sparkles">Sparkles ✨</option>
+                    <option value="ShoppingBag">Shopping Bag 🛍️</option>
+                    <option value="Tv">TV / Display 📺</option>
+                    <option value="Smartphone">Smartphone 📱</option>
+                    <option value="Wifi">Wifi / Fiber 📶</option>
+                    <option value="Package">Package 📦</option>
+                    <option value="Flame">Flame 🔥</option>
+                    <option value="Star">Star ⭐</option>
+                    <option value="Tag">Tag 🏷️</option>
+                    <option value="Zap">Zap ⚡</option>
+                    <option value="Headphones">Headphones 🎧</option>
+                    <option value="Laptop">Laptop 💻</option>
+                    <option value="CreditCard">Credit Card 💳</option>
+                    <option value="Shield">Shield 🛡️</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] text-slate-400 mb-1">Uploaded Icon / Category Picture URL</label>
+                  <div className="flex gap-2">
                     <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleImageUploadInput(e, 'cat_image_input')}
-                      className="hidden"
+                      type="text"
+                      name="image_url"
+                      id="cat_image_input"
+                      defaultValue={editingCategory.image_url || ''}
+                      placeholder="https://..."
+                      className="flex-1 bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white text-xs font-mono"
                     />
-                  </label>
+                    <label className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-xs flex items-center gap-1 cursor-pointer shrink-0">
+                      <Upload className="w-3.5 h-3.5" /> Upload
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleImageUploadInput(e, 'cat_image_input')}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
                 </div>
               </div>
 

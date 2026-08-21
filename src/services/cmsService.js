@@ -703,14 +703,16 @@ export async function saveCmsItem(tableName, itemData) {
     options = { onConflict: 'key' };
   } else if (tableName === 'products') {
     options = itemData.id ? { onConflict: 'id' } : (itemData.slug_id ? { onConflict: 'slug_id' } : undefined);
-  } else if (tableName === 'banners' && itemData.banner_key && !itemData.id) {
-    options = { onConflict: 'banner_key' };
-  } else if (tableName === 'themes' && itemData.theme_key && !itemData.id) {
-    options = { onConflict: 'theme_key' };
-  } else if (tableName === 'home_sections' && itemData.box_key && !itemData.id) {
-    options = { onConflict: 'box_key' };
-  } else if (tableName === 'categories' && itemData.slug && !itemData.id) {
-    options = { onConflict: 'slug' };
+  } else if (tableName === 'banners') {
+    options = itemData.id ? { onConflict: 'id' } : (itemData.banner_key ? { onConflict: 'banner_key' } : undefined);
+  } else if (tableName === 'themes') {
+    options = itemData.id ? { onConflict: 'id' } : (itemData.theme_key ? { onConflict: 'theme_key' } : undefined);
+  } else if (tableName === 'home_sections') {
+    options = itemData.id ? { onConflict: 'id' } : (itemData.box_key ? { onConflict: 'box_key' } : undefined);
+  } else if (tableName === 'categories') {
+    options = itemData.id ? { onConflict: 'id' } : (itemData.slug ? { onConflict: 'slug' } : undefined);
+  } else if (itemData.id) {
+    options = { onConflict: 'id' };
   }
 
   try {
@@ -720,6 +722,28 @@ export async function saveCmsItem(tableName, itemData) {
       .select();
 
     if (error) {
+      // If 409 Conflict or duplicate key (23505), try direct UPDATE
+      if (error.code === '23505' || error.status === 409) {
+        let updateQuery = supabase.from(tableName).update(payload);
+        if (payload.id) {
+          updateQuery = updateQuery.eq('id', payload.id);
+        } else if (payload.key) {
+          updateQuery = updateQuery.eq('key', payload.key);
+        } else if (payload.banner_key) {
+          updateQuery = updateQuery.eq('banner_key', payload.banner_key);
+        } else if (payload.slug_id) {
+          updateQuery = updateQuery.eq('slug_id', payload.slug_id);
+        } else if (payload.slug) {
+          updateQuery = updateQuery.eq('slug', payload.slug);
+        } else {
+          updateQuery = updateQuery.match(options?.onConflict ? { [options.onConflict]: payload[options.onConflict] } : {});
+        }
+        const { data: updatedData, error: updateError } = await updateQuery.select();
+        if (!updateError && updatedData && updatedData.length > 0) {
+          return updatedData[0];
+        }
+      }
+
       if (error.code === 'PGRST205' || error.message?.includes('schema cache')) {
         return await saveFallbackCmsItem(tableName, payload);
       }
@@ -772,7 +796,8 @@ export async function saveCmsItem(tableName, itemData) {
 
     return data[0] || data;
   } catch (err) {
-    if (err.message?.includes('schema cache') || err.code === 'PGRST205') {
+    if (err.message?.includes('schema cache') || err.code === 'PGRST205' || err.message?.includes('Failed to fetch') || err.name === 'TypeError') {
+      console.warn(`Supabase network issue, using fallback save for ${tableName}:`, err.message);
       return await saveFallbackCmsItem(tableName, payload);
     }
     throw err;

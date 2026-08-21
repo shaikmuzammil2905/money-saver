@@ -112,13 +112,26 @@ export default function HeroSection({ onExploreDeals, onShopNow }) {
                 <div className="lg:col-span-5 space-y-2 sm:space-y-4 text-center lg:text-left flex flex-col justify-center">
                   {/* Subheading / Badges */}
                   <div className="flex items-center justify-center lg:justify-start gap-2 flex-wrap mb-1">
-                    {banner1.subheading && (
-                      <span className="bg-amber-400 text-black px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wide">
+                    {Array.isArray(banner1.subheadings) && banner1.subheadings.length > 0 ? (
+                      banner1.subheadings.filter(s => s.is_active !== false).map((sub, sIdx) => (
+                        <span key={sub.id || sIdx} style={{ transform: `translate(${sub.position_x || 0}px, ${sub.position_y || 0}px)` }} className="bg-amber-400 text-black px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wide relative shadow-sm">
+                          {sub.text}
+                        </span>
+                      ))
+                    ) : banner1.subheading && (
+                      <span className="bg-amber-400 text-black px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wide shadow-sm">
                         {banner1.subheading}
                       </span>
                     )}
-                    {Array.isArray(banner1.badges) && banner1.badges.map((bdg, bIdx) => (
-                      <span key={bIdx} className="bg-red-600/90 text-white px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase border border-red-400/40">
+
+                    {Array.isArray(banner1.badges_data) && banner1.badges_data.length > 0 ? (
+                      banner1.badges_data.filter(b => b.is_active !== false).map((bdg, bIdx) => (
+                        <span key={bdg.id || bIdx} style={{ transform: `translate(${bdg.position_x || 0}px, ${bdg.position_y || 0}px)` }} className="bg-red-600/90 text-white px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase border border-red-400/40 relative shadow-sm">
+                          {bdg.text}
+                        </span>
+                      ))
+                    ) : Array.isArray(banner1.badges) && banner1.badges.map((bdg, bIdx) => (
+                      <span key={bIdx} className="bg-red-600/90 text-white px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase border border-red-400/40 shadow-sm">
                         {typeof bdg === 'string' ? bdg : bdg.text}
                       </span>
                     ))}
@@ -141,14 +154,18 @@ export default function HeroSection({ onExploreDeals, onShopNow }) {
                         <button
                           key={btn.id || btnIdx}
                           onClick={() => {
-                            if (btn.link === 'offers' || btn.link === '/offers') onExploreDeals();
-                            else if (btn.link === 'mobiles' || btn.link === '/mobiles') onShopNow();
-                            else if (btn.link) window.location.href = btn.link;
+                            if (btn.is_external) {
+                              window.open(btn.link, btn.target || '_blank');
+                            } else {
+                              if (btn.link === 'offers' || btn.link === '/offers') onExploreDeals();
+                              else if (btn.link === 'mobiles' || btn.link === '/mobiles') onShopNow();
+                              else if (btn.link) window.open(btn.link, btn.target || '_self');
+                            }
                           }}
                           style={{
                             transform: `translate(${btn.position_x || 0}px, ${btn.position_y || 0}px)`
                           }}
-                          className="px-5 py-2.5 sm:px-6 sm:py-3 rounded-xl font-extrabold text-xs sm:text-sm md:text-base shadow-lg transition-all hover:scale-105 cursor-pointer relative"
+                          className="px-5 py-2.5 sm:px-6 sm:py-3 rounded-xl font-extrabold text-xs sm:text-sm md:text-base shadow-lg transition-all hover:scale-105 cursor-pointer relative bg-gradient-to-r from-[#e50914] to-red-600 text-white border border-red-500/50"
                         >
                           {btn.text || 'Click Here'}
                         </button>
@@ -297,13 +314,40 @@ export default function HeroSection({ onExploreDeals, onShopNow }) {
                 
                 {/* Left Column */}
                 <div className="lg:col-span-5 space-y-2 sm:space-y-4 text-center lg:text-left flex flex-col justify-center">
+                  {/* Subheading / Badges */}
+                  <div className="flex items-center justify-center lg:justify-start gap-2 flex-wrap mb-1">
+                    {Array.isArray(banner2.subheadings) && banner2.subheadings.length > 0 ? (
+                      banner2.subheadings.filter(s => s.is_active !== false).map((sub, sIdx) => (
+                        <span key={sub.id || sIdx} style={{ transform: `translate(${sub.position_x || 0}px, ${sub.position_y || 0}px)` }} className="bg-amber-400 text-black px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wide relative shadow-sm">
+                          {sub.text}
+                        </span>
+                      ))
+                    ) : banner2.subheading && (
+                      <span className="bg-amber-400 text-black px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wide shadow-sm">
+                        {banner2.subheading}
+                      </span>
+                    )}
+
+                    {Array.isArray(banner2.badges_data) && banner2.badges_data.length > 0 ? (
+                      banner2.badges_data.filter(b => b.is_active !== false).map((bdg, bIdx) => (
+                        <span key={bdg.id || bIdx} style={{ transform: `translate(${bdg.position_x || 0}px, ${bdg.position_y || 0}px)` }} className="bg-white text-pink-600 px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase border border-pink-400/40 relative shadow-sm">
+                          {bdg.text}
+                        </span>
+                      ))
+                    ) : Array.isArray(banner2.badges) && banner2.badges.map((bdg, bIdx) => (
+                      <span key={bIdx} className="bg-white text-pink-600 px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase border border-pink-400/40 shadow-sm">
+                        {typeof bdg === 'string' ? bdg : bdg.text}
+                      </span>
+                    ))}
+                  </div>
+
                   <div>
                     <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-5xl font-black uppercase tracking-tight leading-none font-sans">
                       <span className="bg-gradient-to-r from-orange-400 via-rose-400 to-pink-500 bg-clip-text text-transparent italic block drop-shadow-[0_0_20px_rgba(244,63,94,0.5)]">
-                        SAVE MORE.
+                        {banner2.heading?.split('.')[0] ? banner2.heading.split('.')[0] + '.' : 'SAVE MORE.'}
                       </span>
                       <span className="text-white italic block drop-shadow-[0_0_25px_rgba(255,255,255,0.5)]">
-                        ENJOY MORE.
+                        {banner2.heading?.split('.')[1] ? banner2.heading.split('.')[1] + '.' : 'ENJOY MORE.'}
                       </span>
                     </h1>
                   </div>
@@ -312,20 +356,46 @@ export default function HeroSection({ onExploreDeals, onShopNow }) {
                     OTT subscriptions, high-speed fiber internet, mobiles &amp; gadgets — <span className="font-semibold text-pink-400">all at smart prices.</span>
                   </p>
 
-                  <div className="flex items-center justify-center lg:justify-start gap-2.5 sm:gap-4 pt-1">
-                    <button
-                      onClick={onExploreDeals}
-                      className="px-5 py-2.5 sm:px-6 sm:py-3 rounded-xl bg-gradient-to-r from-orange-500 via-rose-500 to-pink-600 text-white font-extrabold text-xs sm:text-sm md:text-base shadow-lg shadow-pink-500/50 hover:scale-105 transition-all border border-pink-400/50"
-                    >
-                      Explore Deals
-                    </button>
+                  {/* Dynamic Independent Position Buttons */}
+                  <div className="flex items-center justify-center lg:justify-start gap-2.5 sm:gap-4 pt-1 flex-wrap">
+                    {Array.isArray(banner2.buttons) && banner2.buttons.length > 0 ? (
+                      banner2.buttons.filter(b => b.is_active !== false).map((btn, btnIdx) => (
+                        <button
+                          key={btn.id || btnIdx}
+                          onClick={() => {
+                            if (btn.is_external) {
+                              window.open(btn.link, btn.target || '_blank');
+                            } else {
+                              if (btn.link === 'offers' || btn.link === '/offers') onExploreDeals();
+                              else if (btn.link === 'mobiles' || btn.link === '/mobiles') onShopNow();
+                              else if (btn.link) window.open(btn.link, btn.target || '_self');
+                            }
+                          }}
+                          style={{
+                            transform: `translate(${btn.position_x || 0}px, ${btn.position_y || 0}px)`
+                          }}
+                          className="px-5 py-2.5 sm:px-6 sm:py-3 rounded-xl font-extrabold text-xs sm:text-sm md:text-base shadow-lg shadow-pink-500/50 transition-all hover:scale-105 cursor-pointer relative bg-gradient-to-r from-orange-500 via-rose-500 to-pink-600 text-white border border-pink-400/50"
+                        >
+                          {btn.text || 'Click Here'}
+                        </button>
+                      ))
+                    ) : (
+                      <>
+                        <button
+                          onClick={onExploreDeals}
+                          className="px-5 py-2.5 sm:px-6 sm:py-3 rounded-xl bg-gradient-to-r from-orange-500 via-rose-500 to-pink-600 text-white font-extrabold text-xs sm:text-sm md:text-base shadow-lg shadow-pink-500/50 hover:scale-105 transition-all border border-pink-400/50"
+                        >
+                          {banner2.button_text || 'Explore Deals'}
+                        </button>
 
-                    <button
-                      onClick={onShopNow}
-                      className="px-5 py-2.5 sm:px-6 sm:py-3 rounded-xl bg-slate-950/90 text-white font-extrabold text-xs sm:text-sm md:text-base border-2 border-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:scale-105 transition-all"
-                    >
-                      Shop Now
-                    </button>
+                        <button
+                          onClick={onShopNow}
+                          className="px-5 py-2.5 sm:px-6 sm:py-3 rounded-xl bg-slate-950/90 text-white font-extrabold text-xs sm:text-sm md:text-base border-2 border-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:scale-105 transition-all"
+                        >
+                          Shop Now
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
 

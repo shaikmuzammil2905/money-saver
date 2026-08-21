@@ -133,6 +133,20 @@ export default function ProductsManager({ adminEmail }) {
       const isUUID = rawId && typeof rawId === 'string' && rawId.includes('-') && rawId.length > 20;
       const validUUID = isUUID ? rawId : (editingProduct?.db_id && typeof editingProduct.db_id === 'string' && editingProduct.db_id.includes('-') && editingProduct.db_id.length > 20 ? editingProduct.db_id : undefined);
 
+      const priceNum = parseFloat(formData.get('price')) || 0;
+      const origPriceNum = formData.get('original_price') ? parseFloat(formData.get('original_price')) : priceNum;
+
+      let calcDiscount = formData.get('discount');
+      const badgeType = formData.get('badge_type') || 'auto';
+      if (!calcDiscount || badgeType === 'auto') {
+        if (origPriceNum > priceNum && priceNum > 0) {
+          const pct = Math.round(((origPriceNum - priceNum) / origPriceNum) * 100);
+          calcDiscount = `${pct}% OFF`;
+        }
+      }
+
+      const badgeText = badgeType === 'auto' ? (calcDiscount || '') : (formData.get('badge') || selectedBadgesArr[0] || '');
+
       const payload = {
         id: validUUID,
         slug_id: editingProduct?.slug_id || (!isUUID && rawId ? rawId : `prod-${Date.now()}`),
@@ -141,17 +155,21 @@ export default function ProductsManager({ adminEmail }) {
         description: cleanDescPoints.join('\n'),
         description_points: cleanDescPoints,
         custom_info: cleanCustomInfo,
-        price: parseFloat(formData.get('price')),
-        original_price: formData.get('original_price') ? parseFloat(formData.get('original_price')) : parseFloat(formData.get('price')),
-        discount: formData.get('discount'),
+        price: priceNum,
+        original_price: origPriceNum,
+        discount: calcDiscount,
         image: formData.get('image'),
         images: [formData.get('image')],
         category: formData.get('category'),
         category_group: formData.get('category_group') || formData.get('category'),
+        subcategory: formData.get('subcategory') || '',
         brand: formData.get('brand'),
         sku: formData.get('sku'),
-        badge: selectedBadgesArr[0] || formData.get('badge') || '',
-        badges: selectedBadgesArr,
+        badge_type: badgeType,
+        badge: badgeText,
+        badge_color: formData.get('badge_color') || '#e50914',
+        badge_position: formData.get('badge_position') || 'top-right',
+        badges: selectedBadgesArr.length > 0 ? selectedBadgesArr : (badgeText ? [badgeText] : []),
         batches: selectedBatchesArr,
         sections: sectionsSelected,
         in_stock: formData.get('in_stock') === 'true',
@@ -205,7 +223,7 @@ export default function ProductsManager({ adminEmail }) {
               <Package className="w-6 h-6 text-[#008744]" /> Mobile-First Product Manager
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 mt-1">
-              Manage product details, vertical description points, section assignments, badges, and display orders.
+              Manage product details, locations (Home, Offers, All OTTs), subcategories, badges, and auto-calculated discounts.
             </p>
           </div>
 
@@ -294,7 +312,12 @@ export default function ProductsManager({ adminEmail }) {
                 {/* Title & Category */}
                 <div>
                   <h3 className="font-extrabold text-white text-base leading-snug">{prod.title}</h3>
-                  <p className="text-slate-400 text-xs font-semibold mt-0.5">{prod.category}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <p className="text-slate-400 text-xs font-semibold">{prod.category}</p>
+                    {prod.subcategory && (
+                      <span className="text-[10px] bg-slate-800 text-purple-300 px-2 py-0.5 rounded font-bold">{prod.subcategory}</span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Vertical Description Points Preview */}
@@ -398,7 +421,7 @@ export default function ProductsManager({ adminEmail }) {
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 mb-1">Category *</label>
                   <select
@@ -410,6 +433,17 @@ export default function ProductsManager({ adminEmail }) {
                       <option key={c.id} value={c.name}>{c.name}</option>
                     ))}
                   </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Subcategory (Optional)</label>
+                  <input
+                    type="text"
+                    name="subcategory"
+                    defaultValue={editingProduct.subcategory || ''}
+                    placeholder="e.g. Netflix, Earbuds"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white text-xs font-bold"
+                  />
                 </div>
 
                 <div>
@@ -425,10 +459,10 @@ export default function ProductsManager({ adminEmail }) {
                 </div>
               </div>
 
-              {/* SECTION ASSIGNMENTS (Part 6) */}
+              {/* SECTION ASSIGNMENTS (Home / Offers / All OTTs) */}
               <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
                 <label className="block text-xs font-extrabold text-purple-400 uppercase tracking-wider">
-                  Display In Section Assignment (CMS Rule)
+                  Display In Location Assignment (Strict CMS Control)
                 </label>
                 <p className="text-[11px] text-slate-400">Select where this product will appear publicly:</p>
                 <div className="flex flex-wrap gap-4 pt-1 text-xs font-bold text-white">
@@ -449,7 +483,9 @@ export default function ProductsManager({ adminEmail }) {
                     );
                   })}
                 </div>
-                            {/* VERTICAL DESCRIPTION POINTS (Part 8) */}
+              </div>
+
+              {/* VERTICAL DESCRIPTION POINTS */}
               <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-extrabold text-emerald-400 uppercase tracking-wider">
@@ -491,7 +527,7 @@ export default function ProductsManager({ adminEmail }) {
                 </div>
               </div>
 
-              {/* CUSTOM INFO MATTER (Part 11) */}
+              {/* CUSTOM INFO MATTER */}
               <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-extrabold text-amber-400 uppercase tracking-wider">
@@ -504,7 +540,7 @@ export default function ProductsManager({ adminEmail }) {
                   >
                     <Plus className="w-3 h-3" /> Add Custom Matter
                   </button>
-                </div>    </div>
+                </div>
 
                 <div className="space-y-2">
                   {customInfoPoints.map((pt, idx) => (
@@ -532,7 +568,7 @@ export default function ProductsManager({ adminEmail }) {
                 </div>
               </div>
 
-              {/* PRICE & DISCOUNT */}
+              {/* PRICE & AUTO DISCOUNT */}
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 mb-1">Offer Price ₹ *</label>
@@ -541,6 +577,7 @@ export default function ProductsManager({ adminEmail }) {
                     step="0.01"
                     name="price"
                     required
+                    id="input_offer_price"
                     defaultValue={editingProduct.price || ''}
                     className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white text-xs font-bold"
                   />
@@ -551,19 +588,73 @@ export default function ProductsManager({ adminEmail }) {
                     type="number"
                     step="0.01"
                     name="original_price"
+                    id="input_orig_price"
                     defaultValue={editingProduct.original_price || ''}
                     className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white text-xs"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Discount Tag</label>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Discount Tag (Auto/Custom)</label>
                   <input
                     type="text"
                     name="discount"
                     defaultValue={editingProduct.discount || ''}
-                    placeholder="60% OFF"
+                    placeholder="Auto Calculated (e.g. 50% OFF)"
                     className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white text-xs font-bold"
                   />
+                </div>
+              </div>
+
+              {/* BADGE CUSTOMIZATION */}
+              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
+                <label className="block text-xs font-extrabold text-sky-400 uppercase tracking-wider">
+                  Product Overlay Badge Control
+                </label>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                  <div>
+                    <label className="block text-[11px] text-slate-400 mb-1">Badge Mode</label>
+                    <select
+                      name="badge_type"
+                      defaultValue={editingProduct.badge_type || 'auto'}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-white text-xs font-bold"
+                    >
+                      <option value="auto">Auto Discount %</option>
+                      <option value="custom">Custom Badge Text</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-slate-400 mb-1">Badge Text</label>
+                    <input
+                      type="text"
+                      name="badge"
+                      defaultValue={editingProduct.badge || 'BEST DEAL'}
+                      placeholder="e.g. BEST DEAL, HOT"
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-white text-xs font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-slate-400 mb-1">Badge Color</label>
+                    <input
+                      type="color"
+                      name="badge_color"
+                      defaultValue={editingProduct.badge_color || '#e50914'}
+                      className="w-full h-9 bg-slate-900 border border-slate-700 rounded-xl p-1 cursor-pointer"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-slate-400 mb-1">Badge Position</label>
+                    <select
+                      name="badge_position"
+                      defaultValue={editingProduct.badge_position || 'top-right'}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-white text-xs font-bold"
+                    >
+                      <option value="top-left">Top Left</option>
+                      <option value="top-right">Top Right</option>
+                      <option value="bottom-left">Bottom Left</option>
+                      <option value="bottom-right">Bottom Right</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 

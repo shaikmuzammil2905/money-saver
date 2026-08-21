@@ -29,8 +29,14 @@ export default function OffersPage({ onAddToCart, onQuickView, wishlistIds = [],
       inStock: o.availability !== 'Out of Stock'
     }));
 
-  // Combine offer items and active public products sorted by discount
-  const combinedOffers = [...mappedOfferItems, ...activePublicProducts].sort((a, b) => {
+  // Filter active public products assigned specifically to Offers section
+  const offersPublicProducts = activePublicProducts.filter(p => {
+    const sec = Array.isArray(p.sections) ? p.sections : ['Home', 'All OTTs'];
+    return sec.includes('Offers');
+  });
+
+  // Combine offer items and active public products assigned to Offers
+  const combinedOffers = [...mappedOfferItems, ...offersPublicProducts].sort((a, b) => {
     const discA = parseInt(a.discount) || 0;
     const discB = parseInt(b.discount) || 0;
     return discB - discA;

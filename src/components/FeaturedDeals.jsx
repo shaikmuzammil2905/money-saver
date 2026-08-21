@@ -17,7 +17,7 @@ export default function FeaturedDeals({ onAddToCart, onQuickView, onViewAll, wis
     homeProducts = homeProducts.slice(0, displayLimit);
   }
 
-  const dealsToRender = homeProducts.length > 0 ? homeProducts : activePublicProducts.slice(0, displayLimit || 8);
+  const dealsToRender = homeProducts;
 
   return (
     <section id="offers" className="py-8 sm:py-12 bg-white font-sans">

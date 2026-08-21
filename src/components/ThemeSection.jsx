@@ -26,8 +26,9 @@ export default function ThemeSection({ theme, onNavigate }) {
 
   return (
     <section className="py-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div style={containerStyle} className="shadow-xl space-y-4 font-sans transition-all">
-        
+      <div style={containerStyle} className="shadow-xl font-sans transition-all">
+        <div className="bg-white rounded-xl p-4 sm:p-6 space-y-4 border border-slate-200">
+          
         {theme.name && (
           <div className="sr-only">
             <h2>{theme.name}</h2>
@@ -45,7 +46,7 @@ export default function ThemeSection({ theme, onNavigate }) {
                 <h3
                   key={key}
                   style={{
-                    color: block.textColor || '#ffffff',
+                    color: block.textColor || '#0f172a',
                     fontSize: block.fontSize || '20px',
                     fontWeight: block.fontWeight || '700',
                     lineHeight: block.lineHeight || '1.3'
@@ -62,7 +63,7 @@ export default function ThemeSection({ theme, onNavigate }) {
                 <p
                   key={key}
                   style={{
-                    color: block.textColor || '#cbd5e1',
+                    color: block.textColor || '#334155',
                     fontSize: block.fontSize || '14px',
                     lineHeight: block.lineHeight || '1.6'
                   }}
@@ -166,13 +167,14 @@ export default function ThemeSection({ theme, onNavigate }) {
 
             default:
               return (
-                <div key={key} className="text-white text-xs">
+                <div key={key} className="text-slate-800 text-xs">
                   {block.content}
                 </div>
               );
           }
         })}
 
+        </div>
       </div>
     </section>
   );

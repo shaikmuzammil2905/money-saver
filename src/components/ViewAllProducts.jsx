@@ -47,6 +47,9 @@ export default function ViewAllProducts({
   // Filter & Sort Products
   const filteredProducts = useMemo(() => {
     return activePublicProducts.filter((product) => {
+      const sec = Array.isArray(product.sections) ? product.sections : ['Home', 'All OTTs'];
+      const matchesSection = sec.includes('All OTTs');
+
       const matchesCat = activeCategory === 'All' || 
         product.category?.toLowerCase() === activeCategory.toLowerCase() ||
         product.categoryGroup?.toLowerCase() === activeCategory.toLowerCase();
@@ -58,7 +61,7 @@ export default function ViewAllProducts({
         product.category?.toLowerCase().includes(query) ||
         product.categoryGroup?.toLowerCase().includes(query);
 
-      return matchesCat && matchesSearch;
+      return matchesSection && matchesCat && matchesSearch;
     }).sort((a, b) => {
       if (sortBy === 'price-low') return a.price - b.price;
       if (sortBy === 'price-high') return b.price - a.price;

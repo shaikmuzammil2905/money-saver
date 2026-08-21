@@ -31,14 +31,37 @@ export default function PromoBanner({ onViewOffers }) {
                 {banner.description || 'Discover smart deals on entertainment, internet, gadgets and electronics.'}
               </p>
 
-              <div className="pt-2">
-                <button
-                  onClick={onViewOffers}
-                  className="px-8 py-3.5 rounded-xl bg-slate-950 hover:bg-slate-900 text-white font-extrabold text-sm sm:text-base shadow-2xl transition-all hover:scale-105 inline-flex items-center gap-2 group cursor-pointer"
-                >
-                  <span>{banner.button_text || 'View All Offers'}</span>
-                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                </button>
+              <div className="pt-2 flex flex-wrap gap-3">
+                {Array.isArray(banner.buttons) && banner.buttons.length > 0 ? (
+                  banner.buttons.filter(b => b.is_active !== false).map((btn, idx) => (
+                    <button
+                      key={btn.id || idx}
+                      onClick={() => {
+                        if (btn.is_external) {
+                          window.open(btn.link, btn.target || '_blank');
+                        } else {
+                          if (btn.link === 'offers' || btn.link === '/offers') onViewOffers();
+                          else if (btn.link) window.open(btn.link, btn.target || '_self');
+                        }
+                      }}
+                      style={{
+                        transform: `translate(${btn.position_x || 0}px, ${btn.position_y || 0}px)`
+                      }}
+                      className="px-8 py-3.5 rounded-xl font-extrabold text-sm sm:text-base shadow-2xl transition-all hover:scale-105 inline-flex items-center gap-2 group cursor-pointer relative bg-slate-950 hover:bg-slate-900 text-white"
+                    >
+                      <span>{btn.text || 'Click Here'}</span>
+                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    </button>
+                  ))
+                ) : (
+                  <button
+                    onClick={onViewOffers}
+                    className="px-8 py-3.5 rounded-xl bg-slate-950 hover:bg-slate-900 text-white font-extrabold text-sm sm:text-base shadow-2xl transition-all hover:scale-105 inline-flex items-center gap-2 group cursor-pointer"
+                  >
+                    <span>{banner.button_text || 'View All Offers'}</span>
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </button>
+                )}
               </div>
             </div>
 

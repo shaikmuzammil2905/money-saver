@@ -65,15 +65,39 @@ export default function OttInternetBanner({ onExplorePlans }) {
                 </div>
               </div>
 
-              {/* Action button */}
-              <div className="pt-2">
-                <button
-                  onClick={onExplorePlans}
-                  className="px-7 py-3 rounded-xl bg-[#e50914] hover:bg-red-700 text-white font-extrabold text-sm shadow-lg shadow-red-900/30 transition-all flex items-center gap-2 group cursor-pointer"
-                >
-                  <span>{banner.button_text || 'View All Plans'}</span>
-                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                </button>
+              {/* Action buttons */}
+              <div className="pt-2 flex flex-wrap gap-3">
+                {Array.isArray(banner.buttons) && banner.buttons.length > 0 ? (
+                  banner.buttons.filter(b => b.is_active !== false).map((btn, idx) => (
+                    <button
+                      key={btn.id || idx}
+                      onClick={() => {
+                        if (btn.is_external) {
+                          window.open(btn.link, btn.target || '_blank');
+                        } else {
+                          if (btn.link === 'offers' || btn.link === '/offers') onExplorePlans();
+                          else if (btn.link === 'ott-plans' || btn.link === '/ott-plans') onExplorePlans();
+                          else if (btn.link) window.open(btn.link, btn.target || '_self');
+                        }
+                      }}
+                      style={{
+                        transform: `translate(${btn.position_x || 0}px, ${btn.position_y || 0}px)`
+                      }}
+                      className="px-7 py-3 rounded-xl font-extrabold text-sm shadow-lg shadow-red-900/30 transition-all flex items-center gap-2 group cursor-pointer relative bg-[#e50914] hover:bg-red-700 text-white"
+                    >
+                      <span>{btn.text || 'Click Here'}</span>
+                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    </button>
+                  ))
+                ) : (
+                  <button
+                    onClick={onExplorePlans}
+                    className="px-7 py-3 rounded-xl bg-[#e50914] hover:bg-red-700 text-white font-extrabold text-sm shadow-lg shadow-red-900/30 transition-all flex items-center gap-2 group cursor-pointer"
+                  >
+                    <span>{banner.button_text || 'View All Plans'}</span>
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </button>
+                )}
               </div>
 
             </div>

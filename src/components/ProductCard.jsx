@@ -34,34 +34,55 @@ export default function ProductCard({
           onClick={() => onQuickView && onQuickView(product)}
           className="relative w-full h-36 sm:h-44 rounded-xl sm:rounded-2xl bg-[#f8f9fa] group-hover:bg-[#f1f3f7] transition-colors flex items-center justify-center p-2.5 sm:p-3 overflow-hidden cursor-pointer"
         >
-          {/* Top Left Badges */}
-          <div className="absolute top-2 left-2 z-10 flex flex-col gap-1">
-            {!isAvailable ? (
-              <span className="bg-slate-900 text-slate-200 text-[9px] sm:text-[10px] font-black uppercase px-2 py-0.5 rounded-md sm:rounded-lg shadow-sm tracking-wider flex items-center gap-1">
-                <Ban className="w-3 h-3 text-red-400" /> Out of Stock
-              </span>
-            ) : (
-              <>
-                {Array.isArray(product.badges) && product.badges.length > 0 ? (
-                  product.badges.map((bdg, idx) => (
-                    <span
-                      key={idx}
-                      style={{ backgroundColor: bdg.bg_color || '#e50914', color: bdg.text_color || '#ffffff' }}
-                      className="text-[9px] sm:text-[10px] font-black uppercase px-2 py-0.5 rounded-md sm:rounded-lg shadow-sm tracking-wider"
-                    >
-                      {bdg.text || bdg.name}
-                    </span>
-                  ))
+          {/* Custom Positioned Badges */}
+          {(() => {
+            const pos = product.badgePosition || product.badge_position || 'top-left';
+            const badgeBg = product.badgeColor || product.badge_color || '#e50914';
+            const posClasses = pos === 'top-right' ? 'top-2 right-10 z-10' :
+                             pos === 'bottom-left' ? 'bottom-2 left-2 z-10' :
+                             pos === 'bottom-right' ? 'bottom-2 right-2 z-10' :
+                             'top-2 left-2 z-10';
+            
+            return (
+              <div className={`absolute ${posClasses} flex flex-col gap-1`}>
+                {!isAvailable ? (
+                  <span className="bg-slate-900 text-slate-200 text-[9px] sm:text-[10px] font-black uppercase px-2 py-0.5 rounded-md sm:rounded-lg shadow-sm tracking-wider flex items-center gap-1">
+                    <Ban className="w-3 h-3 text-red-400" /> Out of Stock
+                  </span>
                 ) : (
-                  calculatedDiscount && (
-                    <span className="bg-[#e50914] text-white text-[9px] sm:text-[10px] font-black uppercase px-2 py-0.5 rounded-md sm:rounded-lg shadow-sm tracking-wider">
-                      {calculatedDiscount}
-                    </span>
-                  )
+                  <>
+                    {product.badge ? (
+                      <span
+                        style={{ backgroundColor: badgeBg, color: '#ffffff' }}
+                        className="text-[9px] sm:text-[10px] font-black uppercase px-2 py-0.5 rounded-md sm:rounded-lg shadow-sm tracking-wider"
+                      >
+                        {product.badge}
+                      </span>
+                    ) : Array.isArray(product.badges) && product.badges.length > 0 ? (
+                      product.badges.map((bdg, idx) => (
+                        <span
+                          key={idx}
+                          style={{ backgroundColor: bdg.bg_color || badgeBg, color: bdg.text_color || '#ffffff' }}
+                          className="text-[9px] sm:text-[10px] font-black uppercase px-2 py-0.5 rounded-md sm:rounded-lg shadow-sm tracking-wider"
+                        >
+                          {bdg.text || bdg.name || bdg}
+                        </span>
+                      ))
+                    ) : (
+                      calculatedDiscount && (
+                        <span
+                          style={{ backgroundColor: badgeBg }}
+                          className="text-white text-[9px] sm:text-[10px] font-black uppercase px-2 py-0.5 rounded-md sm:rounded-lg shadow-sm tracking-wider"
+                        >
+                          {calculatedDiscount}
+                        </span>
+                      )
+                    )}
+                  </>
                 )}
-              </>
-            )}
-          </div>
+              </div>
+            );
+          })()}
 
           {/* Top Right Wishlist Heart Button */}
           <button

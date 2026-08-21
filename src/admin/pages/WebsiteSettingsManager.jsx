@@ -217,6 +217,59 @@ export default function WebsiteSettingsManager({ adminEmail }) {
           </div>
         </div>
 
+        {/* SOCIAL MEDIA LINKS */}
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl space-y-4">
+          <h2 className="text-base font-bold text-white flex items-center gap-2 pb-3 border-b border-slate-800">
+            <Share2 className="w-5 h-5 text-purple-400" /> Social Media Management
+          </h2>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">Instagram URL</label>
+              <input
+                type="url"
+                name="instagram"
+                defaultValue={siteSettings?.social_links?.instagram || ''}
+                placeholder="https://instagram.com/..."
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white text-xs"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">Facebook URL</label>
+              <input
+                type="url"
+                name="facebook"
+                defaultValue={siteSettings?.social_links?.facebook || ''}
+                placeholder="https://facebook.com/..."
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white text-xs"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">Twitter / X URL</label>
+              <input
+                type="url"
+                name="twitter"
+                defaultValue={siteSettings?.social_links?.twitter || ''}
+                placeholder="https://x.com/..."
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white text-xs"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">YouTube Channel URL</label>
+              <input
+                type="url"
+                name="youtube"
+                defaultValue={siteSettings?.social_links?.youtube || ''}
+                placeholder="https://youtube.com/..."
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white text-xs"
+              />
+            </div>
+          </div>
+        </div>
+
         {/* SEO META SETTINGS */}
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl space-y-4">
           <h2 className="text-base font-bold text-white flex items-center gap-2 pb-3 border-b border-slate-800">
