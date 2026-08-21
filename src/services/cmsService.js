@@ -574,14 +574,32 @@ async function migrateLegacySiteSettingsToTable(tableName) {
 }
 
 /**
+ * Tables that do NOT exist as real PostgreSQL tables in Supabase.
+ * These are stored entirely as JSON arrays inside the site_settings table.
+ * Never attempt direct PostgREST queries on these — go straight to fallback.
+ */
+const FALLBACK_ONLY_TABLES = new Set([
+  'categories',
+  'analytics_visits',
+  'homepage_steps',
+  'footer_links',
+  'offer_slides',
+  'offer_categories',
+  'offer_items',
+  'product_batches',
+  'users',
+  'media'
+]);
+
+/**
  * Fetch table items or seed if empty on first-time setup only.
  * Deleted items will NEVER be re-seeded!
  */
 export async function getCmsTableData(tableName, defaultItems = [], orderColumn = 'display_order') {
   if (!supabase) return defaultItems;
   try {
-    // If table is analytics_visits and not created in Supabase yet, return fallback silently
-    if (tableName === 'analytics_visits') {
+    // Tables that don't exist in PostgreSQL — use site_settings fallback directly
+    if (FALLBACK_ONLY_TABLES.has(tableName)) {
       return await getFallbackTableData(tableName, defaultItems, orderColumn);
     }
 
@@ -709,6 +727,11 @@ export async function saveCmsItem(tableName, itemData) {
     return payload;
   }
 
+  // Tables without real PostgreSQL tables — save directly to site_settings fallback
+  if (FALLBACK_ONLY_TABLES.has(tableName)) {
+    return await saveFallbackCmsItem(tableName, payload);
+  }
+
   let options = undefined;
   if (tableName === 'site_settings' || (itemData.key && !itemData.id)) {
     options = { onConflict: 'key' };
@@ -818,6 +841,11 @@ export async function saveCmsItem(tableName, itemData) {
 export async function deleteCmsItem(tableName, id) {
   if (!supabase) throw new Error('Supabase client not configured.');
 
+  // Fallback-only tables — delete directly from site_settings JSON array
+  if (FALLBACK_ONLY_TABLES.has(tableName)) {
+    return await deleteFallbackCmsItem(tableName, id);
+  }
+
   try {
     const { error } = await supabase
       .from(tableName)
@@ -828,17 +856,11 @@ export async function deleteCmsItem(tableName, id) {
     await deleteFallbackCmsItem(tableName, id).catch(() => {});
 
     if (error) {
-      if (error.code === 'PGRST205' || error.message?.includes('schema cache')) {
-        return await deleteFallbackCmsItem(tableName, id);
-      }
-      throw new Error(`Supabase delete error: ${error.message}`);
+      return await deleteFallbackCmsItem(tableName, id);
     }
     return true;
   } catch (err) {
-    if (err.message?.includes('schema cache') || err.code === 'PGRST205') {
-      return await deleteFallbackCmsItem(tableName, id);
-    }
-    throw err;
+    return await deleteFallbackCmsItem(tableName, id);
   }
 }
 
@@ -848,10 +870,15 @@ export async function deleteCmsItem(tableName, id) {
 export async function updateDisplayOrder(tableName, items, orderField = 'display_order') {
   if (!supabase || !items || items.length === 0) return;
 
-  try {
-    const isPositionOrder = tableName === 'home_sections';
-    const fieldToUpdate = isPositionOrder ? 'position' : orderField;
+  const isPositionOrder = tableName === 'home_sections';
+  const fieldToUpdate = isPositionOrder ? 'position' : orderField;
 
+  // Fallback-only tables — update order directly in site_settings JSON array
+  if (FALLBACK_ONLY_TABLES.has(tableName)) {
+    return await updateFallbackDisplayOrder(tableName, items, fieldToUpdate);
+  }
+
+  try {
     for (let index = 0; index < items.length; index++) {
       const item = items[index];
       if (item.id) {
@@ -860,14 +887,12 @@ export async function updateDisplayOrder(tableName, items, orderField = 'display
           .update({ [fieldToUpdate]: index + 1, updated_at: new Date().toISOString() })
           .eq('id', item.id);
         
-        if (error && (error.code === 'PGRST205' || error.message?.includes('schema cache'))) {
+        if (error) {
           return await updateFallbackDisplayOrder(tableName, items, fieldToUpdate);
         }
       }
     }
   } catch (err) {
-    const isPositionOrder = tableName === 'home_sections';
-    const fieldToUpdate = isPositionOrder ? 'position' : orderField;
     await updateFallbackDisplayOrder(tableName, items, fieldToUpdate);
   }
 }
