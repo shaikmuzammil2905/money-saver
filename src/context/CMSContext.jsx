@@ -230,13 +230,18 @@ export function CMSProvider({ children }) {
       setOfferItems(oItems || []);
       if (cart) setCartSettings(cart);
       if (waTemp?.template_text) setWhatsAppTemplate(waTemp.template_text);
-      if (sSettings?.value) {
-        setSiteSettings(sSettings.value);
-        if (Array.isArray(sSettings.value.main_categories)) setMainCategories(sSettings.value.main_categories);
-        if (Array.isArray(sSettings.value.sub_categories)) setSubCategories(sSettings.value.sub_categories);
-        if (Array.isArray(sSettings.value.support_cards)) setSupportCards(sSettings.value.support_cards);
-        if (Array.isArray(sSettings.value.contact_cards)) setContactCards(sSettings.value.contact_cards);
-        if (Array.isArray(sSettings.value.faqs)) setFaqs(sSettings.value.faqs);
+      if (sSettings) {
+        const rawConfig = sSettings || {};
+        const siteConfig = (rawConfig.value && typeof rawConfig.value === 'object')
+          ? { ...rawConfig, ...rawConfig.value }
+          : rawConfig;
+
+        setSiteSettings(siteConfig);
+        if (Array.isArray(siteConfig.main_categories)) setMainCategories(siteConfig.main_categories);
+        if (Array.isArray(siteConfig.sub_categories)) setSubCategories(siteConfig.sub_categories);
+        if (Array.isArray(siteConfig.support_cards)) setSupportCards(siteConfig.support_cards);
+        if (Array.isArray(siteConfig.contact_cards)) setContactCards(siteConfig.contact_cards);
+        if (Array.isArray(siteConfig.faqs)) setFaqs(siteConfig.faqs);
       }
       setMediaList(media || []);
 
@@ -348,7 +353,15 @@ export function CMSProvider({ children }) {
         if (saved.template_text) setWhatsAppTemplate(saved.template_text);
         break;
       case 'site_settings':
-        if (saved.value) setSiteSettings(prev => ({ ...prev, ...saved.value }));
+        if (saved.value) {
+          const merged = { ...(siteSettings || {}), ...saved.value };
+          setSiteSettings(merged);
+          if (Array.isArray(saved.value.main_categories)) setMainCategories(saved.value.main_categories);
+          if (Array.isArray(saved.value.sub_categories)) setSubCategories(saved.value.sub_categories);
+          if (Array.isArray(saved.value.support_cards)) setSupportCards(saved.value.support_cards);
+          if (Array.isArray(saved.value.contact_cards)) setContactCards(saved.value.contact_cards);
+          if (Array.isArray(saved.value.faqs)) setFaqs(saved.value.faqs);
+        }
         break;
       case 'media':
         setMediaList(prev => upsertInList(prev));
@@ -494,12 +507,12 @@ export function CMSProvider({ children }) {
   // Helper to save sub-arrays to site_settings global_config
   const saveSiteConfigKey = useCallback(async (keyName, dataArray) => {
     try {
+      const currentConfig = (siteSettings?.value ? { ...siteSettings, ...siteSettings.value } : siteSettings) || {};
       const updatedValue = {
-        ...(siteSettings || {}),
+        ...currentConfig,
         [keyName]: dataArray
       };
       const payload = {
-        id: siteSettings?.id,
         key: 'global_config',
         value: updatedValue
       };

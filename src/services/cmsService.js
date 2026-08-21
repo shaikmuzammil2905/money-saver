@@ -739,16 +739,18 @@ export async function getCmsSingleRecord(tableName, defaultObj = {}) {
         .maybeSingle();
 
       if (!error && data && data.value) {
-        return typeof data.value === 'object' ? { ...defaultObj, ...data.value } : data.value;
+        const val = typeof data.value === 'object' ? data.value : { value: data.value };
+        const base = (defaultObj && defaultObj.value && typeof defaultObj.value === 'object') ? defaultObj.value : defaultObj;
+        return { ...base, ...val };
       }
 
       if (Object.keys(defaultObj).length > 0) {
         await supabase.from('site_settings').upsert({
           key: dbKey,
-          value: defaultObj,
+          value: defaultObj?.value || defaultObj,
           updated_at: new Date().toISOString()
         }, { onConflict: 'key' });
-        return defaultObj;
+        return defaultObj?.value || defaultObj;
       }
     }
 
@@ -959,7 +961,6 @@ export async function updateDisplayOrder(tableName, items, orderField = 'display
 // ANONYMOUS VISITOR ANALYTICS SERVICES
 // ==================================================
 export async function logPageView(path = window.location.pathname) {
-  if (!supabase) return;
   try {
     let sessionId = sessionStorage.getItem('oms_session_id');
     if (!sessionId) {
@@ -971,49 +972,26 @@ export async function logPageView(path = window.location.pathname) {
     const isTablet = /iPad|Tablet/i.test(navigator.userAgent);
     const deviceType = isTablet ? 'tablet' : isMobile ? 'mobile' : 'desktop';
 
-    await supabase.from('analytics_visits').insert({
+    const visitRecord = {
+      id: `visit_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       session_id: sessionId,
       path,
       device_type: deviceType,
       referrer: document.referrer || 'Direct',
       visited_at: new Date().toISOString()
-    });
+    };
+
+    await saveFallbackCmsItem('analytics_visits', visitRecord);
   } catch (err) {
-    console.warn('Analytics pageview log error:', err.message);
+    // Silent fail for non-critical analytics tracking
   }
 }
 
 export async function getAnalyticsMetrics(fromDate, toDate) {
-  if (!supabase) {
-    return {
-      todayVisits: 0,
-      yesterdayVisits: 0,
-      last7DaysVisits: 0,
-      last30DaysVisits: 0,
-      rangeVisits: 0,
-      uniqueVisitors: 0,
-      pageViews: 0,
-      topPages: [],
-      deviceBreakdown: { mobile: 0, desktop: 0, tablet: 0 }
-    };
-  }
-
   try {
-    let query = supabase.from('analytics_visits').select('*');
+    const visits = await getFallbackTableData('analytics_visits', []);
+    const allVisits = Array.isArray(visits) ? visits : [];
 
-    if (fromDate) {
-      query = query.gte('visited_at', new Date(fromDate).toISOString());
-    }
-    if (toDate) {
-      const endOfDay = new Date(toDate);
-      endOfDay.setHours(23, 59, 59, 999);
-      query = query.lte('visited_at', endOfDay.toISOString());
-    }
-
-    const { data: visits, error } = await query;
-    if (error) throw error;
-
-    const allVisits = visits || [];
     const now = new Date();
     const todayStr = now.toISOString().slice(0, 10);
 
@@ -1037,6 +1015,7 @@ export async function getAnalyticsMetrics(fromDate, toDate) {
     const deviceCounts = { mobile: 0, desktop: 0, tablet: 0 };
 
     allVisits.forEach((v) => {
+      if (!v || !v.visited_at) return;
       const vDate = new Date(v.visited_at);
       const vDateStr = vDate.toISOString().slice(0, 10);
 
@@ -1071,7 +1050,6 @@ export async function getAnalyticsMetrics(fromDate, toDate) {
       deviceBreakdown: deviceCounts
     };
   } catch (err) {
-    console.error('Error fetching analytics metrics:', err);
     return {
       todayVisits: 0,
       yesterdayVisits: 0,
