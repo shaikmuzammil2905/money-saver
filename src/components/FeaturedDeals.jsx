@@ -4,14 +4,64 @@ import { useCMS } from '../context/CMSContext';
 import ProductCard from './ProductCard';
 
 export default function FeaturedDeals({ onAddToCart, onQuickView, onViewAll, wishlistIds = [], onToggleWishlist }) {
-  const { activePublicProducts, siteSettings } = useCMS();
+  const { activePublicProducts, homeItems, siteSettings } = useCMS();
 
   const displayLimit = siteSettings?.home_display_settings?.display_count;
-  
-  // Filter active products assigned to Home section
-  let homeProducts = activePublicProducts
+
+  // Transform active homeItems from Admin Home Page Builder into Product structure
+  const mappedHomeItems = Array.isArray(homeItems)
+    ? homeItems
+        .filter((item) => item.is_active !== false)
+        .sort((a, b) => (a.display_order || 999) - (b.display_order || 999))
+        .map((item) => ({
+          id: item.id || `home-item-${item.display_order}`,
+          slug_id: item.id || `home-item-${item.display_order}`,
+          db_id: item.id,
+          title: item.title,
+          subtitle: item.short_description || item.subtitle || '',
+          description: item.short_description || item.title,
+          descriptionPoints: [
+            'High quality playback support',
+            'Instant digital activation via WhatsApp',
+            '24/7 dedicated customer support'
+          ],
+          customInfo: ['Instant Activation', 'WhatsApp Support Available', 'Payment via UPI'],
+          price: Number(item.price || 0),
+          originalPrice: Number(item.original_price || item.price || 0),
+          discount: item.discount || (item.original_price && item.price && Number(item.original_price) > Number(item.price) ? `${Math.round(((Number(item.original_price) - Number(item.price)) / Number(item.original_price)) * 100)}% OFF` : ''),
+          image: item.image_url || item.image || 'https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=800&auto=format&fit=crop&q=80',
+          images: [item.image_url || item.image || 'https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=800&auto=format&fit=crop&q=80'],
+          category: item.category || 'Featured',
+          badge: item.badge || '',
+          badges: item.badge ? [{ name: item.badge, text: item.badge, bg_color: '#e50914' }] : [],
+          inStock: true,
+          isFeatured: true,
+          displayOrder: item.display_order || 1,
+          homeOrder: item.display_order || 1,
+          rating: 4.8,
+          reviewsCount: 120
+        }))
+    : [];
+
+  // Filter active catalog products assigned to Home section
+  let homeProductsFromCatalog = activePublicProducts
     .filter((p) => Array.isArray(p.sections) ? p.sections.includes('Home') : p.isFeatured || p.show_on_home !== false)
     .sort((a, b) => (a.homeOrder || a.displayOrder || 999) - (b.homeOrder || b.displayOrder || 999));
+
+  // If homeItems is configured in CMS Home Page Builder, prioritize homeItems & merge non-duplicate catalog products
+  let homeProducts = [];
+  if (mappedHomeItems.length > 0) {
+    const existingTitles = new Set(mappedHomeItems.map(i => (i.title || '').toLowerCase()));
+    const existingIds = new Set(mappedHomeItems.map(i => i.id));
+
+    const extraCatalogProds = homeProductsFromCatalog.filter(
+      p => !existingIds.has(p.id) && !existingTitles.has((p.title || '').toLowerCase())
+    );
+
+    homeProducts = [...mappedHomeItems, ...extraCatalogProds];
+  } else {
+    homeProducts = homeProductsFromCatalog;
+  }
 
   if (displayLimit && displayLimit !== 'All' && typeof displayLimit === 'number') {
     homeProducts = homeProducts.slice(0, displayLimit);
@@ -65,3 +115,4 @@ export default function FeaturedDeals({ onAddToCart, onQuickView, onViewAll, wis
     </section>
   );
 }
+
