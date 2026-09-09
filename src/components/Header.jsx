@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, ShoppingCart, MapPin, Phone, MessageCircle, Menu, X, Flame, ChevronRight, Lock } from 'lucide-react';
+import { Search, ShoppingCart, MapPin, Phone, MessageCircle, Menu, X, Flame, ChevronRight } from 'lucide-react';
 import { useCMS } from '../context/CMSContext';
 
 export default function Header({ 
@@ -59,13 +59,7 @@ export default function Header({
           <button onClick={onOpenWhatsApp} className="flex items-center gap-1 text-emerald-300 hover:text-emerald-200 transition-colors font-bold">
             <MessageCircle className="w-3.5 h-3.5 fill-current" /> WhatsApp
           </button>
-          <span className="text-slate-400">|</span>
-          <a
-            href="/admin"
-            className="flex items-center gap-1 bg-white/20 hover:bg-white/30 text-white font-bold px-2 py-0.5 rounded text-[11px] transition-colors"
-          >
-            <Lock className="w-3 h-3" /> Admin CMS
-          </a>
+
         </div>
       </div>
 
@@ -150,14 +144,6 @@ export default function Header({
             )}
           </button>
 
-          {/* Admin Login Link Mobile */}
-          <a
-            href="/admin"
-            className="sm:hidden p-2 text-slate-200 hover:text-white hover:bg-slate-900 rounded-xl transition-colors shrink-0"
-            title="Admin CMS"
-          >
-            <Lock className="w-5 h-5 text-amber-400" />
-          </a>
 
           {/* Mobile Hamburger Toggle */}
           <button
@@ -200,15 +186,7 @@ export default function Header({
               </button>
             ))}
             
-            <a
-              href="/admin"
-              className="w-full text-left py-2.5 px-3 rounded-lg text-sm font-bold flex items-center justify-between text-amber-300 hover:bg-slate-800 border border-amber-500/30 bg-amber-950/40 mt-2"
-            >
-              <span className="flex items-center gap-2">
-                <Lock className="w-4 h-4" /> Admin Panel CMS
-              </span>
-              <ChevronRight className="w-4 h-4" />
-            </a>
+
           </div>
         </div>
       )}
