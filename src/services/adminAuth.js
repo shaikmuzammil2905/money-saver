@@ -93,3 +93,29 @@ export async function logoutAdmin() {
   if (!supabase) return;
   await supabase.auth.signOut();
 }
+
+/**
+ * Request Password Reset Email
+ */
+export async function resetAdminPassword(email) {
+  if (!supabase) throw new Error('Supabase is not configured.');
+  
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + '/admin?reset=true',
+  });
+  
+  if (error) throw error;
+}
+
+/**
+ * Update Admin Password (after clicking reset link)
+ */
+export async function updateAdminPassword(newPassword) {
+  if (!supabase) throw new Error('Supabase is not configured.');
+  
+  const { error } = await supabase.auth.updateUser({
+    password: newPassword
+  });
+  
+  if (error) throw error;
+}

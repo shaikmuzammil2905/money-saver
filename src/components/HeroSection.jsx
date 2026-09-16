@@ -129,22 +129,24 @@ export default function HeroSection({ onExploreDeals, onShopNow }) {
                       </span>
                     )}
 
-                    {Array.isArray(banner1.badges_data) && banner1.badges_data.length > 0 ? (
-                      banner1.badges_data.filter(b => b.is_active !== false).map((bdg, bIdx) => (
-                        <span key={bdg.id || bIdx} style={{ transform: `translate(${bdg.position_x || 0}px, ${bdg.position_y || 0}px)` }} className="bg-red-600/90 text-white px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase border border-red-400/40 relative shadow-sm">
-                          {bdg.text}
-                        </span>
-                      ))
-                    ) : Array.isArray(banner1.badges) && banner1.badges.map((bdg, bIdx) => (
-                      <span key={bIdx} className="bg-red-600/90 text-white px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase border border-red-400/40 shadow-sm">
-                        {typeof bdg === 'string' ? bdg : bdg.text}
+                    {banner1.badge_config?.enabled && banner1.badge_config.text && (
+                      <span style={{ backgroundColor: banner1.badge_config.bg_color || '#e50914', color: banner1.badge_config.text_color || '#ffffff' }} className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase shadow-sm border border-red-400/40">
+                        {banner1.badge_config.text}
                       </span>
-                    ))}
+                    )}
                   </div>
 
                   <div>
-                    <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-5xl font-black uppercase tracking-tight leading-none font-sans">
-                      <span className="text-[#e50914] block drop-shadow-[0_2px_10px_rgba(229,9,20,0.5)]">{banner1.heading || 'SAVE MONEY.'}</span>
+                    <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-5xl font-black uppercase tracking-tight leading-none font-sans flex flex-wrap gap-x-2.5 gap-y-1">
+                      {Array.isArray(banner1.heading_segments) && banner1.heading_segments.length > 0 ? (
+                        banner1.heading_segments.map((seg, idx) => (
+                          <span key={idx} style={{ color: seg.color || '#e50914', display: seg.display || 'inline-block' }} className="drop-shadow-[0_2px_10px_rgba(229,9,20,0.5)] whitespace-pre-wrap">
+                            {seg.text}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-[#e50914] block drop-shadow-[0_2px_10px_rgba(229,9,20,0.5)]">{banner1.heading || 'SAVE MONEY.'}</span>
+                      )}
                     </h1>
                   </div>
 
@@ -225,6 +227,7 @@ export default function HeroSection({ onExploreDeals, onShopNow }) {
                   </div>
 
                   {/* Product Showcase */}
+                  {(banner1.image_url !== '' && banner1.image_url !== null) && (
                   <div className="relative w-full max-w-xl flex items-center justify-center flex-1 overflow-hidden">
                     <motion.div 
                       className="relative w-full h-full flex items-center justify-center"
@@ -232,12 +235,14 @@ export default function HeroSection({ onExploreDeals, onShopNow }) {
                       transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
                     >
                       <img 
-                        src="/hero-products-showcase.png" 
+                        src={banner1.image_url || '/hero-products-showcase.png'} 
                         alt="Hero Products Showcase Platform"
-                        className="w-full h-full object-contain filter drop-shadow-[0_12px_24px_rgba(168,85,247,0.5)] max-h-56"
+                        style={{ objectFit: banner1.image_fit || 'contain', objectPosition: banner1.image_position || 'center' }}
+                        className="w-full h-full filter drop-shadow-[0_12px_24px_rgba(168,85,247,0.5)] max-h-56"
                       />
                     </motion.div>
                   </div>
+                  )}
 
                 </div>
 
@@ -333,27 +338,31 @@ export default function HeroSection({ onExploreDeals, onShopNow }) {
                       </span>
                     )}
 
-                    {Array.isArray(banner2.badges_data) && banner2.badges_data.length > 0 ? (
-                      banner2.badges_data.filter(b => b.is_active !== false).map((bdg, bIdx) => (
-                        <span key={bdg.id || bIdx} style={{ transform: `translate(${bdg.position_x || 0}px, ${bdg.position_y || 0}px)` }} className="bg-white text-pink-600 px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase border border-pink-400/40 relative shadow-sm">
-                          {bdg.text}
-                        </span>
-                      ))
-                    ) : Array.isArray(banner2.badges) && banner2.badges.map((bdg, bIdx) => (
-                      <span key={bIdx} className="bg-white text-pink-600 px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase border border-pink-400/40 shadow-sm">
-                        {typeof bdg === 'string' ? bdg : bdg.text}
+                    {banner2.badge_config?.enabled && banner2.badge_config.text && (
+                      <span style={{ backgroundColor: banner2.badge_config.bg_color || '#e50914', color: banner2.badge_config.text_color || '#ffffff' }} className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase shadow-sm border border-red-400/40">
+                        {banner2.badge_config.text}
                       </span>
-                    ))}
+                    )}
                   </div>
 
                   <div>
-                    <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-5xl font-black uppercase tracking-tight leading-none font-sans">
-                      <span className="bg-gradient-to-r from-orange-400 via-rose-400 to-pink-500 bg-clip-text text-transparent italic block drop-shadow-[0_0_20px_rgba(244,63,94,0.5)]">
-                        {banner2.heading?.split('.')[0] ? banner2.heading.split('.')[0] + '.' : 'SAVE MORE.'}
-                      </span>
-                      <span className="text-white italic block drop-shadow-[0_0_25px_rgba(255,255,255,0.5)]">
-                        {banner2.heading?.split('.')[1] ? banner2.heading.split('.')[1] + '.' : 'ENJOY MORE.'}
-                      </span>
+                    <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-5xl font-black uppercase tracking-tight leading-none font-sans flex flex-wrap gap-x-2.5 gap-y-1">
+                      {Array.isArray(banner2.heading_segments) && banner2.heading_segments.length > 0 ? (
+                        banner2.heading_segments.map((seg, idx) => (
+                          <span key={idx} style={{ color: seg.color || '#e50914', display: seg.display || 'inline-block' }} className="drop-shadow-[0_2px_10px_rgba(229,9,20,0.5)] whitespace-pre-wrap">
+                            {seg.text}
+                          </span>
+                        ))
+                      ) : (
+                        <>
+                          <span className="bg-gradient-to-r from-orange-400 via-rose-400 to-pink-500 bg-clip-text text-transparent italic block drop-shadow-[0_0_20px_rgba(244,63,94,0.5)]">
+                            {banner2.heading?.split('.')[0] ? banner2.heading.split('.')[0] + '.' : 'SAVE MORE.'}
+                          </span>
+                          <span className="text-white italic block drop-shadow-[0_0_25px_rgba(255,255,255,0.5)]">
+                            {banner2.heading?.split('.')[1] ? banner2.heading.split('.')[1] + '.' : 'ENJOY MORE.'}
+                          </span>
+                        </>
+                      )}
                     </h1>
                   </div>
 
@@ -434,6 +443,7 @@ export default function HeroSection({ onExploreDeals, onShopNow }) {
                   </div>
 
                   {/* Product Showcase */}
+                  {(banner2.image_url !== '' && banner2.image_url !== null) && (
                   <div className="relative w-full max-w-xl flex items-center justify-center flex-1 overflow-hidden">
                     <motion.div 
                       className="relative w-full h-full flex items-center justify-center"
@@ -441,12 +451,14 @@ export default function HeroSection({ onExploreDeals, onShopNow }) {
                       transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
                     >
                       <img 
-                        src="/hero-products-showcase.png" 
+                        src={banner2.image_url || '/hero-products-showcase.png'} 
                         alt="Cyberpunk Hero Stage"
-                        className="w-full h-full object-contain filter drop-shadow-[0_12px_28px_rgba(236,72,153,0.55)] max-h-56"
+                        style={{ objectFit: banner2.image_fit || 'contain', objectPosition: banner2.image_position || 'center' }}
+                        className="w-full h-full filter drop-shadow-[0_12px_28px_rgba(236,72,153,0.55)] max-h-56"
                       />
                     </motion.div>
                   </div>
+                  )}
                 </div>
 
               </div>

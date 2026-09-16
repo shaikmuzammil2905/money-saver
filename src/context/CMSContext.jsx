@@ -14,6 +14,7 @@ import {
   DEFAULT_CONTACT_DETAILS,
   DEFAULT_FOOTER_LINKS,
   DEFAULT_OFFER_SLIDES,
+  DEFAULT_COUPONS,
   DEFAULT_OFFER_ITEMS,
   DEFAULT_WHATSAPP_TEMPLATE,
   DEFAULT_SITE_SETTINGS,
@@ -115,6 +116,7 @@ export function CMSProvider({ children }) {
   const [offerSlides, setOfferSlides] = useState([]);
   const [offerCategories, setOfferCategories] = useState([]);
   const [offerItems, setOfferItems] = useState([]);
+  const [coupons, setCoupons] = useState([]);
   const [cartSettings, setCartSettings] = useState(DEFAULT_PAYMENT_CONFIG);
   const [whatsAppTemplate, setWhatsAppTemplate] = useState(DEFAULT_WHATSAPP_TEMPLATE);
   const [siteSettings, setSiteSettings] = useState(DEFAULT_SITE_SETTINGS);
@@ -185,6 +187,7 @@ export function CMSProvider({ children }) {
         oSlides,
         oCats,
         oItems,
+        cns,
         cart,
         waTemp,
         sSettings,
@@ -206,6 +209,7 @@ export function CMSProvider({ children }) {
         getCmsTableData('offer_slides', DEFAULT_OFFER_SLIDES, 'display_order'),
         getCmsTableData('offer_categories', [], 'display_order'),
         getCmsTableData('offer_items', DEFAULT_OFFER_ITEMS, 'display_order'),
+        getCmsTableData('coupons', DEFAULT_COUPONS, 'created_at'),
         getCmsSingleRecord('cart_settings', DEFAULT_PAYMENT_CONFIG),
         getCmsSingleRecord('whatsapp_templates', { template_key: 'order_checkout', template_text: DEFAULT_WHATSAPP_TEMPLATE }),
         getCmsSingleRecord('site_settings', { key: 'global_config', value: DEFAULT_SITE_SETTINGS }),
@@ -228,6 +232,7 @@ export function CMSProvider({ children }) {
       setOfferSlides(oSlides || []);
       setOfferCategories(oCats || []);
       setOfferItems(oItems || []);
+      setCoupons(cns || []);
       if (cart) setCartSettings(cart);
       if (waTemp?.template_text) setWhatsAppTemplate(waTemp.template_text);
       if (sSettings) {
@@ -530,6 +535,60 @@ export function CMSProvider({ children }) {
     }
   }, [siteSettings, handleSaveCmsItem]);
 
+  const validateCoupon = useCallback(async (code, cartTotal) => {
+    if (!code || !code.trim()) {
+      return { valid: false, message: 'Please enter a coupon code.' };
+    }
+    const cleanCode = code.trim().toUpperCase();
+    const found = coupons.find(c => (c.code || '').toUpperCase() === cleanCode);
+    if (!found) {
+      return { valid: false, message: 'Invalid coupon code.' };
+    }
+
+    // Server-time validation: compare UTC current time with coupon expires_at
+    const nowUtc = new Date();
+    const expiryDate = new Date(found.expires_at);
+
+    if (expiryDate.getTime() <= nowUtc.getTime()) {
+      if (found.is_active) {
+        try {
+          await handleSaveCmsItem('coupons', { ...found, is_active: false });
+          refreshAllData();
+        } catch (err) {
+          console.warn('Error updating expired coupon status:', err);
+        }
+      }
+      return { valid: false, message: `Coupon "${cleanCode}" has expired!` };
+    }
+
+    if (!found.is_active) {
+      return { valid: false, message: `Coupon "${cleanCode}" is no longer active.` };
+    }
+
+    if (found.min_order_amount && cartTotal < Number(found.min_order_amount)) {
+      return { 
+        valid: false, 
+        message: `Minimum order amount of ₹${found.min_order_amount} required to use "${cleanCode}".` 
+      };
+    }
+
+    let discount = 0;
+    if (found.discount_type === 'percentage') {
+      discount = Math.round((cartTotal * Number(found.discount_value)) / 100);
+    } else {
+      discount = Number(found.discount_value);
+    }
+
+    if (discount > cartTotal) discount = cartTotal;
+
+    return {
+      valid: true,
+      coupon: found,
+      discount,
+      message: `Coupon "${cleanCode}" applied! You saved ₹${discount}.`
+    };
+  }, [coupons, handleSaveCmsItem, refreshAllData]);
+
   return (
     <CMSContext.Provider
       value={{
@@ -576,6 +635,9 @@ export function CMSProvider({ children }) {
         setOfferCategories,
         offerItems,
         setOfferItems,
+        coupons,
+        setCoupons,
+        validateCoupon,
         cartSettings,
         setCartSettings,
         whatsAppTemplate,

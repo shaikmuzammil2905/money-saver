@@ -68,14 +68,18 @@ export default function BannersManager({ adminEmail }) {
       const secondaryImageUrl = editingBanner?.secondary_image_url || '';
       const secondaryImageCaption = editingBanner?.secondary_image_caption || '';
 
+      const headingSegmentsList = Array.isArray(editingBanner?.heading_segments) ? editingBanner.heading_segments : [];
       const payload = {
         id: editingBanner?.id,
         banner_key: editingBanner?.banner_key || `banner_${Date.now()}`,
         title_name: formData.get('title_name') || editingBanner?.title_name || 'Custom Banner',
         heading: formData.get('heading'),
+        heading_segments: headingSegmentsList,
         description: formData.get('description'),
-        image_url: formData.get('image_url'),
-        mobile_image_url: formData.get('mobile_image_url') || formData.get('image_url'),
+        image_url: formData.get('image_url') || '',
+        image_fit: formData.get('image_fit') || 'contain',
+        image_position: formData.get('image_position') || 'center',
+        mobile_image_url: formData.get('mobile_image_url') || formData.get('image_url') || '',
         text_color: formData.get('text_color') || '#ffffff',
         bg_color: formData.get('bg_color') || '#050b1e',
         overlay_color: formData.get('overlay_color') || 'rgba(0,0,0,0.3)',
@@ -415,7 +419,7 @@ export default function BannersManager({ adminEmail }) {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Heading *</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Heading (Fallback) *</label>
                   <input
                     type="text"
                     name="heading"
@@ -424,6 +428,27 @@ export default function BannersManager({ adminEmail }) {
                     className="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-slate-900 text-xs shadow-sm"
                   />
                 </div>
+                
+                <div className="md:col-span-2 space-y-2 border-t pt-2 border-slate-200">
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Structured Heading Segments (Colored Words)</label>
+                  {Array.isArray(editingBanner.heading_segments) && editingBanner.heading_segments.map((seg, idx) => (
+                    <div key={idx} className="flex items-center gap-2 bg-white p-2 border border-slate-200 rounded-lg">
+                      <input type="text" value={seg.text || ''} onChange={(e) => updateElementField('heading_segments', idx, 'text', e.target.value)} placeholder="Text" className="flex-1 text-xs p-1.5 border border-slate-200 rounded" />
+                      <input type="color" value={seg.color || '#ffffff'} onChange={(e) => updateElementField('heading_segments', idx, 'color', e.target.value)} className="w-8 h-8 rounded border border-slate-200 p-0.5" />
+                      <select value={seg.display || 'inline-block'} onChange={(e) => updateElementField('heading_segments', idx, 'display', e.target.value)} className="text-xs p-1.5 border border-slate-200 rounded">
+                        <option value="inline-block">Inline</option>
+                        <option value="block">New Line (Block)</option>
+                      </select>
+                      <button type="button" onClick={() => removeElement('heading_segments', idx)} className="text-red-500 font-bold px-2 hover:text-red-700 transition-colors">✕</button>
+                    </div>
+                  ))}
+                  <button type="button" onClick={() => {
+                    const current = Array.isArray(editingBanner.heading_segments) ? [...editingBanner.heading_segments] : [];
+                    current.push({text: 'WORD', color: '#e50914', display: 'inline-block'});
+                    setEditingBanner({...editingBanner, heading_segments: current});
+                  }} className="text-xs text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1 transition-colors">+ Add Text Segment</button>
+                </div>
+
                 <div className="md:col-span-2">
                   <label className="block text-xs font-bold text-slate-700 mb-1">Description</label>
                   <textarea
@@ -432,6 +457,31 @@ export default function BannersManager({ adminEmail }) {
                     defaultValue={editingBanner.description || ''}
                     className="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-slate-900 text-xs shadow-sm"
                   ></textarea>
+                </div>
+                
+                <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-3 border-t pt-3 border-slate-200 mt-2">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Banner Image URL</label>
+                    <input type="text" id="banner_img_input" name="image_url" defaultValue={editingBanner.image_url || ''} placeholder="Empty = No Image" className="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-slate-900 text-xs" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Image Fit</label>
+                    <select name="image_fit" defaultValue={editingBanner.image_fit || 'contain'} className="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-slate-900 text-xs">
+                      <option value="contain">Contain</option>
+                      <option value="cover">Cover</option>
+                      <option value="fill">Fill</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Image Position</label>
+                    <select name="image_position" defaultValue={editingBanner.image_position || 'center'} className="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-slate-900 text-xs">
+                      <option value="center">Center</option>
+                      <option value="top">Top</option>
+                      <option value="bottom">Bottom</option>
+                      <option value="left">Left</option>
+                      <option value="right">Right</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 

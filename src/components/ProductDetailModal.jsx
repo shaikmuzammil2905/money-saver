@@ -30,9 +30,7 @@ export default function ProductDetailModal({
       : null
   );
 
-  const descPoints = Array.isArray(product.descriptionPoints) && product.descriptionPoints.length > 0
-    ? product.descriptionPoints
-    : (product.description ? product.description.split('\n').filter(Boolean) : []);
+  const productDesc = product.description || (Array.isArray(product.description_points) ? product.description_points.join('\n') : (Array.isArray(product.descriptionPoints) ? product.descriptionPoints.join('\n') : ''));
 
   const customInfoList = Array.isArray(product.customInfo) && product.customInfo.length > 0
     ? product.customInfo
@@ -151,17 +149,12 @@ export default function ProductDetailModal({
                 </div>
 
                 {/* VERTICAL DESCRIPTION POINTS (Part 8) */}
-                {descPoints.length > 0 && (
+                {productDesc && (
                   <div className="space-y-1.5 pt-1">
-                    <h4 className="text-[11px] font-black uppercase text-slate-400 tracking-wider">Product Features</h4>
-                    <ol className="space-y-1.5 text-xs text-slate-700 font-medium">
-                      {descPoints.map((pt, idx) => (
-                        <li key={idx} className="flex items-start gap-2 bg-slate-50 p-2 rounded-xl border border-slate-100">
-                          <span className="font-bold text-[#e50914] shrink-0">{idx + 1}.</span>
-                          <span>{pt}</span>
-                        </li>
-                      ))}
-                    </ol>
+                    <h4 className="text-[11px] font-black uppercase text-slate-400 tracking-wider">Product Description</h4>
+                    <div className="text-xs text-slate-700 font-medium whitespace-pre-wrap bg-slate-50 p-3 rounded-xl border border-slate-100 leading-relaxed">
+                      {productDesc}
+                    </div>
                   </div>
                 )}
 

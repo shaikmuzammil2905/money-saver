@@ -193,6 +193,33 @@ export const DEFAULT_OFFER_SLIDES = [
   }
 ];
 
+export const DEFAULT_COUPONS = [
+  {
+    id: 'coup_1',
+    code: 'WELCOME50',
+    discount_type: 'fixed',
+    discount_value: 50,
+    min_order_amount: 199,
+    duration_value: 30,
+    duration_unit: 'Days',
+    expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    is_active: true,
+    created_at: new Date().toISOString()
+  },
+  {
+    id: 'coup_2',
+    code: 'SUPER10',
+    discount_type: 'percentage',
+    discount_value: 10,
+    min_order_amount: 300,
+    duration_value: 12,
+    duration_unit: 'Hours',
+    expires_at: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString(),
+    is_active: true,
+    created_at: new Date().toISOString()
+  }
+];
+
 export const DEFAULT_OFFER_ITEMS = [
   {
     name: 'Netflix Premium 4K UHD 1 Year Pack',

@@ -143,10 +143,16 @@ export default function OttPlansPage({ onAddToCart, onQuickView, onOpenWhatsApp 
   const { categories: cmsCategories, activePublicProducts } = useCMS();
   const [selectedCat, setSelectedCat] = useState('All');
 
-  // Filter products for OTT category group or section
   const ottPublicProducts = useMemo(() => {
-    const fromCms = activePublicProducts.filter(p => 
-      p.categoryGroup?.toLowerCase().includes('ott') || 
+    const activeCatNames = cmsCategories && cmsCategories.length > 0 
+      ? cmsCategories.filter(c => c.is_active !== false).map(c => c.name.toLowerCase())
+      : null;
+
+    const fromCms = activePublicProducts.filter(p => {
+      if (activeCatNames && p.category && !activeCatNames.includes(p.category.toLowerCase())) {
+        return false;
+      }
+      return p.categoryGroup?.toLowerCase().includes('ott') || 
       p.category?.toLowerCase().includes('ott') ||
       p.category?.toLowerCase().includes('netflix') ||
       p.category?.toLowerCase().includes('prime') ||
@@ -154,11 +160,11 @@ export default function OttPlansPage({ onAddToCart, onQuickView, onOpenWhatsApp 
       p.category?.toLowerCase().includes('zee') ||
       p.category?.toLowerCase().includes('sony') ||
       p.category?.toLowerCase().includes('combo') ||
-      (Array.isArray(p.sections) && p.sections.includes('All OTTs'))
-    );
+      (Array.isArray(p.sections) && p.sections.includes('All OTTs'));
+    });
 
-    return fromCms.length > 0 ? fromCms : activePublicProducts;
-  }, [activePublicProducts]);
+    return fromCms;
+  }, [activePublicProducts, cmsCategories]);
 
   const filterCategories = useMemo(() => {
     const list = ['All'];
@@ -168,10 +174,12 @@ export default function OttPlansPage({ onAddToCart, onQuickView, onOpenWhatsApp 
         .forEach(c => {
           if (!list.includes(c.name)) list.push(c.name);
         });
+    } else {
+      // Fallback only if CMS is completely empty
+      ottPublicProducts.forEach(p => {
+        if (p.category && !list.includes(p.category)) list.push(p.category);
+      });
     }
-    ottPublicProducts.forEach(p => {
-      if (p.category && !list.includes(p.category)) list.push(p.category);
-    });
     return list;
   }, [cmsCategories, ottPublicProducts]);
 

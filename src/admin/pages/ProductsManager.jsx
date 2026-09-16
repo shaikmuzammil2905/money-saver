@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { 
-  Package, Search, Plus, Edit3, Trash2, Power, Upload, Check, Filter, ArrowUp, ArrowDown, Tag, Layers, ListPlus, ShieldCheck 
+  Package, Search, Plus, Edit3, Trash2, Power, Upload, Check, Filter, ArrowUp, ArrowDown, Tag, Layers, ListPlus, ShieldCheck, Copy
 } from 'lucide-react';
 import { useCMS } from '../../context/CMSContext';
 import { uploadToCloudinary } from '../../services/cloudinary';
@@ -15,7 +15,7 @@ export default function ProductsManager({ adminEmail }) {
   const [selectedCatFilter, setSelectedCatFilter] = useState('All');
   const [selectedSectionFilter, setSelectedSectionFilter] = useState('All');
   const [editingProduct, setEditingProduct] = useState(null);
-  const [descPoints, setDescPoints] = useState([]);
+  const [productDescription, setProductDescription] = useState('');
   const [customInfoPoints, setCustomInfoPoints] = useState([]);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -100,10 +100,8 @@ export default function ProductsManager({ adminEmail }) {
 
   const openEditModal = (prod) => {
     setEditingProduct(prod);
-    setDescPoints(
-      Array.isArray(prod?.description_points)
-        ? prod.description_points
-        : (prod?.description ? prod.description.split('\n').filter(Boolean) : ['Point 1'])
+    setProductDescription(
+      prod?.description || (Array.isArray(prod?.description_points) ? prod.description_points.join('\n') : '')
     );
     setCustomInfoPoints(
       Array.isArray(prod?.custom_info) && prod.custom_info.length > 0
@@ -126,7 +124,7 @@ export default function ProductsManager({ adminEmail }) {
       const selectedBadgesArr = Array.from(formData.getAll('selected_badges'));
       const selectedBatchesArr = Array.from(formData.getAll('selected_batches'));
 
-      const cleanDescPoints = descPoints.filter((pt) => pt && pt.trim().length > 0);
+      const cleanDescPoints = productDescription.split('\n').filter((pt) => pt && pt.trim().length > 0);
       const cleanCustomInfo = customInfoPoints.filter((pt) => pt && pt.trim().length > 0);
 
       const rawId = editingProduct?.id || editingProduct?.db_id;
@@ -152,7 +150,7 @@ export default function ProductsManager({ adminEmail }) {
         slug_id: editingProduct?.slug_id || (!isUUID && rawId ? rawId : `prod-${Date.now()}`),
         title: formData.get('title'),
         subtitle: formData.get('subtitle'),
-        description: cleanDescPoints.join('\n'),
+        description: productDescription,
         description_points: cleanDescPoints,
         custom_info: cleanCustomInfo,
         price: priceNum,
@@ -374,6 +372,13 @@ export default function ProductsManager({ adminEmail }) {
 
                 <div className="flex items-center gap-2">
                   <button
+                    onClick={() => handleDuplicateProduct(prod)}
+                    className="px-2.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-sky-300 border border-slate-700 text-xs font-bold"
+                    title="Duplicate Product"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                  </button>
+                  <button
                     onClick={() => openEditModal(prod)}
                     className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold flex items-center gap-1"
                   >
@@ -485,42 +490,16 @@ export default function ProductsManager({ adminEmail }) {
               <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-extrabold text-emerald-400 uppercase tracking-wider">
-                    Vertical Description Points (Line-by-Line)
+                    Product Description (Multiline)
                   </label>
-                  <button
-                    type="button"
-                    onClick={handleAddDescPoint}
-                    className="px-2.5 py-1 bg-emerald-950 hover:bg-emerald-900 text-emerald-300 text-[11px] font-bold rounded-lg border border-emerald-800 flex items-center gap-1"
-                  >
-                    <Plus className="w-3 h-3" /> Add Point
-                  </button>
                 </div>
-
-                <div className="space-y-2">
-                  {descPoints.map((pt, idx) => (
-                    <div key={idx} className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-slate-500">{idx + 1}.</span>
-                      <input
-                        type="text"
-                        value={pt}
-                        onChange={(e) => {
-                          const updated = [...descPoints];
-                          updated[idx] = e.target.value;
-                          setDescPoints(updated);
-                        }}
-                        placeholder={`Point ${idx + 1}...`}
-                        className="flex-1 bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white text-xs"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setDescPoints(descPoints.filter((_, i) => i !== idx))}
-                        className="p-2 text-red-400 hover:text-red-300 font-bold text-xs"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                <textarea
+                  value={productDescription}
+                  onChange={(e) => setProductDescription(e.target.value)}
+                  placeholder="Enter detailed description here... You can use multiple paragraphs."
+                  rows="6"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white text-xs whitespace-pre-wrap focus:border-emerald-500 focus:outline-none"
+                />
               </div>
 
               {/* CUSTOM INFO MATTER */}

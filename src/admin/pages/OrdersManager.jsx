@@ -88,7 +88,7 @@ export default function OrdersManager({ adminEmail }) {
       const updated = {
         ...orderObj,
         payment_status: newStatus,
-        order_status: newStatus === 'Payment Received' ? 'Processing' : newStatus
+        order_status: (newStatus === 'Payment Verified' || newStatus === 'Payment Received') ? 'Processing' : newStatus
       };
       await saveCmsItem('orders', updated);
       await logActivity(adminEmail, 'UPDATED', 'Orders', `Order ${orderObj.order_id} status set to ${newStatus}`);
@@ -101,8 +101,9 @@ export default function OrdersManager({ adminEmail }) {
   };
 
   const statusOptions = [
-    'Payment Verification Pending',
-    'Payment Received',
+    'Payment Pending',
+    'Screenshot Uploaded',
+    'Payment Verified',
     'Processing',
     'Completed',
     'Cancelled'

@@ -14,7 +14,8 @@ import {
   Lock, 
   AlertCircle,
   MessageCircle,
-  QrCode
+  QrCode,
+  Tag
 } from 'lucide-react';
 import { getPaymentConfig } from '../services/paymentConfig';
 import { DEFAULT_PAYMENT_CONFIG } from '../config/payment';
@@ -31,8 +32,16 @@ export default function CartDrawer({
   user,
   onOpenAuthModal
 }) {
-  const { cartSettings, whatsAppTemplate } = useCMS();
+  const { cartSettings, whatsAppTemplate, validateCoupon } = useCMS();
   const [paymentConfig, setPaymentConfig] = useState(cartSettings || DEFAULT_PAYMENT_CONFIG);
+
+  // Coupon State
+  const [couponCodeInput, setCouponCodeInput] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponDiscount, setCouponDiscount] = useState(0);
+  const [couponMsg, setCouponMsg] = useState('');
+  const [couponError, setCouponError] = useState('');
+  const [applyingCoupon, setApplyingCoupon] = useState(false);
 
   // Independent fields state
   const [customerName, setCustomerName] = useState(() => {
@@ -95,6 +104,40 @@ export default function CartDrawer({
   const subtotal = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
   const totalOriginal = cartItems.reduce((acc, item) => acc + (item.originalPrice || item.price) * item.quantity, 0);
   const totalSavings = totalOriginal - subtotal;
+  const finalPayableAmount = Math.max(0, subtotal - couponDiscount);
+
+  const handleApplyCoupon = async (e) => {
+    e?.preventDefault();
+    if (!couponCodeInput.trim() || !validateCoupon) return;
+    setApplyingCoupon(true);
+    setCouponError('');
+    setCouponMsg('');
+
+    try {
+      const res = await validateCoupon(couponCodeInput, subtotal);
+      if (res.valid) {
+        setAppliedCoupon(res.coupon);
+        setCouponDiscount(res.discount);
+        setCouponMsg(res.message);
+      } else {
+        setAppliedCoupon(null);
+        setCouponDiscount(0);
+        setCouponError(res.message);
+      }
+    } catch (err) {
+      setCouponError('Failed to validate coupon code.');
+    } finally {
+      setApplyingCoupon(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponDiscount(0);
+    setCouponCodeInput('');
+    setCouponMsg('');
+    setCouponError('');
+  };
 
   const handleNameChange = (val) => {
     setCustomerName(val);
@@ -209,9 +252,9 @@ export default function CartDrawer({
     setSubmitValidationMsg('');
   };
 
-  // Payment Status Logic
+  // Payment Status Logic (Defaults to Payment Pending / Unpaid; set to Screenshot Uploaded if proof attached; Admin only can mark Paid)
   const currentPaymentStatus = (screenshotPreview || screenshotFile)
-    ? 'Payment Success'
+    ? 'Screenshot Uploaded'
     : 'Payment Pending';
 
   // Handle Open Payment Link (GPay / PhonePe Direct UPI Launch with pre-filled amount)
@@ -262,10 +305,6 @@ export default function CartDrawer({
       alert('Please enter your location.');
       return;
     }
-    if (!screenshotFile) {
-      setSubmitValidationMsg('Please upload your payment screenshot to continue.');
-      return;
-    }
 
     setOrderSubmitting(true);
     setSubmitButtonText('Preparing Order...');
@@ -304,11 +343,12 @@ export default function CartDrawer({
           .replace(/{CUSTOMER_PHONE}/g, customerPhone.trim())
           .replace(/{CUSTOMER_LOCATION}/g, customerLocation.trim())
           .replace(/{CUSTOMER_EMAIL}/g, customerEmail.trim() || 'N/A')
-          .replace(/{TOTAL}/g, subtotal.toLocaleString())
+          .replace(/{TOTAL}/g, finalPayableAmount.toLocaleString())
           .replace(/{ORDER_ID}/g, orderId)
+          .replace(/{PAYMENT_STATUS}/g, currentPaymentStatus)
           .replace(/{PAYMENT_SCREENSHOT}/g, screenshotText);
       } else {
-        msg = `🛒 *OTTMoneySaver Order*\nOrder ID: *${orderId}*\n\nName: ${customerName.trim()}\nMobile: ${customerPhone.trim()}\nLocation: ${customerLocation.trim()}\n\n*Products:*\n${productsText}\n*Total:* ₹${subtotal.toLocaleString()}\n\nPayment Screenshot:\n${screenshotText}`;
+        msg = `🛒 *OTTMoneySaver Order*\nOrder ID: *${orderId}*\nStatus: *${currentPaymentStatus}*\n\nName: ${customerName.trim()}\nMobile: ${customerPhone.trim()}\nLocation: ${customerLocation.trim()}\n\n*Products:*\n${productsText}\n*Total Payable:* ₹${finalPayableAmount.toLocaleString()}\n\nPayment Screenshot:\n${screenshotText}`;
       }
 
       // Create local Order Record
@@ -321,7 +361,9 @@ export default function CartDrawer({
         subtotal,
         totalOriginal,
         totalSavings,
-        totalAmount: subtotal,
+        couponDiscount,
+        appliedCouponCode: appliedCoupon?.code || '',
+        totalAmount: finalPayableAmount,
         paymentStatus: currentPaymentStatus,
         paymentScreenshotUrl: uploadedScreenshotUrl
       };
@@ -577,9 +619,63 @@ export default function CartDrawer({
                       <span>Subtotal</span>
                       <span className="font-bold text-slate-900">₹{subtotal.toLocaleString()}</span>
                     </div>
+
+                    {/* Coupon Input & Discount Row */}
+                    <div className="pt-2 pb-1 border-t border-slate-200 space-y-2">
+                      {!appliedCoupon ? (
+                        <form onSubmit={handleApplyCoupon} className="flex gap-2">
+                          <div className="relative flex-1">
+                            <Tag className="w-3.5 h-3.5 absolute left-3 top-3 text-slate-400" />
+                            <input
+                              type="text"
+                              placeholder="Have a Coupon Code?"
+                              value={couponCodeInput}
+                              onChange={(e) => setCouponCodeInput(e.target.value.toUpperCase())}
+                              className="w-full bg-white text-xs rounded-xl py-2 pl-8 pr-3 border border-slate-200 font-mono uppercase focus:outline-none focus:border-[#008744]"
+                            />
+                          </div>
+                          <button
+                            type="submit"
+                            disabled={applyingCoupon || !couponCodeInput.trim()}
+                            className="px-4 py-2 rounded-xl bg-[#008744] hover:bg-[#007038] disabled:bg-slate-300 text-white font-bold text-xs shadow-sm transition-all shrink-0"
+                          >
+                            {applyingCoupon ? 'Checking...' : 'Apply'}
+                          </button>
+                        </form>
+                      ) : (
+                        <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between">
+                          <div className="flex items-center gap-1.5 text-xs font-bold text-[#008744]">
+                            <Tag className="w-3.5 h-3.5" />
+                            <span>Coupon "{appliedCoupon.code}" Applied!</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleRemoveCoupon}
+                            className="text-[10px] text-red-600 hover:underline font-bold"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      )}
+
+                      {couponError && (
+                        <p className="text-[11px] text-red-600 font-bold animate-pulse">{couponError}</p>
+                      )}
+                      {couponMsg && !couponError && (
+                        <p className="text-[11px] text-emerald-700 font-bold">{couponMsg}</p>
+                      )}
+                    </div>
+
+                    {couponDiscount > 0 && (
+                      <div className="flex justify-between text-emerald-700 font-bold">
+                        <span>Coupon Discount</span>
+                        <span>-₹{couponDiscount.toLocaleString()}</span>
+                      </div>
+                    )}
+
                     <div className="flex justify-between text-base font-black text-slate-900 pt-2 border-t border-slate-200">
                       <span>Final Amount</span>
-                      <span className="text-[#008744] text-lg">₹{subtotal.toLocaleString()}</span>
+                      <span className="text-[#008744] text-lg">₹{finalPayableAmount.toLocaleString()}</span>
                     </div>
                   </div>
                 </div>
@@ -685,11 +781,11 @@ export default function CartDrawer({
                 <div className="p-3.5 rounded-2xl border bg-slate-900 text-white flex items-center justify-between text-xs font-bold shadow-md">
                   <span className="text-slate-300">Payment Status:</span>
                   <span className={`px-3 py-1 rounded-full text-xs font-black shadow-sm transition-all ${
-                    currentPaymentStatus === 'Payment Success'
-                      ? 'bg-[#008744] text-white'
-                      : 'bg-red-500 text-white'
+                    currentPaymentStatus === 'Screenshot Uploaded'
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-amber-600 text-white'
                   }`}>
-                    {currentPaymentStatus === 'Payment Success' ? 'Payment Success ✅' : 'Payment Pending'}
+                    {currentPaymentStatus === 'Screenshot Uploaded' ? 'Screenshot Uploaded 📸' : 'Payment Pending ⏳'}
                   </span>
                 </div>
               </>
