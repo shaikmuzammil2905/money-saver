@@ -87,39 +87,43 @@ export default async function handler(req, res) {
     const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour validity
 
-    // 3. Store Token Hash in Database
+    // 3. Store Token Hash in Database (both direct table & fallback key)
     try {
-      await supabase.from('admin_password_resets').insert({
+      await supabase.from('admin_password_resets').upsert({
+        email: cleanEmail,
+        token_hash: tokenHash,
+        expires_at: expiresAt,
+        used: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'token_hash' });
+    } catch (saveErr) {
+      console.warn('DB Token insert warning:', saveErr.message);
+    }
+
+    try {
+      const { data: prevData } = await supabase
+        .from('site_settings')
+        .select('value')
+        .eq('key', 'admin_password_resets_store')
+        .maybeSingle();
+      const list = Array.isArray(prevData?.value) ? prevData.value : [];
+      // Clean expired
+      const filtered = list.filter(item => new Date(item.expires_at) > new Date());
+      filtered.push({
         email: cleanEmail,
         token_hash: tokenHash,
         expires_at: expiresAt,
         used: false,
         created_at: new Date().toISOString()
       });
-    } catch (saveErr) {
-      console.warn('DB Token insert fallback:', saveErr.message);
-      // Fallback in site_settings key
-      try {
-        const { data: prevData } = await supabase
-          .from('site_settings')
-          .select('value')
-          .eq('key', 'admin_password_resets_store')
-          .maybeSingle();
-        const list = Array.isArray(prevData?.value) ? prevData.value : [];
-        list.push({
-          email: cleanEmail,
-          token_hash: tokenHash,
-          expires_at: expiresAt,
-          used: false
-        });
-        await supabase.from('site_settings').upsert({
-          key: 'admin_password_resets_store',
-          value: list,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'key' });
-      } catch (fallbackErr) {
-        console.error('Failed to store reset token:', fallbackErr);
-      }
+      await supabase.from('site_settings').upsert({
+        key: 'admin_password_resets_store',
+        value: filtered,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'key' });
+    } catch (fallbackErr) {
+      console.warn('Fallback store warning:', fallbackErr.message);
     }
 
     // 4. Configure Nodemailer Transporter with Gmail SMTP
