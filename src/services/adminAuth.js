@@ -8,44 +8,36 @@ export async function loginAdmin(email, password) {
 
   try {
     // 1. Authenticate with Supabase Auth
-    let { data, error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password
     });
-
-    // Initial setup fallback for admin testing account if not yet registered in Auth
-    if (error && (error.message.includes('Invalid login credentials') || error.status === 400)) {
-      if (email.toLowerCase() === 'admin@ottmoneysaver.com') {
-        const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
-          email,
-          password
-        });
-        if (!signUpErr && signUpData?.user) {
-          data = signUpData;
-          error = null;
-        }
-      }
-    }
 
     if (error) throw error;
     if (!data?.user) throw new Error('No user data returned from authentication.');
 
     // 2. Database-side authorization check against admin_profiles table
-    const { data: adminProfile, error: profileErr } = await supabase
+    const { data: adminProfile } = await supabase
       .from('admin_profiles')
       .select('*')
       .or(`user_id.eq.${data.user.id},email.eq.${email.toLowerCase()}`)
-      .single();
+      .maybeSingle();
 
-    if (profileErr || !adminProfile) {
-      // Create admin profile record if user is the setup admin
-      if (email.toLowerCase() === 'admin@ottmoneysaver.com') {
+    if (!adminProfile) {
+      // Auto-create admin profile for the configured admin account on first login
+      const lowerEmail = email.toLowerCase();
+      const knownAdminEmails = [
+        'fixyourmobiles7@gmail.com',
+        'admin@ottmoneysaver.com',
+        'ottmoneysaver@gmail.com'
+      ];
+      if (knownAdminEmails.includes(lowerEmail)) {
         await supabase.from('admin_profiles').upsert({
           user_id: data.user.id,
-          email: email.toLowerCase(),
+          email: lowerEmail,
           role: 'admin',
           updated_at: new Date().toISOString()
-        });
+        }, { onConflict: 'user_id' });
       } else {
         // Reject non-admin users
         await supabase.auth.signOut();
@@ -73,9 +65,15 @@ export async function getCurrentAdmin() {
       .from('admin_profiles')
       .select('*')
       .or(`user_id.eq.${session.user.id},email.eq.${session.user.email.toLowerCase()}`)
-      .single();
+      .maybeSingle();
 
-    if (!adminProfile && session.user.email?.toLowerCase() !== 'admin@ottmoneysaver.com') {
+    // Allow known admin emails even if profile doesn't exist yet
+    const knownAdminEmails = [
+      'fixyourmobiles7@gmail.com',
+      'admin@ottmoneysaver.com',
+      'ottmoneysaver@gmail.com'
+    ];
+    if (!adminProfile && !knownAdminEmails.includes(session.user.email?.toLowerCase())) {
       return null;
     }
 
@@ -95,50 +93,59 @@ export async function logoutAdmin() {
 }
 
 /**
- * Request Password Reset Email
+ * Request Password Reset Email via Supabase Auth
+ *
+ * ROOT CAUSE FIX (as shown in image copy 67.png):
+ * The previous implementation had a hardcoded email whitelist that only allowed
+ * 'admin@ottmoneysaver.com' and 'ottmoneysaver@gmail.com'. This caused:
+ *   "Wrong email entered. Please check your admin email address."
+ * even when 'Fixyourmobiles7@gmail.com' was entered — because it was not in the whitelist.
+ *
+ * Fix: Remove ALL pre-validation. Delegate entirely to Supabase Auth.
+ * Supabase will send a real reset email only if the account exists.
+ * This is secure by design (prevents email enumeration attacks).
+ *
+ * MANUAL STEP REQUIRED: Fixyourmobiles7@gmail.com must be registered in Supabase Auth.
+ * If not: Supabase Dashboard → Authentication → Users → Add user → Enter email + password.
+ * Then an admin_profiles record will auto-create on next login.
+ *
+ * REDIRECT URL: Must match "Site URL" and "Redirect URLs" in:
+ *   Supabase Dashboard → Authentication → URL Configuration
+ *   Add: https://your-production-domain.vercel.app/admin (replace with your actual domain)
  */
 export async function resetAdminPassword(email) {
   if (!supabase) throw new Error('Supabase is not configured.');
-  
+
   if (!email || !email.trim()) {
     throw new Error('Please enter your admin email address.');
   }
 
   const cleanEmail = email.trim().toLowerCase();
 
-  // Validate if email belongs to registered admin
-  try {
-    const { data: adminProfile } = await supabase
-      .from('admin_profiles')
-      .select('email')
-      .eq('email', cleanEmail)
-      .maybeSingle();
-
-    if (!adminProfile && cleanEmail !== 'admin@ottmoneysaver.com' && cleanEmail !== 'ottmoneysaver@gmail.com') {
-      throw new Error('Wrong email entered. Please check your admin email address.');
-    }
-  } catch (checkErr) {
-    if (checkErr.message?.includes('Wrong email entered')) {
-      throw checkErr;
-    }
-  }
+  // Determine redirect URL — uses current origin so it works in both dev and production
+  const redirectTo = `${window.location.origin}/admin?reset=true`;
 
   const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
-    redirectTo: window.location.origin + '/admin?reset=true',
+    redirectTo,
   });
-  
+
   if (error) {
     console.error('Password reset email error:', error);
     throw new Error(error.message || 'Failed to send password reset email. Please try again.');
   }
+
+  // Supabase returns success even if email doesn't exist (security by design).
+  // The reset email is only delivered if the account exists in Supabase Auth.
 }
 
 /**
- * Update Admin Password (after clicking reset link)
+ * Update Admin Password after clicking the reset email link.
+ * Supabase automatically establishes a session from the reset token in the URL.
+ * The AdminLogin component detects ?reset=true or hash type=recovery and switches to 'reset' mode.
  */
 export async function updateAdminPassword(newPassword) {
   if (!supabase) throw new Error('Supabase is not configured.');
-  
+
   if (!newPassword || newPassword.length < 6) {
     throw new Error('Password must be at least 6 characters long.');
   }
@@ -146,7 +153,7 @@ export async function updateAdminPassword(newPassword) {
   const { error } = await supabase.auth.updateUser({
     password: newPassword
   });
-  
+
   if (error) throw error;
 }
 
@@ -199,4 +206,3 @@ export async function changeAdminEmail(newEmail) {
     message: 'A verification link has been sent to your new email address. Please verify it to complete the change.'
   };
 }
-

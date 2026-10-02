@@ -12,12 +12,18 @@ export default function AdminLogin({ onLoginSuccess }) {
   const [mode, setMode] = useState('login'); // 'login', 'forgot', 'reset'
 
   useEffect(() => {
-    // Check if we're coming from a password reset email
+    // Check if we're coming from a password reset email link.
+    // Supabase embeds the session in the URL hash (#access_token=...&type=recovery)
+    // OR the redirect URL may include ?reset=true (our custom param).
     const params = new URLSearchParams(window.location.search);
-    if (params.get('reset') === 'true' || window.location.hash.includes('type=recovery')) {
+    const hash = window.location.hash;
+
+    if (params.get('reset') === 'true' || hash.includes('type=recovery')) {
       setMode('reset');
-      // Clean up URL
-      window.history.replaceState({}, document.title, window.location.pathname);
+      // Keep URL clean but preserve hash so Supabase can exchange the token
+      if (params.get('reset') === 'true') {
+        window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
+      }
     }
   }, []);
 
