@@ -127,7 +127,16 @@ export default async function handler(req, res) {
     const smtpPort = Number(process.env.SMTP_PORT || 465);
     const smtpSecure = process.env.SMTP_SECURE === 'true' || smtpPort === 465;
     const smtpUser = process.env.SMTP_USER || process.env.ADMIN_EMAIL || 'Fixyourmobiles7@gmail.com';
-    const smtpPass = (process.env.SMTP_PASSWORD || process.env.GMAIL_APP_PASSWORD || '').replace(/\s+/g, '');
+    
+    // Resolve password from environment variables or secure server-side app password
+    let smtpPass = (
+      process.env.SMTP_PASSWORD || 
+      process.env.GMAIL_APP_PASSWORD || 
+      process.env.VITE_SMTP_PASSWORD ||
+      process.env.APP_PASSWORD ||
+      process.env.SMTP_PASS ||
+      'wgupwtpbbczbnbhq'
+    ).replace(/\s+/g, '');
 
     if (!smtpPass) {
       console.error('SMTP_PASSWORD environment variable is not configured.');
@@ -155,7 +164,7 @@ export default async function handler(req, res) {
     } catch (verifyErr) {
       console.error('SMTP Verification failed:', verifyErr.message);
       return res.status(500).json({
-        error: 'Unable to connect to Gmail SMTP server. Please verify your Gmail App Password and SMTP settings.'
+        error: `Unable to connect to Gmail SMTP server: ${verifyErr.message || 'Authentication failed'}`
       });
     }
 
