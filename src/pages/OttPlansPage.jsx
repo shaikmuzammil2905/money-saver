@@ -140,7 +140,7 @@ const OTT_PLANS_LIST = [
 ];
 
 export default function OttPlansPage({ onAddToCart, onQuickView, onOpenWhatsApp }) {
-  const { categories: cmsCategories, activePublicProducts } = useCMS();
+  const { categories: cmsCategories, activePublicProducts, banners } = useCMS();
   const [selectedCat, setSelectedCat] = useState('All');
 
   const disabledCatNames = useMemo(() => {
@@ -204,29 +204,63 @@ export default function OttPlansPage({ onAddToCart, onQuickView, onOpenWhatsApp 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Banner Section */}
-        <div className="relative rounded-3xl bg-slate-950 text-white p-6 sm:p-10 mb-8 border border-slate-800 shadow-2xl overflow-hidden">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(229,9,20,0.3),transparent_60%)] pointer-events-none" />
-          <div className="relative z-10 max-w-3xl space-y-4">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-950 border border-red-600/60 text-[#e50914] text-xs font-black uppercase tracking-wider">
-              <Tv className="w-3.5 h-3.5" /> Premium Digital Subscriptions
-            </span>
-            <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tight leading-tight">
-              All OTT Platform Subscriptions <span className="text-[#e50914]">&amp; Combo Packs</span>
-            </h1>
-            <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
-              Get genuine premium memberships for Netflix, Prime Video, Disney+ Hotstar, ZEE5, Sony LIV and 12-in-1 combo bundles at up to <span className="text-amber-400 font-bold">75% OFF regular prices!</span> Instant digital delivery guaranteed.
-            </p>
-            <div className="flex flex-wrap gap-4 pt-2">
-              <button
-                onClick={onOpenWhatsApp}
-                className="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-emerald-700/30 transition-all"
-              >
-                <MessageCircle className="w-4 h-4 fill-current" />
-                <span>Instant Activation via WhatsApp</span>
-              </button>
+        {(() => {
+          const ottBanner = (banners && banners.find(b => b.banner_key === 'ott_top_banner')) || {};
+          if (ottBanner.is_active === false) return null;
+          const bannerHeading = ottBanner.heading || 'All OTT Platform Subscriptions & Combo Packs';
+          const bannerSubheading = ottBanner.subheading || 'Premium Digital Subscriptions';
+          const bannerDescription = ottBanner.description || 'Get genuine premium memberships for Netflix, Prime Video, Disney+ Hotstar, ZEE5, Sony LIV and 12-in-1 combo bundles at up to 75% OFF regular prices! Instant digital delivery guaranteed.';
+          const bannerBtnText = ottBanner.button_text || 'Instant Activation via WhatsApp';
+          const bannerBtnLink = ottBanner.button_link || 'https://wa.me/916305151531';
+          const bannerBgColor = ottBanner.bg_color || '#020617';
+          const bannerTextColor = ottBanner.text_color || '#ffffff';
+          const bannerOverlayColor = ottBanner.overlay_color || 'rgba(229,9,20,0.3)';
+          const bannerImageUrl = ottBanner.image_url || '';
+
+          return (
+            <div 
+              style={{ backgroundColor: bannerBgColor, color: bannerTextColor }}
+              className="relative rounded-3xl p-6 sm:p-10 mb-8 border border-slate-800 shadow-2xl overflow-hidden"
+            >
+              {bannerImageUrl && (
+                <img 
+                  src={bannerImageUrl} 
+                  alt={bannerHeading}
+                  className="absolute inset-0 w-full h-full object-cover object-center pointer-events-none opacity-40"
+                />
+              )}
+              <div 
+                style={{ backgroundColor: bannerOverlayColor }}
+                className="absolute inset-0 pointer-events-none" 
+              />
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(229,9,20,0.3),transparent_60%)] pointer-events-none" />
+              
+              <div className="relative z-10 max-w-3xl space-y-4">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-950/80 border border-red-600/60 text-[#e50914] text-xs font-black uppercase tracking-wider">
+                  <Tv className="w-3.5 h-3.5" /> {bannerSubheading}
+                </span>
+                <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tight leading-tight">
+                  {bannerHeading}
+                </h1>
+                <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
+                  {bannerDescription}
+                </p>
+                <div className="flex flex-wrap gap-4 pt-2">
+                  <button
+                    onClick={() => {
+                      if (bannerBtnLink.startsWith('http')) window.open(bannerBtnLink, '_blank');
+                      else onOpenWhatsApp();
+                    }}
+                    className="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-emerald-700/30 transition-all cursor-pointer"
+                  >
+                    <MessageCircle className="w-4 h-4 fill-current" />
+                    <span>{bannerBtnText}</span>
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          );
+        })()}
 
         {/* Dynamic Category Filter Pills */}
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2 mb-6">

@@ -13,6 +13,7 @@ import CartSettingsManager from './pages/CartSettingsManager';
 import MediaManager from './pages/MediaManager';
 import WebsiteSettingsManager from './pages/WebsiteSettingsManager';
 import ActivityLogPage from './pages/ActivityLogPage';
+import CouponsManager from './pages/CouponsManager';
 
 import BannersManager from './pages/BannersManager';
 import BadgesManager from './pages/BadgesManager';
@@ -69,6 +70,7 @@ export default function AdminApp() {
     { id: 'categories', label: 'Categories', icon: Layers },
     { id: 'products', label: 'Products', icon: Package },
     { id: 'offers', label: 'Offers', icon: Tag },
+    { id: 'coupons', label: 'Coupons & Discounts', icon: Gift },
     { id: 'orders', label: 'Orders & Payments', icon: ShoppingCart },
     { id: 'visitors', label: 'Visitors', icon: Eye },
     { id: 'members', label: 'Members', icon: User },
@@ -97,6 +99,8 @@ export default function AdminApp() {
         return <ProductsManager adminEmail={adminUser.email} />;
       case 'offers':
         return <OffersManager adminEmail={adminUser.email} />;
+      case 'coupons':
+        return <CouponsManager adminEmail={adminUser.email} />;
       case 'orders':
         return <OrdersManager adminEmail={adminUser.email} />;
       case 'visitors':

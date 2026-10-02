@@ -535,59 +535,99 @@ export function CMSProvider({ children }) {
     }
   }, [siteSettings, handleSaveCmsItem]);
 
-  const validateCoupon = useCallback(async (code, cartTotal) => {
+  const validateCoupon = useCallback(async (code, cartTotal, cartItems = []) => {
     if (!code || !code.trim()) {
       return { valid: false, message: 'Please enter a coupon code.' };
     }
     const cleanCode = code.trim().toUpperCase();
     const found = coupons.find(c => (c.code || '').toUpperCase() === cleanCode);
     if (!found) {
-      return { valid: false, message: 'Invalid coupon code.' };
-    }
-
-    // Server-time validation: compare UTC current time with coupon expires_at
-    const nowUtc = new Date();
-    const expiryDate = new Date(found.expires_at);
-
-    if (expiryDate.getTime() <= nowUtc.getTime()) {
-      if (found.is_active) {
-        try {
-          await handleSaveCmsItem('coupons', { ...found, is_active: false });
-          refreshAllData();
-        } catch (err) {
-          console.warn('Error updating expired coupon status:', err);
-        }
-      }
-      return { valid: false, message: `Coupon "${cleanCode}" has expired!` };
+      return { valid: false, message: 'Coupon invalid' };
     }
 
     if (!found.is_active) {
-      return { valid: false, message: `Coupon "${cleanCode}" is no longer active.` };
+      return { valid: false, message: 'Coupon invalid' };
     }
 
+    const now = new Date();
+
+    // Check Start Date/Time
+    if (found.starts_at) {
+      const startTime = new Date(found.starts_at);
+      if (now < startTime) {
+        return { valid: false, message: 'Coupon is not active yet' };
+      }
+    }
+
+    // Check Expiry Date/Time
+    if (found.expires_at) {
+      const expiryTime = new Date(found.expires_at);
+      if (now > expiryTime) {
+        return { 
+          valid: false, 
+          isExpired: true,
+          message: 'Coupon expired' 
+        };
+      }
+    }
+
+    // Check Usage Limit
+    if (found.usage_limit && Number(found.usage_limit) > 0) {
+      const usedCount = Number(found.used_count || 0);
+      if (usedCount >= Number(found.usage_limit)) {
+        return { valid: false, message: 'Coupon usage limit reached' };
+      }
+    }
+
+    // Check Minimum Order Amount
     if (found.min_order_amount && cartTotal < Number(found.min_order_amount)) {
       return { 
         valid: false, 
-        message: `Minimum order amount of ₹${found.min_order_amount} required to use "${cleanCode}".` 
+        message: 'Minimum order amount not reached' 
       };
     }
 
+    // Check Target Categories / Products if specified
+    if (found.apply_to === 'categories' && Array.isArray(found.allowed_categories) && found.allowed_categories.length > 0) {
+      const allowed = found.allowed_categories.map(c => String(c).toLowerCase());
+      const hasMatchingItem = cartItems.some(item => {
+        const itemCat = String(item.category || item.categoryGroup || '').toLowerCase();
+        return allowed.some(a => itemCat.includes(a) || a.includes(itemCat));
+      });
+      if (!hasMatchingItem) {
+        return { valid: false, message: 'Coupon invalid' };
+      }
+    }
+
+    if (found.apply_to === 'products' && Array.isArray(found.allowed_product_ids) && found.allowed_product_ids.length > 0) {
+      const allowedIds = found.allowed_product_ids.map(id => String(id).toLowerCase());
+      const hasMatchingProduct = cartItems.some(item => allowedIds.includes(String(item.id).toLowerCase()));
+      if (!hasMatchingProduct) {
+        return { valid: false, message: 'Coupon invalid' };
+      }
+    }
+
+    // Calculate Discount
     let discount = 0;
     if (found.discount_type === 'percentage') {
       discount = Math.round((cartTotal * Number(found.discount_value)) / 100);
+      if (found.max_discount && Number(found.max_discount) > 0) {
+        discount = Math.min(discount, Number(found.max_discount));
+      }
     } else {
       discount = Number(found.discount_value);
     }
 
     if (discount > cartTotal) discount = cartTotal;
+    if (discount < 0) discount = 0;
 
     return {
       valid: true,
       coupon: found,
       discount,
-      message: `Coupon "${cleanCode}" applied! You saved ₹${discount}.`
+      message: `Coupon "${cleanCode}" applied! ₹${discount.toLocaleString()} savings.`
     };
-  }, [coupons, handleSaveCmsItem, refreshAllData]);
+  }, [coupons]);
 
   return (
     <CMSContext.Provider

@@ -178,6 +178,57 @@ export const DEFAULT_BANNERS = [
     overlay_color: 'rgba(0,0,0,0.3)',
     display_order: 8,
     is_active: true
+  },
+  {
+    banner_key: 'ott_top_banner',
+    title_name: 'OTT Platforms Top Banner',
+    heading: 'All OTT Platform Subscriptions & Combo Packs',
+    subheading: 'PREMIUM DIGITAL SUBSCRIPTIONS',
+    description: 'Get genuine premium memberships for Netflix, Prime Video, Disney+ Hotstar, ZEE5, Sony LIV and 12-in-1 combo bundles at up to 75% OFF regular prices!',
+    button_text: 'Instant Activation via WhatsApp',
+    button_link: 'https://wa.me/916305151531',
+    image_url: 'https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=1200&auto=format&fit=crop&q=80',
+    mobile_image_url: 'https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?w=800&auto=format&fit=crop&q=80',
+    text_color: '#ffffff',
+    button_color: '#059669',
+    bg_color: '#020617',
+    overlay_color: 'rgba(229,9,20,0.3)',
+    display_order: 9,
+    is_active: true
+  },
+  {
+    banner_key: 'fiber_top_banner',
+    title_name: 'Fiber Internet Top Banner',
+    heading: 'Ultra Fast Fiber Broadband & OTT Bundles',
+    subheading: 'HIGH-SPEED FIBER BROADBAND',
+    description: 'Experience seamless 4K streaming, zero-ping online gaming, and lightning fast downloads. Free dual-band Wi-Fi router & zero installation!',
+    button_text: 'Check Fiber Availability',
+    button_link: 'https://wa.me/916305151531',
+    image_url: 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=1200&auto=format&fit=crop&q=80',
+    mobile_image_url: 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=800&auto=format&fit=crop&q=80',
+    text_color: '#ffffff',
+    button_color: '#0284c7',
+    bg_color: '#020617',
+    overlay_color: 'rgba(14,165,233,0.3)',
+    display_order: 10,
+    is_active: true
+  },
+  {
+    banner_key: 'mobiles_top_banner',
+    title_name: 'Mobiles & Gadgets Top Banner',
+    heading: 'Mobiles & Smart Gadgets Carnival',
+    subheading: 'SMARTPHONES & MOBILE ACCESSORIES',
+    description: 'Explore 5G smartphones, active noise cancelling earbuds, premium bluetooth speakers, smartwatches & ultra-fast chargers with genuine brand warranty.',
+    button_text: 'Shop Gadget Deals',
+    button_link: 'mobiles',
+    image_url: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=1200&auto=format&fit=crop&q=80',
+    mobile_image_url: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&auto=format&fit=crop&q=80',
+    text_color: '#ffffff',
+    button_color: '#10b981',
+    bg_color: '#022c22',
+    overlay_color: 'rgba(16,185,129,0.25)',
+    display_order: 11,
+    is_active: true
   }
 ];
 
@@ -1024,16 +1075,40 @@ export async function logPageView(path = window.location.pathname) {
       sessionStorage.setItem('oms_session_id', sessionId);
     }
 
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    const isTablet = /iPad|Tablet/i.test(navigator.userAgent);
-    const deviceType = isTablet ? 'tablet' : isMobile ? 'mobile' : 'desktop';
+    const ua = navigator.userAgent || '';
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(ua);
+    const isTablet = /iPad|Tablet/i.test(ua);
+    const deviceType = isTablet ? 'Tablet' : isMobile ? 'Mobile' : 'Desktop';
+
+    let browser = 'Unknown Browser';
+    if (ua.includes('Edg/')) browser = 'Edge';
+    else if (ua.includes('Chrome/')) browser = 'Chrome';
+    else if (ua.includes('Safari/') && !ua.includes('Chrome')) browser = 'Safari';
+    else if (ua.includes('Firefox/')) browser = 'Firefox';
+    else if (ua.includes('Opera') || ua.includes('OPR/')) browser = 'Opera';
+
+    let os = 'Unknown OS';
+    if (ua.includes('Windows')) os = 'Windows';
+    else if (ua.includes('Mac OS')) os = 'macOS';
+    else if (ua.includes('Android')) os = 'Android';
+    else if (ua.includes('iPhone') || ua.includes('iPad')) os = 'iOS';
+    else if (ua.includes('Linux')) os = 'Linux';
+
+    const screenRes = typeof window !== 'undefined' && window.screen 
+      ? `${window.screen.width}x${window.screen.height}` 
+      : 'N/A';
 
     const visitRecord = {
       id: `visit_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       session_id: sessionId,
-      path,
+      path: path || '/',
       device_type: deviceType,
-      referrer: document.referrer || 'Direct',
+      browser,
+      operating_system: os,
+      screen_resolution: screenRes,
+      referrer: (typeof document !== 'undefined' && document.referrer) ? document.referrer : 'Direct Visit',
+      language: navigator.language || 'en-US',
+      user_agent: ua,
       visited_at: new Date().toISOString()
     };
 

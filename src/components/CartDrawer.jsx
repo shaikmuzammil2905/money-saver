@@ -114,7 +114,7 @@ export default function CartDrawer({
     setCouponMsg('');
 
     try {
-      const res = await validateCoupon(couponCodeInput, subtotal);
+      const res = await validateCoupon(couponCodeInput, subtotal, cartItems);
       if (res.valid) {
         setAppliedCoupon(res.coupon);
         setCouponDiscount(res.discount);
@@ -125,11 +125,29 @@ export default function CartDrawer({
         setCouponError(res.message);
       }
     } catch (err) {
-      setCouponError('Failed to validate coupon code.');
+      setCouponError('Coupon invalid');
     } finally {
       setApplyingCoupon(false);
     }
   };
+
+  // Auto-revalidate applied coupon when cart items or subtotal change
+  useEffect(() => {
+    if (appliedCoupon && validateCoupon) {
+      validateCoupon(appliedCoupon.code, subtotal, cartItems).then((res) => {
+        if (res.valid) {
+          setCouponDiscount(res.discount);
+        } else {
+          setAppliedCoupon(null);
+          setCouponDiscount(0);
+          setCouponError(res.message);
+        }
+      }).catch(() => {
+        setAppliedCoupon(null);
+        setCouponDiscount(0);
+      });
+    }
+  }, [cartItems, subtotal, appliedCoupon, validateCoupon]);
 
   const handleRemoveCoupon = () => {
     setAppliedCoupon(null);
@@ -532,58 +550,35 @@ export default function CartDrawer({
                       />
                     </div>
 
-                    {/* Location Section */}
+                    {/* Delivery Location Section */}
                     <div>
-                      <div className="flex justify-between items-center mb-1">
+                      <div className="flex justify-between items-center mb-1.5">
                         <label className="block text-[11px] font-bold text-slate-700">
-                          Location <span className="text-red-500">*</span>
+                          Delivery Location / Address <span className="text-red-500">*</span>
                         </label>
                         <button
                           type="button"
-                          onClick={() => setIsEditingLocation(!isEditingLocation)}
-                          className="text-[11px] font-bold text-[#e50914] hover:underline active:scale-95 transition-all"
+                          onClick={handleDetectLocation}
+                          disabled={detectingLocation}
+                          className="text-[10px] font-bold text-[#008744] hover:text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-lg transition-all flex items-center gap-1 active:scale-95"
                         >
-                          {isEditingLocation ? 'Done' : 'Edit'}
+                          📍 {detectingLocation ? 'Detecting...' : 'Enable Auto Location'}
                         </button>
                       </div>
 
-                      {!isEditingLocation ? (
-                        <div className="bg-white rounded-xl p-2.5 border border-slate-200 flex items-center justify-between">
-                          <span className={`text-xs font-semibold ${customerLocation ? 'text-slate-900' : 'text-slate-400'}`}>
-                            {customerLocation || '[ Enter Area, City, State ]'}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => setIsEditingLocation(true)}
-                            className="text-[10px] font-bold text-[#008744] bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 shrink-0 ml-2"
-                          >
-                            Edit Location
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="space-y-2 mt-1">
-                          <input
-                            type="text"
-                            placeholder="Area, City, State"
-                            value={customerLocation}
-                            onChange={(e) => handleLocationChange(e.target.value)}
-                            className="w-full bg-white text-xs rounded-xl py-2.5 px-3 border border-slate-200 focus:outline-none focus:border-[#008744] transition-all"
-                          />
-                          <div className="flex justify-end">
-                            <button
-                              type="button"
-                              onClick={handleDetectLocation}
-                              disabled={detectingLocation}
-                              className="text-[10px] text-slate-500 hover:text-[#008744] font-medium underline flex items-center gap-1"
-                            >
-                              📍 {detectingLocation ? 'Detecting...' : 'Auto-fill current location via GPS'}
-                            </button>
-                          </div>
-                        </div>
-                      )}
+                      <input
+                        type="text"
+                        required
+                        placeholder="City, Area, Address, Pincode (e.g. Hyderabad, Kukatpally 500072)"
+                        value={customerLocation}
+                        onChange={(e) => handleLocationChange(e.target.value)}
+                        className="w-full bg-white text-xs rounded-xl py-2.5 px-3 border border-slate-200 focus:outline-none focus:border-[#008744] transition-all font-medium text-slate-900 shadow-sm"
+                      />
 
                       {locationError && (
-                        <p className="text-[10px] text-red-600 font-bold mt-1">{locationError}</p>
+                        <p className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 p-2 rounded-xl font-semibold mt-1.5">
+                          ℹ️ {locationError}
+                        </p>
                       )}
                     </div>
 
@@ -597,7 +592,7 @@ export default function CartDrawer({
                         placeholder="Enter email address"
                         value={customerEmail}
                         onChange={(e) => handleEmailChange(e.target.value)}
-                        className="w-full bg-white text-xs rounded-xl py-2.5 px-3 border border-slate-200 focus:outline-none focus:border-[#008744] transition-all"
+                        className="w-full bg-white text-xs rounded-xl py-2.5 px-3 border border-slate-200 focus:outline-none focus:border-[#008744] transition-all font-medium text-slate-900 shadow-sm"
                       />
                     </div>
                   </div>
@@ -659,10 +654,22 @@ export default function CartDrawer({
                       )}
 
                       {couponError && (
-                        <p className="text-[11px] text-red-600 font-bold animate-pulse">{couponError}</p>
+                        <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-bold">
+                          <span>⚠️ {couponError}</span>
+                          {couponError.toLowerCase().includes('expired') && (
+                            <a
+                              href={`https://wa.me/${String(cartSettings?.whatsapp_number || '916305151531').replace(/\D/g, '')}?text=${encodeURIComponent(`Hello OTTMoneySaver, I would like to inquire about renewal/deals for coupon: ${couponCodeInput}`)}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="px-2 py-1 rounded-lg bg-[#008744] text-white text-[10px] font-extrabold flex items-center gap-1 shrink-0"
+                            >
+                              Contact Now
+                            </a>
+                          )}
+                        </div>
                       )}
                       {couponMsg && !couponError && (
-                        <p className="text-[11px] text-emerald-700 font-bold">{couponMsg}</p>
+                        <p className="text-[11px] text-emerald-700 font-bold">✅ {couponMsg}</p>
                       )}
                     </div>
 

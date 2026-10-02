@@ -87,7 +87,7 @@ const FIBER_PLANS = [
 ];
 
 export default function FiberInternetPage({ onAddToCart, onOpenWhatsApp }) {
-  const { activePublicProducts } = useCMS();
+  const { activePublicProducts, banners } = useCMS();
 
   const displayPlans = React.useMemo(() => {
     const fromCms = (activePublicProducts || []).filter(p => 
@@ -126,37 +126,71 @@ export default function FiberInternetPage({ onAddToCart, onOpenWhatsApp }) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Hero Header */}
-        <div className="relative rounded-3xl bg-slate-950 text-white p-6 sm:p-10 mb-10 border border-slate-800 shadow-2xl overflow-hidden">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_30%,rgba(14,165,233,0.3),transparent_60%)] pointer-events-none" />
-          <div className="relative z-10 max-w-3xl space-y-4">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-950 border border-sky-500/60 text-sky-400 text-xs font-black uppercase tracking-wider">
-              <Wifi className="w-3.5 h-3.5" /> High-Speed Fiber Broadband
-            </span>
-            <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tight leading-tight">
-              Ultra Fast Fiber Broadband <span className="text-sky-400">&amp; OTT Bundles</span>
-            </h1>
-            <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
-              Experience seamless 4K streaming, zero-ping online gaming, and lightning fast downloads. All plans include free dual-band Wi-Fi router, zero installation charges, and bundled OTT platforms!
-            </p>
+        {(() => {
+          const fiberBanner = (banners && banners.find(b => b.banner_key === 'fiber_top_banner')) || {};
+          if (fiberBanner.is_active === false) return null;
+          const bannerHeading = fiberBanner.heading || 'Ultra Fast Fiber Broadband & OTT Bundles';
+          const bannerSubheading = fiberBanner.subheading || 'High-Speed Fiber Broadband';
+          const bannerDescription = fiberBanner.description || 'Experience seamless 4K streaming, zero-ping online gaming, and lightning fast downloads. All plans include free dual-band Wi-Fi router, zero installation charges, and bundled OTT platforms!';
+          const bannerBtnText = fiberBanner.button_text || 'Check Fiber Availability in Your Area';
+          const bannerBtnLink = fiberBanner.button_link || 'https://wa.me/916305151531';
+          const bannerBgColor = fiberBanner.bg_color || '#020617';
+          const bannerTextColor = fiberBanner.text_color || '#ffffff';
+          const bannerOverlayColor = fiberBanner.overlay_color || 'rgba(14,165,233,0.3)';
+          const bannerImageUrl = fiberBanner.image_url || '';
 
-            <div className="flex flex-wrap items-center gap-4 pt-2">
-              <button
-                onClick={onOpenWhatsApp}
-                className="px-6 py-3 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-extrabold text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-sky-500/30 transition-all"
-              >
-                <MessageCircle className="w-4 h-4 fill-current" />
-                <span>Check Fiber Availability in Your Area</span>
-              </button>
-              <a
-                href="tel:6305151531"
-                className="px-6 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white font-extrabold text-xs sm:text-sm flex items-center gap-2 hover:border-slate-500 transition-all"
-              >
-                <Phone className="w-4 h-4 text-sky-400" />
-                <span>Call Hotline: 6305151531</span>
-              </a>
+          return (
+            <div 
+              style={{ backgroundColor: bannerBgColor, color: bannerTextColor }}
+              className="relative rounded-3xl p-6 sm:p-10 mb-10 border border-slate-800 shadow-2xl overflow-hidden"
+            >
+              {bannerImageUrl && (
+                <img 
+                  src={bannerImageUrl} 
+                  alt={bannerHeading}
+                  className="absolute inset-0 w-full h-full object-cover object-center pointer-events-none opacity-30"
+                />
+              )}
+              <div 
+                style={{ backgroundColor: bannerOverlayColor }}
+                className="absolute inset-0 pointer-events-none" 
+              />
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_30%,rgba(14,165,233,0.3),transparent_60%)] pointer-events-none" />
+              
+              <div className="relative z-10 max-w-3xl space-y-4">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-950/80 border border-sky-500/60 text-sky-400 text-xs font-black uppercase tracking-wider">
+                  <Wifi className="w-3.5 h-3.5" /> {bannerSubheading}
+                </span>
+                <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tight leading-tight">
+                  {bannerHeading}
+                </h1>
+                <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
+                  {bannerDescription}
+                </p>
+
+                <div className="flex flex-wrap items-center gap-4 pt-2">
+                  <button
+                    onClick={() => {
+                      if (bannerBtnLink.startsWith('http')) window.open(bannerBtnLink, '_blank');
+                      else onOpenWhatsApp();
+                    }}
+                    className="px-6 py-3 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-extrabold text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-sky-500/30 transition-all cursor-pointer"
+                  >
+                    <MessageCircle className="w-4 h-4 fill-current" />
+                    <span>{bannerBtnText}</span>
+                  </button>
+                  <a
+                    href="tel:6305151531"
+                    className="px-6 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white font-extrabold text-xs sm:text-sm flex items-center gap-2 hover:border-slate-500 transition-all"
+                  >
+                    <Phone className="w-4 h-4 text-sky-400" />
+                    <span>Call Hotline: 6305151531</span>
+                  </a>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          );
+        })()}
 
         {/* Feature Highlights Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">

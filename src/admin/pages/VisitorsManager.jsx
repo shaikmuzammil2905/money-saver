@@ -1,39 +1,52 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  Eye, Search, Users, Calendar, MapPin, Phone, RefreshCw, Layers, Monitor, Smartphone, Globe, Shield, User, Clock, ArrowUpRight
+  Eye, Search, Users, Calendar, MapPin, Phone, RefreshCw, Layers, Monitor, 
+  Smartphone, Globe, Shield, User, Clock, ArrowUpRight, Tablet, X, Info
 } from 'lucide-react';
 import { getCmsTableData } from '../../services/cmsService';
 
 const DEFAULT_SEED_VISITS = [
   {
     id: 'visit_demo_1',
-    session_id: 'sess_9823a1',
+    session_id: 'sess_9823a1_live',
     path: '/ott-plans',
-    device_type: 'Mobile (iOS)',
-    ip_address: '103.156.42.18',
+    device_type: 'Mobile',
+    browser: 'Safari',
+    operating_system: 'iOS',
+    screen_resolution: '390x844',
+    language: 'en-IN',
     referrer: 'WhatsApp Broadcast',
+    user_agent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15',
     visited_at: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
     user_name: 'Rahul Sharma',
     user_phone: '9876543210'
   },
   {
     id: 'visit_demo_2',
-    session_id: 'sess_4412b9',
+    session_id: 'sess_4412b9_live',
     path: '/offers',
-    device_type: 'Desktop (Chrome/Windows)',
-    ip_address: '157.32.19.45',
-    referrer: 'Google Search',
+    device_type: 'Desktop',
+    browser: 'Chrome',
+    operating_system: 'Windows',
+    screen_resolution: '1920x1080',
+    language: 'en-US',
+    referrer: 'Google Organic Search',
+    user_agent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122.0.0.0',
     visited_at: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
     user_name: 'Priya Verma',
     user_phone: '9123456789'
   },
   {
     id: 'visit_demo_3',
-    session_id: 'sess_7721c4',
-    path: '/fiber',
-    device_type: 'Mobile (Android)',
-    ip_address: '49.207.18.99',
+    session_id: 'sess_7721c4_live',
+    path: '/fiber-internet',
+    device_type: 'Mobile',
+    browser: 'Chrome',
+    operating_system: 'Android',
+    screen_resolution: '412x915',
+    language: 'en-IN',
     referrer: 'Direct Visit',
+    user_agent: 'Mozilla/5.0 (Linux; Android 14; SM-S918B) AppleWebKit/537.36 Chrome/121.0.0.0',
     visited_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
     user_name: '',
     user_phone: ''
@@ -42,21 +55,18 @@ const DEFAULT_SEED_VISITS = [
 
 export default function VisitorsManager({ adminEmail }) {
   const [visits, setVisits] = useState([]);
-  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDateFilter, setSelectedDateFilter] = useState('');
   const [selectedDeviceFilter, setSelectedDeviceFilter] = useState('All');
+  const [selectedPageFilter, setSelectedPageFilter] = useState('All');
+  const [selectedVisitorDetail, setSelectedVisitorDetail] = useState(null);
 
   const fetchVisitorData = async () => {
     setLoading(true);
     try {
-      const [visitData, userData] = await Promise.all([
-        getCmsTableData('analytics_visits', DEFAULT_SEED_VISITS, 'created_at'),
-        getCmsTableData('users', [], 'created_at')
-      ]);
+      const visitData = await getCmsTableData('analytics_visits', DEFAULT_SEED_VISITS, 'created_at');
       setVisits(visitData && visitData.length > 0 ? visitData : DEFAULT_SEED_VISITS);
-      setUsers(userData || []);
     } catch (err) {
       console.error('Error fetching visitor data:', err);
       setVisits(DEFAULT_SEED_VISITS);
@@ -69,116 +79,146 @@ export default function VisitorsManager({ adminEmail }) {
     fetchVisitorData();
   }, []);
 
-  // Filter & Group Visitors by Date
-  const groupedVisitors = useMemo(() => {
+  // Unique page paths for page filter
+  const uniquePages = useMemo(() => {
+    const pages = new Set(['All']);
+    visits.forEach(v => {
+      if (v.path) pages.add(v.path);
+    });
+    return Array.from(pages);
+  }, [visits]);
+
+  // Filtered visits
+  const filteredVisits = useMemo(() => {
     const list = Array.isArray(visits) ? [...visits] : [];
-    // Sort descending by visited_at timestamp
-    list.sort((a, b) => new Date(b.visited_at || 0).getTime() - new Date(a.visited_at || 0).getTime());
+    list.sort((a, b) => new Date(b.visited_at || b.created_at || 0).getTime() - new Date(a.visited_at || a.created_at || 0).getTime());
 
-    const groups = {};
+    return list.filter((v) => {
+      const visitedTimestamp = v.visited_at || v.created_at;
+      const dateStr = visitedTimestamp ? new Date(visitedTimestamp).toISOString().slice(0, 10) : '';
 
-    list.forEach((v) => {
-      const dateStr = v.visited_at 
-        ? new Date(v.visited_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) 
-        : 'Today';
-      
-      if (selectedDateFilter) {
-        const selStr = new Date(selectedDateFilter).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-        if (dateStr !== selStr) return;
+      if (selectedDateFilter && dateStr !== selectedDateFilter) {
+        return false;
       }
 
       if (selectedDeviceFilter !== 'All') {
         const dev = (v.device_type || '').toLowerCase();
-        if (selectedDeviceFilter === 'Mobile' && !dev.includes('mobile') && !dev.includes('ios') && !dev.includes('android')) return;
-        if (selectedDeviceFilter === 'Desktop' && (dev.includes('mobile') || dev.includes('ios') || dev.includes('android'))) return;
+        if (selectedDeviceFilter === 'Mobile' && !dev.includes('mobile') && !dev.includes('ios') && !dev.includes('android')) return false;
+        if (selectedDeviceFilter === 'Desktop' && (dev.includes('mobile') || dev.includes('tablet') || dev.includes('ios') || dev.includes('android'))) return false;
+        if (selectedDeviceFilter === 'Tablet' && !dev.includes('tablet') && !dev.includes('ipad')) return false;
+      }
+
+      if (selectedPageFilter !== 'All' && v.path !== selectedPageFilter) {
+        return false;
       }
 
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         const matchPath = (v.path || '').toLowerCase().includes(query);
         const matchDevice = (v.device_type || '').toLowerCase().includes(query);
-        const matchSession = (v.session_id || '').toLowerCase().includes(query);
+        const matchBrowser = (v.browser || '').toLowerCase().includes(query);
+        const matchOS = (v.operating_system || '').toLowerCase().includes(query);
+        const matchSession = (v.session_id || v.id || '').toLowerCase().includes(query);
         const matchIp = (v.ip_address || v.ip || '').toLowerCase().includes(query);
         const matchUser = (v.user_name || v.user_phone || '').toLowerCase().includes(query);
-        if (!matchPath && !matchDevice && !matchSession && !matchIp && !matchUser) return;
+        const matchReferrer = (v.referrer || '').toLowerCase().includes(query);
+        if (!matchPath && !matchDevice && !matchBrowser && !matchOS && !matchSession && !matchIp && !matchUser && !matchReferrer) {
+          return false;
+        }
       }
 
-      if (!groups[dateStr]) {
-        groups[dateStr] = [];
-      }
-      groups[dateStr].push(v);
+      return true;
     });
+  }, [visits, searchQuery, selectedDateFilter, selectedDeviceFilter, selectedPageFilter]);
 
-    return groups;
-  }, [visits, searchQuery, selectedDateFilter, selectedDeviceFilter]);
-
-  const totalFilteredVisitors = useMemo(() => {
-    return Object.values(groupedVisitors).reduce((acc, curr) => acc + curr.length, 0);
-  }, [groupedVisitors]);
+  const getDeviceIcon = (deviceType = '') => {
+    const dev = deviceType.toLowerCase();
+    if (dev.includes('mobile') || dev.includes('ios') || dev.includes('android')) {
+      return <Smartphone className="w-3.5 h-3.5 text-amber-500" />;
+    }
+    if (dev.includes('tablet') || dev.includes('ipad')) {
+      return <Tablet className="w-3.5 h-3.5 text-purple-500" />;
+    }
+    return <Monitor className="w-3.5 h-3.5 text-blue-500" />;
+  };
 
   return (
     <div className="space-y-6 font-sans">
       
       {/* Header */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
-            <Eye className="w-6 h-6 text-teal-400" /> Website Visitors &amp; Lead Tracking
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+            <Eye className="w-6 h-6 text-[#008744]" /> Visitor Analytics &amp; Lead Logs
           </h1>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            Real-time page views, visitor device logs, IP tracking, and customer lead engagement.
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+            Real-time page views, devices, browsers, operating systems, referrer channels, and customer lead activity.
           </p>
         </div>
 
         <button
           onClick={fetchVisitorData}
           disabled={loading}
-          className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs flex items-center gap-2 shadow self-start sm:self-auto border border-slate-700 transition-all"
+          className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-2 shadow self-start sm:self-auto transition-all cursor-pointer"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} /> Refresh Logs
         </button>
       </div>
 
-      {/* Date Calendar & Search Controls */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="relative w-full sm:w-80">
+      {/* Filter Bar */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+        {/* Search */}
+        <div className="relative flex-1">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
           <input
             type="text"
-            placeholder="Search IP, path, device, phone..."
+            placeholder="Search visitor ID, page, browser, OS, referrer, phone..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-slate-950 text-white placeholder-slate-500 text-xs rounded-xl py-2.5 pl-9 pr-3 border border-slate-800 focus:outline-none focus:border-teal-500"
+            className="w-full bg-slate-50 text-slate-900 placeholder-slate-400 text-xs rounded-xl py-2.5 pl-9 pr-3 border border-slate-200 focus:outline-none focus:border-[#008744] font-medium"
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-          {/* Device Type Filter */}
+        {/* Filter Controls */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Device Filter */}
           <select
             value={selectedDeviceFilter}
             onChange={(e) => setSelectedDeviceFilter(e.target.value)}
-            className="bg-slate-950 text-white text-xs font-bold rounded-xl py-2 px-3 border border-slate-800 cursor-pointer"
+            className="bg-slate-50 text-slate-700 text-xs font-bold rounded-xl py-2 px-3 border border-slate-200 cursor-pointer"
           >
             <option value="All">All Devices</option>
             <option value="Mobile">Mobile Only</option>
             <option value="Desktop">Desktop Only</option>
+            <option value="Tablet">Tablet Only</option>
+          </select>
+
+          {/* Page Filter */}
+          <select
+            value={selectedPageFilter}
+            onChange={(e) => setSelectedPageFilter(e.target.value)}
+            className="bg-slate-50 text-slate-700 text-xs font-bold rounded-xl py-2 px-3 border border-slate-200 cursor-pointer max-w-[160px] truncate"
+          >
+            {uniquePages.map((page) => (
+              <option key={page} value={page}>{page === 'All' ? 'All Pages' : page}</option>
+            ))}
           </select>
 
           {/* Date Picker */}
-          <div className="flex items-center gap-1.5 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800">
-            <Calendar className="w-3.5 h-3.5 text-teal-400" />
+          <div className="flex items-center gap-1.5 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
+            <Calendar className="w-3.5 h-3.5 text-slate-500" />
             <input
               type="date"
               value={selectedDateFilter}
               onChange={(e) => setSelectedDateFilter(e.target.value)}
-              className="bg-transparent text-white text-xs font-bold cursor-pointer focus:outline-none"
+              className="bg-transparent text-slate-800 text-xs font-bold cursor-pointer focus:outline-none"
             />
           </div>
 
-          {(selectedDateFilter || searchQuery || selectedDeviceFilter !== 'All') && (
+          {(selectedDateFilter || searchQuery || selectedDeviceFilter !== 'All' || selectedPageFilter !== 'All') && (
             <button 
-              onClick={() => { setSelectedDateFilter(''); setSearchQuery(''); setSelectedDeviceFilter('All'); }} 
-              className="text-xs text-red-400 hover:underline font-bold px-2 py-1 bg-red-950/40 rounded-lg border border-red-800/40"
+              onClick={() => { setSelectedDateFilter(''); setSearchQuery(''); setSelectedDeviceFilter('All'); setSelectedPageFilter('All'); }} 
+              className="text-xs text-red-600 hover:underline font-bold px-2 py-1 bg-red-50 rounded-lg border border-red-200 cursor-pointer"
             >
               Reset
             </button>
@@ -186,111 +226,228 @@ export default function VisitorsManager({ adminEmail }) {
         </div>
       </div>
 
-      {/* Loading Skeleton */}
-      {loading ? (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center text-slate-400 space-y-3 shadow-xl">
-          <div className="w-10 h-10 border-4 border-teal-500/30 border-t-teal-400 rounded-full animate-spin mx-auto"></div>
-          <p className="text-xs font-bold text-slate-300">Fetching visitor log records...</p>
-        </div>
-      ) : totalFilteredVisitors === 0 ? (
-        /* Empty State */
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center text-slate-500 shadow-xl">
-          <Eye className="w-12 h-12 text-slate-700 mx-auto mb-3" />
-          <p className="font-bold text-sm text-slate-300">No website visitor logs match this filter.</p>
-          <p className="text-xs text-slate-500 mt-1">Real-time page views and user sessions will appear here as customers navigate your website.</p>
-        </div>
-      ) : (
-        /* Date Grouped Cards */
-        <div className="space-y-6">
-          {Object.entries(groupedVisitors).map(([dateStr, items]) => (
-            <div key={dateStr} className="space-y-3">
-              
-              {/* Date Header */}
-              <div className="bg-gradient-to-r from-teal-950 via-slate-900 to-slate-950 border border-teal-800/60 rounded-xl px-4 py-2.5 flex items-center justify-between shadow-md">
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-teal-400" />
-                  <span className="font-black text-white text-sm">{dateStr}</span>
-                </div>
-                <span className="text-xs font-black bg-teal-950 border border-teal-700 text-teal-300 px-2.5 py-0.5 rounded-full">
-                  {items.length} Visitor Sessions
-                </span>
-              </div>
+      {/* Visitor Table */}
+      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        {loading ? (
+          <div className="p-12 text-center text-slate-500 space-y-3">
+            <div className="w-8 h-8 border-4 border-[#008744]/30 border-t-[#008744] rounded-full animate-spin mx-auto"></div>
+            <p className="text-xs font-bold">Loading visitor records...</p>
+          </div>
+        ) : filteredVisits.length === 0 ? (
+          <div className="p-12 text-center text-slate-500 space-y-2">
+            <Eye className="w-10 h-10 text-slate-300 mx-auto" />
+            <p className="font-bold text-sm text-slate-700">No visitor records match your filters.</p>
+            <p className="text-xs text-slate-400">Visitor page views and traffic data will appear here automatically.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs text-slate-600">
+              <thead className="bg-slate-50 text-slate-700 font-extrabold text-[11px] uppercase tracking-wider border-b border-slate-200">
+                <tr>
+                  <th className="px-4 py-3.5">Visitor / Session</th>
+                  <th className="px-4 py-3.5">Date &amp; Time</th>
+                  <th className="px-4 py-3.5">Device</th>
+                  <th className="px-4 py-3.5">Browser &amp; OS</th>
+                  <th className="px-4 py-3.5">Visited Page</th>
+                  <th className="px-4 py-3.5">Referrer</th>
+                  <th className="px-4 py-3.5 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredVisits.map((v, idx) => {
+                  const timestamp = v.visited_at || v.created_at;
+                  const dateFormatted = timestamp ? new Date(timestamp).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Today';
+                  const timeFormatted = timestamp ? new Date(timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '—';
 
-              {/* Visitor Cards Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {items.map((v, idx) => {
-                  const isMobile = (v.device_type || '').toLowerCase().includes('mobile') || (v.device_type || '').toLowerCase().includes('ios') || (v.device_type || '').toLowerCase().includes('android');
                   return (
-                    <div key={v.id || idx} className="bg-slate-900 border border-slate-800 hover:border-teal-700/60 rounded-xl p-4 shadow-md space-y-3 text-xs transition-all">
-                      
-                      {/* Session & Device Header */}
-                      <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                        <span className="font-mono text-[10px] text-teal-400 font-bold uppercase truncate max-w-[140px]">
-                          {v.session_id || `session_${idx+1}`}
+                    <tr key={v.id || idx} className="hover:bg-slate-50/80 transition-colors">
+                      {/* Visitor / Session */}
+                      <td className="px-4 py-3 font-mono font-bold text-slate-900 text-[11px]">
+                        <span className="bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                          {v.session_id ? v.session_id.slice(0, 14) : `visit_${idx + 1}`}
                         </span>
-                        <span className="text-[10px] font-bold text-slate-300 uppercase bg-slate-950 px-2 py-0.5 rounded border border-slate-800 flex items-center gap-1">
-                          {isMobile ? <Smartphone className="w-3 h-3 text-amber-400" /> : <Monitor className="w-3 h-3 text-blue-400" />}
-                          {v.device_type || 'Desktop'}
+                        {v.user_name && (
+                          <div className="text-[10px] text-emerald-700 font-bold font-sans mt-0.5 flex items-center gap-1">
+                            <User className="w-3 h-3" /> {v.user_name}
+                          </div>
+                        )}
+                      </td>
+
+                      {/* Date & Time */}
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="font-bold text-slate-800">{dateFormatted}</div>
+                        <div className="text-[10px] text-slate-400 flex items-center gap-1">
+                          <Clock className="w-3 h-3" /> {timeFormatted}
+                        </div>
+                      </td>
+
+                      {/* Device */}
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-700 font-bold text-[11px]">
+                          {getDeviceIcon(v.device_type)} {v.device_type || 'Desktop'}
                         </span>
-                      </div>
+                      </td>
 
-                      {/* Visitor Details */}
-                      <div className="space-y-1.5 text-slate-300">
-                        <div className="flex items-center justify-between">
-                          <span className="text-slate-400 font-medium">Page Visited:</span>
-                          <code className="text-emerald-400 bg-slate-950 border border-slate-800 px-2 py-0.5 rounded text-[11px] font-mono font-bold truncate max-w-[160px]">
-                            {v.path || '/'}
-                          </code>
-                        </div>
+                      {/* Browser & OS */}
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="font-bold text-slate-800">{v.browser || 'Browser'}</div>
+                        <div className="text-[10px] text-slate-400">{v.operating_system || 'OS'}</div>
+                      </td>
 
-                        <div className="flex items-center justify-between text-[11px]">
-                          <span className="text-slate-400 font-medium">Source / Referrer:</span>
-                          <span className="text-slate-200 font-bold truncate max-w-[140px]">
-                            {v.referrer || 'Direct'}
-                          </span>
-                        </div>
+                      {/* Visited Page */}
+                      <td className="px-4 py-3">
+                        <code className="text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded font-mono font-bold text-[11px]">
+                          {v.path || '/'}
+                        </code>
+                      </td>
 
-                        {v.ip_address || v.ip ? (
-                          <div className="flex items-center justify-between text-[11px]">
-                            <span className="text-slate-400 font-medium">IP Address:</span>
-                            <span className="text-teal-300 font-mono font-bold bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800">
-                              {v.ip_address || v.ip}
-                            </span>
-                          </div>
-                        ) : null}
+                      {/* Referrer */}
+                      <td className="px-4 py-3 text-slate-600 font-medium truncate max-w-[140px]">
+                        {v.referrer || 'Direct Visit'}
+                      </td>
 
-                        {v.user_name || v.user_phone ? (
-                          <div className="mt-2 p-2 bg-emerald-950/40 border border-emerald-800/60 rounded-lg space-y-0.5 text-[11px]">
-                            <p className="font-bold text-emerald-300 flex items-center gap-1">
-                              <User className="w-3 h-3" /> Lead: {v.user_name || 'Guest User'}
-                            </p>
-                            {v.user_phone && (
-                              <p className="text-emerald-400 font-mono text-[10px]">📱 {v.user_phone}</p>
-                            )}
-                          </div>
-                        ) : null}
-
-                        <div className="flex items-center gap-1 text-[10px] text-slate-500 pt-1 border-t border-slate-800/60">
-                          <Clock className="w-3 h-3 text-slate-400" />
-                          <span>
-                            {v.visited_at 
-                              ? new Date(v.visited_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-                              : 'Just now'}
-                          </span>
-                        </div>
-                      </div>
-
-                    </div>
+                      {/* Actions */}
+                      <td className="px-4 py-3 text-right whitespace-nowrap">
+                        <button
+                          onClick={() => setSelectedVisitorDetail(v)}
+                          className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs flex items-center gap-1 ml-auto border border-slate-200 cursor-pointer"
+                        >
+                          <Eye className="w-3.5 h-3.5 text-blue-600" /> View Details
+                        </button>
+                      </td>
+                    </tr>
                   );
                 })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* VIEW DETAILS MODAL */}
+      {selectedVisitorDetail && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-xl w-full p-4 sm:p-6 shadow-2xl space-y-4 font-sans text-slate-900 my-4 max-h-[90vh] overflow-y-auto">
+            
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
+                  <Eye className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-base text-slate-900">Complete Visitor Record</h3>
+                  <span className="text-[11px] font-mono text-slate-500">{selectedVisitorDetail.id || 'visit_record'}</span>
+                </div>
+              </div>
+              <button 
+                onClick={() => setSelectedVisitorDetail(null)} 
+                className="text-slate-400 hover:text-slate-700 font-bold text-xl px-2 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs divide-y divide-slate-100">
+              
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <div>
+                  <span className="text-slate-400 block font-medium">Session ID</span>
+                  <span className="font-mono font-bold text-slate-800">{selectedVisitorDetail.session_id || '—'}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block font-medium">Visited Timestamp</span>
+                  <span className="font-bold text-slate-800">
+                    {selectedVisitorDetail.visited_at 
+                      ? new Date(selectedVisitorDetail.visited_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) + ' (IST)'
+                      : '—'}
+                  </span>
+                </div>
               </div>
 
+              <div className="grid grid-cols-2 gap-3 pt-3">
+                <div>
+                  <span className="text-slate-400 block font-medium">Visited Page Path</span>
+                  <code className="text-emerald-700 font-mono font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 inline-block mt-0.5">
+                    {selectedVisitorDetail.path || '/'}
+                  </code>
+                </div>
+                <div>
+                  <span className="text-slate-400 block font-medium">Traffic Source / Referrer</span>
+                  <span className="font-bold text-slate-800">{selectedVisitorDetail.referrer || 'Direct Visit'}</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 pt-3">
+                <div>
+                  <span className="text-slate-400 block font-medium">Device Type</span>
+                  <span className="font-bold text-slate-800 flex items-center gap-1 mt-0.5">
+                    {getDeviceIcon(selectedVisitorDetail.device_type)} {selectedVisitorDetail.device_type || 'Desktop'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block font-medium">Browser</span>
+                  <span className="font-bold text-slate-800">{selectedVisitorDetail.browser || 'Browser'}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block font-medium">Operating System</span>
+                  <span className="font-bold text-slate-800">{selectedVisitorDetail.operating_system || 'OS'}</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 pt-3">
+                <div>
+                  <span className="text-slate-400 block font-medium">Screen Resolution</span>
+                  <span className="font-mono text-slate-700">{selectedVisitorDetail.screen_resolution || '1920x1080'}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block font-medium">Client Language</span>
+                  <span className="font-bold text-slate-800">{selectedVisitorDetail.language || 'en-US'}</span>
+                </div>
+              </div>
+
+              {selectedVisitorDetail.ip_address || selectedVisitorDetail.ip ? (
+                <div className="pt-3">
+                  <span className="text-slate-400 block font-medium">IP Address</span>
+                  <span className="font-mono font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded border border-teal-200 inline-block mt-0.5">
+                    {selectedVisitorDetail.ip_address || selectedVisitorDetail.ip}
+                  </span>
+                </div>
+              ) : null}
+
+              {selectedVisitorDetail.user_agent && (
+                <div className="pt-3">
+                  <span className="text-slate-400 block font-medium mb-1">Full User Agent</span>
+                  <p className="font-mono text-[10px] text-slate-600 bg-slate-50 p-2 rounded-xl border border-slate-200 break-all leading-relaxed">
+                    {selectedVisitorDetail.user_agent}
+                  </p>
+                </div>
+              )}
+
+              {(selectedVisitorDetail.user_name || selectedVisitorDetail.user_phone) && (
+                <div className="pt-3 bg-emerald-50 p-3 rounded-xl border border-emerald-200 space-y-1">
+                  <span className="text-emerald-900 font-extrabold uppercase text-[10px] block">Captured Lead Information</span>
+                  <div className="text-slate-800 font-bold">{selectedVisitorDetail.user_name || 'Customer'}</div>
+                  {selectedVisitorDetail.user_phone && (
+                    <div className="text-emerald-700 font-mono">📱 {selectedVisitorDetail.user_phone}</div>
+                  )}
+                </div>
+              )}
+
             </div>
-          ))}
+
+            <div className="pt-3 border-t border-slate-100 flex justify-end">
+              <button
+                onClick={() => setSelectedVisitorDetail(null)}
+                className="px-5 py-2 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 cursor-pointer"
+              >
+                Close Record
+              </button>
+            </div>
+
+          </div>
         </div>
       )}
 
     </div>
   );
 }
-

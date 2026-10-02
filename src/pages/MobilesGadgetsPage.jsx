@@ -4,7 +4,7 @@ import { useCMS } from '../context/CMSContext';
 import ProductCard from '../components/ProductCard';
 
 export default function MobilesGadgetsPage({ onAddToCart, onQuickView, wishlistIds = [], onToggleWishlist }) {
-  const { activePublicProducts } = useCMS();
+  const { activePublicProducts, banners } = useCMS();
   const [selectedSubCat, setSelectedSubCat] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('featured');
@@ -40,20 +40,49 @@ export default function MobilesGadgetsPage({ onAddToCart, onQuickView, wishlistI
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Banner Section */}
-        <div className="relative rounded-3xl bg-slate-950 text-white p-6 sm:p-10 mb-8 border border-slate-800 shadow-2xl overflow-hidden">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_50%,rgba(16,185,129,0.25),transparent_60%)] pointer-events-none" />
-          <div className="relative z-10 max-w-3xl space-y-4">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950 border border-emerald-500/60 text-emerald-400 text-xs font-black uppercase tracking-wider">
-              <Smartphone className="w-3.5 h-3.5" /> Smartphones &amp; Mobile Accessories
-            </span>
-            <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tight leading-tight">
-              Mobiles <span className="text-emerald-400">&amp; Smart Gadgets</span>
-            </h1>
-            <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
-              Explore 5G smartphones, active noise cancelling earbuds, premium bluetooth speakers, smartwatches &amp; ultra-fast chargers with genuine brand warranty &amp; express doorstep delivery.
-            </p>
-          </div>
-        </div>
+        {(() => {
+          const mobBanner = (banners && banners.find(b => b.banner_key === 'mobiles_top_banner')) || {};
+          if (mobBanner.is_active === false) return null;
+          const bannerHeading = mobBanner.heading || 'Mobiles & Smart Gadgets Carnival';
+          const bannerSubheading = mobBanner.subheading || 'Smartphones & Mobile Accessories';
+          const bannerDescription = mobBanner.description || 'Explore 5G smartphones, active noise cancelling earbuds, premium bluetooth speakers, smartwatches & ultra-fast chargers with genuine brand warranty & express doorstep delivery.';
+          const bannerBgColor = mobBanner.bg_color || '#022c22';
+          const bannerTextColor = mobBanner.text_color || '#ffffff';
+          const bannerOverlayColor = mobBanner.overlay_color || 'rgba(16,185,129,0.25)';
+          const bannerImageUrl = mobBanner.image_url || '';
+
+          return (
+            <div 
+              style={{ backgroundColor: bannerBgColor, color: bannerTextColor }}
+              className="relative rounded-3xl p-6 sm:p-10 mb-8 border border-slate-800 shadow-2xl overflow-hidden"
+            >
+              {bannerImageUrl && (
+                <img 
+                  src={bannerImageUrl} 
+                  alt={bannerHeading}
+                  className="absolute inset-0 w-full h-full object-cover object-center pointer-events-none opacity-30"
+                />
+              )}
+              <div 
+                style={{ backgroundColor: bannerOverlayColor }}
+                className="absolute inset-0 pointer-events-none" 
+              />
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_50%,rgba(16,185,129,0.25),transparent_60%)] pointer-events-none" />
+              
+              <div className="relative z-10 max-w-3xl space-y-4">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-500/60 text-emerald-400 text-xs font-black uppercase tracking-wider">
+                  <Smartphone className="w-3.5 h-3.5" /> {bannerSubheading}
+                </span>
+                <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tight leading-tight">
+                  {bannerHeading}
+                </h1>
+                <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
+                  {bannerDescription}
+                </p>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Filter Pills & Controls Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">

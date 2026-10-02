@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
-  Image as ImageIcon, Plus, Edit3, Trash2, Power, Upload, Check, Eye, Link, Palette, Sparkles, Layers, ArrowUp, ArrowDown, ExternalLink, HelpCircle 
+  Image as ImageIcon, Plus, Edit3, Trash2, Power, Upload, Check, Eye, Link, Palette, 
+  Sparkles, Layers, ArrowUp, ArrowDown, ExternalLink, HelpCircle, Copy, Info, Sliders, ChevronUp, ChevronDown
 } from 'lucide-react';
 import { useCMS } from '../../context/CMSContext';
 import { uploadToCloudinary } from '../../services/cloudinary';
@@ -16,11 +17,35 @@ export default function BannersManager({ adminEmail }) {
   const [uploadingPrimary, setUploadingPrimary] = useState(false);
   const [uploadingSecondary, setUploadingSecondary] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
+  const [activeSectionTab, setActiveSectionTab] = useState('All');
+  const [bannerMode, setBannerMode] = useState('image'); // 'image' or 'color'
 
   const showToast = (msg) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(''), 3000);
   };
+
+  const getSectionFromKey = (key = '') => {
+    const k = key.toLowerCase();
+    if (k.includes('home_main')) return 'Home Main';
+    if (k.includes('home_small') || k.includes('home_middle') || k.includes('home_bottom')) return 'Small Banners';
+    if (k.includes('ott')) return 'OTT Platforms';
+    if (k.includes('fiber')) return 'Fiber Internet';
+    if (k.includes('mobile')) return 'Mobiles';
+    if (k.includes('offer')) return 'Offers';
+    return 'Other';
+  };
+
+  const sortedBanners = useMemo(() => {
+    const list = Array.isArray(banners) ? [...banners] : [];
+    list.sort((a, b) => (Number(a.display_order) || 999) - (Number(b.display_order) || 999));
+    return list;
+  }, [banners]);
+
+  const filteredBanners = useMemo(() => {
+    if (activeSectionTab === 'All') return sortedBanners;
+    return sortedBanners.filter(b => getSectionFromKey(b.banner_key) === activeSectionTab);
+  }, [sortedBanners, activeSectionTab]);
 
   const handleToggleStatus = async (banner) => {
     try {
@@ -46,6 +71,54 @@ export default function BannersManager({ adminEmail }) {
     }
   };
 
+  const handleDuplicateBanner = async (banner) => {
+    try {
+      const newUniqueId = `banner_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+      const newBannerKey = `${banner.banner_key || 'custom'}_copy_${Date.now().toString().slice(-4)}`;
+      const duplicatedBanner = {
+        ...banner,
+        id: newUniqueId,
+        banner_key: newBannerKey,
+        title_name: `${banner.title_name || 'Banner'} (Copy)`,
+        display_order: sortedBanners.length + 1,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      await saveCmsItem('banners', duplicatedBanner);
+      await logActivity(adminEmail, 'DUPLICATED', 'Banners', duplicatedBanner.title_name);
+      await refreshAllData();
+      showToast(`Duplicated: "${duplicatedBanner.title_name}"`);
+    } catch (err) {
+      alert('Error duplicating banner: ' + err.message);
+    }
+  };
+
+  const handleMoveOrder = async (idx, direction) => {
+    const targetIdx = direction === 'UP' ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= sortedBanners.length) return;
+
+    const currentList = [...sortedBanners];
+    const temp = currentList[idx];
+    currentList[idx] = currentList[targetIdx];
+    currentList[targetIdx] = temp;
+
+    // Update display_order sequentially
+    const updatedWithOrder = currentList.map((item, index) => ({
+      ...item,
+      display_order: index + 1
+    }));
+
+    setBanners(updatedWithOrder);
+    try {
+      await updateDisplayOrder('banners', updatedWithOrder, 'display_order');
+      showToast('Banner Order Updated & Synced to Website');
+    } catch (err) {
+      console.error('Failed to sync order:', err);
+      showToast('Order saved locally');
+    }
+  };
+
   const handleSaveBanner = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -54,7 +127,6 @@ export default function BannersManager({ adminEmail }) {
 
       const buttonsList = Array.isArray(editingBanner?.buttons) ? editingBanner.buttons : [];
       const subheadingsList = Array.isArray(editingBanner?.subheadings) ? editingBanner.subheadings : [];
-      const badgesList = Array.isArray(editingBanner?.badges_data) ? editingBanner.badges_data : [];
       const featureItemsList = Array.isArray(editingBanner?.feature_items) ? editingBanner.feature_items : [];
 
       const badgeConfig = editingBanner?.badge_config || {
@@ -67,8 +139,8 @@ export default function BannersManager({ adminEmail }) {
 
       const secondaryImageUrl = editingBanner?.secondary_image_url || '';
       const secondaryImageCaption = editingBanner?.secondary_image_caption || '';
-
       const headingSegmentsList = Array.isArray(editingBanner?.heading_segments) ? editingBanner.heading_segments : [];
+
       const payload = {
         id: editingBanner?.id,
         banner_key: editingBanner?.banner_key || `banner_${Date.now()}`,
@@ -76,15 +148,16 @@ export default function BannersManager({ adminEmail }) {
         heading: formData.get('heading'),
         heading_segments: headingSegmentsList,
         description: formData.get('description'),
-        image_url: formData.get('image_url') || '',
+        image_url: bannerMode === 'color' ? '' : (formData.get('image_url') || ''),
         image_fit: formData.get('image_fit') || 'contain',
         image_position: formData.get('image_position') || 'center',
-        mobile_image_url: formData.get('mobile_image_url') || formData.get('image_url') || '',
+        mobile_image_url: bannerMode === 'color' ? '' : (formData.get('mobile_image_url') || formData.get('image_url') || ''),
         text_color: formData.get('text_color') || '#ffffff',
+        button_color: formData.get('button_color') || '#e50914',
         bg_color: formData.get('bg_color') || '#050b1e',
         overlay_color: formData.get('overlay_color') || 'rgba(0,0,0,0.3)',
         is_active: editingBanner ? editingBanner.is_active !== false : true,
-        display_order: editingBanner ? editingBanner.display_order : banners.length + 1,
+        display_order: editingBanner?.display_order !== undefined ? Number(editingBanner.display_order) : sortedBanners.length + 1,
         buttons: buttonsList,
         badges: [
           { id: 'badge_config', type: 'badge_config', ...badgeConfig },
@@ -96,16 +169,16 @@ export default function BannersManager({ adminEmail }) {
         feature_items: featureItemsList,
         secondary_image_url: secondaryImageUrl,
         secondary_image_caption: secondaryImageCaption,
-        subheading: subheadingsList.length > 0 ? subheadingsList[0].text : (formData.get('subheading') || ''),
-        button_text: buttonsList.length > 0 ? buttonsList[0].text : 'Explore Deals',
-        button_link: buttonsList.length > 0 ? buttonsList[0].link : 'offers',
+        subheading: subheadingsList.length > 0 ? subheadingsList[0].text : (formData.get('subheading') || editingBanner?.subheading || ''),
+        button_text: buttonsList.length > 0 ? buttonsList[0].text : (formData.get('button_text') || 'Explore Deals'),
+        button_link: buttonsList.length > 0 ? buttonsList[0].link : (formData.get('button_link') || 'offers'),
       };
 
       await saveCmsItem('banners', payload);
       await logActivity(adminEmail, editingBanner?.id ? 'EDITED' : 'ADDED', 'Banners', payload.title_name);
       await refreshAllData();
       setEditingBanner(null);
-      showToast('Banner Saved & Synced Successfully!');
+      showToast('Banner Saved & Synced Live to Website!');
     } catch (err) {
       alert('Error saving banner: ' + err.message);
     } finally {
@@ -126,18 +199,6 @@ export default function BannersManager({ adminEmail }) {
     if (!editingBanner) return;
     const currentList = Array.isArray(editingBanner[listName]) ? [...editingBanner[listName]] : [];
     setEditingBanner({ ...editingBanner, [listName]: currentList.filter((_, i) => i !== idx) });
-  };
-
-  const reorderElement = (listName, idx, direction) => {
-    if (!editingBanner) return;
-    const currentList = Array.isArray(editingBanner[listName]) ? [...editingBanner[listName]] : [];
-    const targetIdx = direction === 'UP' ? idx - 1 : idx + 1;
-    if (targetIdx < 0 || targetIdx >= currentList.length) return;
-
-    const temp = currentList[idx];
-    currentList[idx] = currentList[targetIdx];
-    currentList[targetIdx] = temp;
-    setEditingBanner({ ...editingBanner, [listName]: currentList });
   };
 
   const handleAddButton = () => {
@@ -171,18 +232,6 @@ export default function BannersManager({ adminEmail }) {
     setEditingBanner({ ...editingBanner, feature_items: current });
   };
 
-  const handleAddSubheading = () => {
-    const current = Array.isArray(editingBanner.subheadings) ? [...editingBanner.subheadings] : [];
-    current.push({
-      id: `sub_${Date.now()}`,
-      text: 'NEW SUBHEADING',
-      is_active: true,
-      position_x: 0,
-      position_y: 0
-    });
-    setEditingBanner({ ...editingBanner, subheadings: current });
-  };
-
   const handlePrimaryImageUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -207,7 +256,7 @@ export default function BannersManager({ adminEmail }) {
     try {
       const res = await uploadToCloudinary(file, 'banners_secondary');
       setEditingBanner(prev => ({ ...prev, secondary_image_url: res.url }));
-      showToast('Separate Picture Uploaded!');
+      showToast('Secondary Picture Uploaded!');
     } catch (err) {
       alert('Upload failed: ' + err.message);
     } finally {
@@ -215,9 +264,9 @@ export default function BannersManager({ adminEmail }) {
     }
   };
 
-  // Initialize a safe editable banner state
   const startEditing = (b) => {
     const safeBanner = { ...b };
+    setBannerMode(b.image_url ? 'image' : 'color');
 
     // Buttons parsing
     if (Array.isArray(b.buttons) && b.buttons.length > 0) {
@@ -242,7 +291,7 @@ export default function BannersManager({ adminEmail }) {
         link_type: b.button_link?.startsWith('http') ? 'external' : 'internal',
         position: 'left',
         target: '_self',
-        button_color: '#e50914',
+        button_color: b.button_color || '#e50914',
         text_color: '#ffffff',
         is_active: true,
         position_x: 0,
@@ -258,7 +307,6 @@ export default function BannersManager({ adminEmail }) {
       }] : [];
     }
     
-    // Parse badges and feature_items from JSONB column
     let extractedFeatures = [];
     let extractedBadgeConfig = {
       enabled: false,
@@ -283,12 +331,6 @@ export default function BannersManager({ adminEmail }) {
     if (!Array.isArray(safeBanner.feature_items)) {
       if (extractedFeatures.length > 0) {
         safeBanner.feature_items = extractedFeatures;
-      } else if (b.banner_key === 'home_middle_big') {
-        safeBanner.feature_items = [
-          { id: 'feat_1', icon: 'Tv', title: 'OTT Subscriptions', subtitle: 'Top Premium Platforms', color: '#e50914', is_active: true },
-          { id: 'feat_2', icon: 'Wifi', title: 'Fiber Broadband', subtitle: 'High-Speed Internet Plans', color: '#38bdf8', is_active: true },
-          { id: 'feat_3', icon: 'Layers', title: 'Combo Packages', subtitle: 'Save More with Combo Offers', color: '#f59e0b', is_active: true }
-        ];
       } else {
         safeBanner.feature_items = [];
       }
@@ -300,6 +342,8 @@ export default function BannersManager({ adminEmail }) {
 
     setEditingBanner(safeBanner);
   };
+
+  const sectionTabs = ['All', 'Home Main', 'Small Banners', 'OTT Platforms', 'Fiber Internet', 'Mobiles', 'Offers', 'Other'];
 
   return (
     <div className="space-y-6 font-sans">
@@ -314,10 +358,10 @@ export default function BannersManager({ adminEmail }) {
       <div className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <ImageIcon className="w-6 h-6 text-[#e50914]" /> Banner Manager (Home &amp; Offers)
+            <ImageIcon className="w-6 h-6 text-[#e50914]" /> Master Banners Management
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Dynamic Badges (Top/Bottom Left/Right), Dynamic Buttons with Links &amp; Positions, Middle Package Items, and Separate Image Uploads.
+            Single management source for Home, Small Promo Banners, OTT, Fiber, Mobiles, and Section Banners with live reordering and solid color modes.
           </p>
         </div>
         <button
@@ -328,64 +372,179 @@ export default function BannersManager({ adminEmail }) {
             buttons: [], subheadings: [], feature_items: [],
             badge_config: { enabled: false, text: '', position: 'top-left', bg_color: '#e50914', text_color: '#ffffff' },
             text_color: '#ffffff',
-            bg_color: '#050b1e'
+            button_color: '#e50914',
+            bg_color: '#050b1e',
+            overlay_color: 'rgba(0,0,0,0.3)'
           })}
-          className="px-4 py-2.5 rounded-xl bg-[#008744] hover:bg-emerald-600 text-white font-bold text-xs flex items-center gap-2 shadow-sm transition-all"
+          className="px-4 py-2.5 rounded-xl bg-[#008744] hover:bg-emerald-600 text-white font-bold text-xs flex items-center gap-2 shadow-sm transition-all shrink-0 cursor-pointer"
         >
           <Plus className="w-4 h-4" /> Add New Banner
         </button>
       </div>
 
+      {/* Recommended Image Sizes Reference Box */}
+      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-2xl p-4 sm:p-5 border border-indigo-900 shadow-md">
+        <div className="flex items-center gap-2 mb-3">
+          <Info className="w-4 h-4 text-amber-400" />
+          <h3 className="font-bold text-xs uppercase tracking-wider text-amber-300">
+            📐 Recommended Image Dimensions &amp; Aspect Ratios (Use for ChatGPT / Canva Generations)
+          </h3>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+          <div className="bg-white/10 rounded-xl p-3 border border-white/10 space-y-1">
+            <span className="font-extrabold text-sky-300 block">🏠 Home Main Banners</span>
+            <p className="text-slate-300 text-[11px]"><strong>Desktop:</strong> 1200 × 500 px (12:5)</p>
+            <p className="text-slate-300 text-[11px]"><strong>Mobile:</strong> 600 × 400 px (3:2)</p>
+          </div>
+          <div className="bg-white/10 rounded-xl p-3 border border-white/10 space-y-1">
+            <span className="font-extrabold text-pink-300 block">🎁 Small Banners (01 / 02 / 03)</span>
+            <p className="text-slate-300 text-[11px]"><strong>Desktop:</strong> 600 × 400 px (3:2)</p>
+            <p className="text-slate-300 text-[11px]"><strong>Mobile:</strong> 400 × 267 px (3:2)</p>
+          </div>
+          <div className="bg-white/10 rounded-xl p-3 border border-white/10 space-y-1">
+            <span className="font-extrabold text-amber-300 block">📦 Middle Big Package Banner</span>
+            <p className="text-slate-300 text-[11px]"><strong>Desktop:</strong> 1200 × 400 px (3:1)</p>
+            <p className="text-slate-300 text-[11px]"><strong>Mobile:</strong> 600 × 350 px</p>
+          </div>
+          <div className="bg-white/10 rounded-xl p-3 border border-white/10 space-y-1">
+            <span className="font-extrabold text-emerald-300 block">⚡ Category Top (OTT/Fiber/Mobiles)</span>
+            <p className="text-slate-300 text-[11px]"><strong>Desktop:</strong> 1200 × 350 px (24:7)</p>
+            <p className="text-slate-300 text-[11px]"><strong>Mobile:</strong> 600 × 300 px (2:1)</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Section Filter Tabs */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-2 border-b border-slate-200">
+        {sectionTabs.map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveSectionTab(tab)}
+            className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+              activeSectionTab === tab
+                ? 'bg-[#e50914] text-white shadow-md shadow-red-600/30'
+                : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+            }`}
+          >
+            {tab} {tab === 'All' ? `(${sortedBanners.length})` : `(${sortedBanners.filter(b => getSectionFromKey(b.banner_key) === tab).length})`}
+          </button>
+        ))}
+      </div>
+
       {/* Banners List */}
       <div className="space-y-4">
-        {banners.map((b) => (
-          <div key={b.id || b.banner_key} className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-sm space-y-4 font-sans">
-            {/* Card Top */}
-            <div className="flex items-center justify-between gap-2 pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-purple-100 text-purple-700 border border-purple-200">
-                  {b.banner_key}
-                </span>
-                <h3 className="font-extrabold text-slate-900 text-sm sm:text-base">{b.title_name}</h3>
-                {b.badges?.badge_config?.enabled && (
-                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-red-100 text-red-700 border border-red-200">
-                    🏷️ Badge: {b.badges.badge_config.text} ({b.badges.badge_config.position || 'top-left'})
+        {filteredBanners.map((b, idx) => {
+          const globalIdx = sortedBanners.findIndex(item => (item.id && item.id === b.id) || item.banner_key === b.banner_key);
+          const sectionName = getSectionFromKey(b.banner_key);
+          const isColorMode = !b.image_url;
+
+          return (
+            <div key={b.id || b.banner_key} className="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-sm space-y-4 font-sans">
+              
+              {/* Card Top Header */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-blue-100 text-blue-700 border border-blue-200">
+                    {sectionName}
                   </span>
-                )}
+                  <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-purple-100 text-purple-700 border border-purple-200">
+                    Key: {b.banner_key}
+                  </span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                    Order: #{b.display_order || idx + 1}
+                  </span>
+                  <h3 className="font-extrabold text-slate-900 text-sm sm:text-base">{b.title_name}</h3>
+                </div>
+
+                <div className="flex items-center gap-2 self-end sm:self-auto">
+                  {/* Move Up / Move Down Order */}
+                  <div className="flex items-center border border-slate-200 rounded-lg bg-slate-50 p-0.5">
+                    <button
+                      onClick={() => handleMoveOrder(globalIdx, 'UP')}
+                      disabled={globalIdx === 0}
+                      className="p-1 text-slate-600 hover:text-slate-900 hover:bg-slate-200 rounded disabled:opacity-30 cursor-pointer"
+                      title="Move Banner Up"
+                    >
+                      <ArrowUp className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => handleMoveOrder(globalIdx, 'DOWN')}
+                      disabled={globalIdx === sortedBanners.length - 1}
+                      className="p-1 text-slate-600 hover:text-slate-900 hover:bg-slate-200 rounded disabled:opacity-30 cursor-pointer"
+                      title="Move Banner Down"
+                    >
+                      <ArrowDown className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={() => handleToggleStatus(b)}
+                    className={`px-3 py-1 rounded-xl text-xs font-black border transition-all cursor-pointer ${
+                      b.is_active !== false ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-red-50 border-red-200 text-red-700'
+                    }`}
+                  >
+                    {b.is_active !== false ? 'ACTIVE' : 'OFF'}
+                  </button>
+                </div>
               </div>
-              <button
-                onClick={() => handleToggleStatus(b)}
-                className={`px-3 py-1 rounded-xl text-xs font-black border transition-all ${
-                  b.is_active !== false ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-red-50 border-red-200 text-red-700'
-                }`}
-              >
-                {b.is_active !== false ? 'ACTIVE' : 'OFF'}
-              </button>
-            </div>
 
-            <div className="text-xs text-slate-600 grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <div><strong className="text-slate-900">Heading:</strong> {b.heading || '—'}</div>
-              <div><strong className="text-slate-900">Buttons:</strong> {Array.isArray(b.buttons) ? b.buttons.length : (b.button_text ? 1 : 0)} buttons configured</div>
-              <div><strong className="text-slate-900">Package Items:</strong> {Array.isArray(b.badges?.feature_items) ? b.badges.feature_items.length : 0} items</div>
-            </div>
+              {/* Banner Details & Visual Thumbnail */}
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
+                
+                {/* Visual Preview */}
+                <div className="sm:col-span-4 h-24 rounded-xl overflow-hidden border border-slate-200 relative flex items-center justify-center shadow-inner" style={{ backgroundColor: b.bg_color || '#050b1e' }}>
+                  {b.image_url ? (
+                    <img src={b.image_url} alt={b.title_name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="text-center p-2">
+                      <span className="text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded bg-black/40 text-white border border-white/20">
+                        🎨 Solid Color ({b.bg_color || '#050b1e'})
+                      </span>
+                    </div>
+                  )}
+                  {b.overlay_color && (
+                    <div className="absolute inset-0 pointer-events-none" style={{ backgroundColor: b.overlay_color }} />
+                  )}
+                </div>
 
-            {/* Actions Footer */}
-            <div className="pt-3 flex items-center justify-end gap-2 border-t border-slate-100">
-              <button
-                onClick={() => startEditing(b)}
-                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs flex items-center gap-1.5 transition-colors border border-slate-200"
-              >
-                <Edit3 className="w-3.5 h-3.5 text-purple-600" /> Edit Banner &amp; Elements
-              </button>
-              <button
-                onClick={() => handleDeleteBanner(b.id, b.title_name)}
-                className="px-3 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-bold text-xs flex items-center gap-1 transition-colors"
-              >
-                <Trash2 className="w-3.5 h-3.5" /> Delete
-              </button>
+                {/* Info Columns */}
+                <div className="sm:col-span-8 text-xs text-slate-600 space-y-1.5">
+                  <div><strong className="text-slate-900">Heading:</strong> {b.heading || '—'}</div>
+                  <div><strong className="text-slate-900">Subheading / Badge:</strong> {b.subheading || '—'}</div>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <span><strong className="text-slate-900">Button Text:</strong> {b.button_text || 'Explore Deals'}</span>
+                    <span><strong className="text-slate-900">Link:</strong> <code className="text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded font-mono">{b.button_link || 'offers'}</code></span>
+                    <span><strong className="text-slate-900">Mode:</strong> {isColorMode ? 'Solid Color' : 'Image'}</span>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Actions Footer */}
+              <div className="pt-3 flex items-center justify-end gap-2 border-t border-slate-100">
+                <button
+                  onClick={() => handleDuplicateBanner(b)}
+                  className="px-3 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs flex items-center gap-1.5 transition-colors border border-blue-200 cursor-pointer"
+                  title="Duplicate banner with unique ID"
+                >
+                  <Copy className="w-3.5 h-3.5" /> Duplicate
+                </button>
+                <button
+                  onClick={() => startEditing(b)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs flex items-center gap-1.5 transition-colors border border-slate-200 cursor-pointer"
+                >
+                  <Edit3 className="w-3.5 h-3.5 text-purple-600" /> Edit Banner
+                </button>
+                <button
+                  onClick={() => handleDeleteBanner(b.id || b.banner_key, b.title_name)}
+                  className="px-3 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-bold text-xs flex items-center gap-1 transition-colors cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> Delete
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* BANNER EDIT / ADD MODAL */}
@@ -399,14 +558,45 @@ export default function BannersManager({ adminEmail }) {
                 <h3 className="font-black text-slate-900 text-lg">
                   Edit {editingBanner.title_name || 'Banner'}
                 </h3>
-                <span className="text-[11px] font-mono text-purple-600">Key: {editingBanner.banner_key}</span>
+                <span className="text-[11px] font-mono text-purple-600">Key: {editingBanner.banner_key} | Section: {getSectionFromKey(editingBanner.banner_key)}</span>
               </div>
-              <button onClick={() => setEditingBanner(null)} type="button" className="text-slate-400 hover:text-slate-700 font-bold text-xl px-2">✕</button>
+              <button onClick={() => setEditingBanner(null)} type="button" className="text-slate-400 hover:text-slate-700 font-bold text-xl px-2 cursor-pointer">✕</button>
             </div>
 
             <form onSubmit={handleSaveBanner} className="space-y-6">
               
-              {/* 1. BASIC INFORMATION */}
+              {/* 1. BANNER TYPE (IMAGE VS SOLID COLOR) */}
+              <div className="bg-indigo-50/60 p-4 rounded-xl border border-indigo-200 space-y-3">
+                <label className="block text-xs font-bold text-indigo-950 uppercase tracking-wider">
+                  Banner Mode: Image vs Solid Color
+                </label>
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer bg-white px-4 py-2 rounded-xl border border-indigo-200 shadow-sm">
+                    <input 
+                      type="radio" 
+                      name="banner_mode" 
+                      value="image" 
+                      checked={bannerMode === 'image'} 
+                      onChange={() => setBannerMode('image')}
+                      className="accent-indigo-600 cursor-pointer"
+                    />
+                    <span className="text-xs font-bold text-slate-800">🖼️ Image Mode</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer bg-white px-4 py-2 rounded-xl border border-indigo-200 shadow-sm">
+                    <input 
+                      type="radio" 
+                      name="banner_mode" 
+                      value="color" 
+                      checked={bannerMode === 'color'} 
+                      onChange={() => setBannerMode('color')}
+                      className="accent-indigo-600 cursor-pointer"
+                    />
+                    <span className="text-xs font-bold text-slate-800">🎨 Solid Color Mode</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* 2. BASIC INFORMATION & TEXT */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">Banner Title Name (Internal)</label>
@@ -419,38 +609,49 @@ export default function BannersManager({ adminEmail }) {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Heading (Fallback) *</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Heading / Main Title *</label>
                   <input
                     type="text"
                     name="heading"
                     required
                     defaultValue={editingBanner.heading || ''}
+                    className="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-slate-900 text-xs shadow-sm font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Subheading / Badge Text</label>
+                  <input
+                    type="text"
+                    name="subheading"
+                    defaultValue={editingBanner.subheading || ''}
+                    placeholder="e.g. MEGA SAVINGS, 75% OFF"
                     className="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-slate-900 text-xs shadow-sm"
                   />
                 </div>
-                
-                <div className="md:col-span-2 space-y-2 border-t pt-2 border-slate-200">
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Structured Heading Segments (Colored Words)</label>
-                  {Array.isArray(editingBanner.heading_segments) && editingBanner.heading_segments.map((seg, idx) => (
-                    <div key={idx} className="flex items-center gap-2 bg-white p-2 border border-slate-200 rounded-lg">
-                      <input type="text" value={seg.text || ''} onChange={(e) => updateElementField('heading_segments', idx, 'text', e.target.value)} placeholder="Text" className="flex-1 text-xs p-1.5 border border-slate-200 rounded" />
-                      <input type="color" value={seg.color || '#ffffff'} onChange={(e) => updateElementField('heading_segments', idx, 'color', e.target.value)} className="w-8 h-8 rounded border border-slate-200 p-0.5" />
-                      <select value={seg.display || 'inline-block'} onChange={(e) => updateElementField('heading_segments', idx, 'display', e.target.value)} className="text-xs p-1.5 border border-slate-200 rounded">
-                        <option value="inline-block">Inline</option>
-                        <option value="block">New Line (Block)</option>
-                      </select>
-                      <button type="button" onClick={() => removeElement('heading_segments', idx)} className="text-red-500 font-bold px-2 hover:text-red-700 transition-colors">✕</button>
-                    </div>
-                  ))}
-                  <button type="button" onClick={() => {
-                    const current = Array.isArray(editingBanner.heading_segments) ? [...editingBanner.heading_segments] : [];
-                    current.push({text: 'WORD', color: '#e50914', display: 'inline-block'});
-                    setEditingBanner({...editingBanner, heading_segments: current});
-                  }} className="text-xs text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1 transition-colors">+ Add Text Segment</button>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Default Button Text &amp; URL</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      name="button_text"
+                      defaultValue={editingBanner.button_text || 'Explore Deals'}
+                      placeholder="Button Text"
+                      className="w-1/2 bg-white border border-slate-200 rounded-xl p-2 text-xs font-bold"
+                    />
+                    <input
+                      type="text"
+                      name="button_link"
+                      defaultValue={editingBanner.button_link || 'offers'}
+                      placeholder="Target Link (e.g. /offers, /ott-plans)"
+                      className="w-1/2 bg-white border border-slate-200 rounded-xl p-2 text-xs font-mono"
+                    />
+                  </div>
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Description</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Description / Subtitle</label>
                   <textarea
                     name="description"
                     rows="2"
@@ -458,175 +659,171 @@ export default function BannersManager({ adminEmail }) {
                     className="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-slate-900 text-xs shadow-sm"
                   ></textarea>
                 </div>
-                
-                <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-3 border-t pt-3 border-slate-200 mt-2">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Banner Image URL</label>
-                    <input type="text" id="banner_img_input" name="image_url" defaultValue={editingBanner.image_url || ''} placeholder="Empty = No Image" className="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-slate-900 text-xs" />
+              </div>
+
+              {/* 3. COLOR CONTROLS (HEX + PICKER) */}
+              <div className="bg-amber-50/60 p-4 rounded-xl border border-amber-200 space-y-4">
+                <h4 className="text-xs font-black uppercase text-amber-950 tracking-wider flex items-center gap-1.5">
+                  <Palette className="w-4 h-4 text-amber-600" /> Color Controls &amp; Overlays
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Background Color */}
+                  <div className="bg-white p-3 rounded-xl border border-amber-200 space-y-1.5">
+                    <label className="block text-[11px] font-bold text-slate-700">Background Color</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={editingBanner.bg_color || '#050b1e'}
+                        onChange={(e) => setEditingBanner({ ...editingBanner, bg_color: e.target.value })}
+                        className="w-8 h-8 rounded border border-slate-200 cursor-pointer p-0.5"
+                      />
+                      <input
+                        type="text"
+                        name="bg_color"
+                        value={editingBanner.bg_color || '#050b1e'}
+                        onChange={(e) => setEditingBanner({ ...editingBanner, bg_color: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-xs font-mono font-bold"
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Image Fit</label>
-                    <select name="image_fit" defaultValue={editingBanner.image_fit || 'contain'} className="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-slate-900 text-xs">
-                      <option value="contain">Contain</option>
-                      <option value="cover">Cover</option>
-                      <option value="fill">Fill</option>
-                    </select>
+
+                  {/* Text Color */}
+                  <div className="bg-white p-3 rounded-xl border border-amber-200 space-y-1.5">
+                    <label className="block text-[11px] font-bold text-slate-700">Text Color</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={editingBanner.text_color || '#ffffff'}
+                        onChange={(e) => setEditingBanner({ ...editingBanner, text_color: e.target.value })}
+                        className="w-8 h-8 rounded border border-slate-200 cursor-pointer p-0.5"
+                      />
+                      <input
+                        type="text"
+                        name="text_color"
+                        value={editingBanner.text_color || '#ffffff'}
+                        onChange={(e) => setEditingBanner({ ...editingBanner, text_color: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-xs font-mono font-bold"
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Image Position</label>
-                    <select name="image_position" defaultValue={editingBanner.image_position || 'center'} className="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-slate-900 text-xs">
-                      <option value="center">Center</option>
-                      <option value="top">Top</option>
-                      <option value="bottom">Bottom</option>
-                      <option value="left">Left</option>
-                      <option value="right">Right</option>
-                    </select>
+
+                  {/* Button Color */}
+                  <div className="bg-white p-3 rounded-xl border border-amber-200 space-y-1.5">
+                    <label className="block text-[11px] font-bold text-slate-700">Button Color</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={editingBanner.button_color || '#e50914'}
+                        onChange={(e) => setEditingBanner({ ...editingBanner, button_color: e.target.value })}
+                        className="w-8 h-8 rounded border border-slate-200 cursor-pointer p-0.5"
+                      />
+                      <input
+                        type="text"
+                        name="button_color"
+                        value={editingBanner.button_color || '#e50914'}
+                        onChange={(e) => setEditingBanner({ ...editingBanner, button_color: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-xs font-mono font-bold"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Overlay Color */}
+                  <div className="bg-white p-3 rounded-xl border border-amber-200 space-y-1.5">
+                    <label className="block text-[11px] font-bold text-slate-700">Overlay Color / Opacity</label>
+                    <input
+                      type="text"
+                      name="overlay_color"
+                      value={editingBanner.overlay_color || 'rgba(0,0,0,0.3)'}
+                      onChange={(e) => setEditingBanner({ ...editingBanner, overlay_color: e.target.value })}
+                      placeholder="rgba(0,0,0,0.3)"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-xs font-mono"
+                    />
                   </div>
                 </div>
               </div>
 
-              {/* 2. OPTIONAL BADGE CUSTOMIZER (SECTION 1 FIX) */}
-              <div className="bg-red-50/50 p-4 rounded-xl border border-red-200 space-y-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-black uppercase text-red-900 tracking-wider flex items-center gap-1.5">
-                    <Sparkles className="w-4 h-4 text-red-600" /> 1. Optional Badge Customizer
+              {/* 4. IMAGE UPLOAD & SIZING (ONLY IF IMAGE MODE) */}
+              {bannerMode === 'image' && (
+                <div className="bg-emerald-50/50 p-4 rounded-xl border border-emerald-200 space-y-4">
+                  <h4 className="text-xs font-black uppercase text-emerald-900 tracking-wider flex items-center gap-1.5">
+                    <Upload className="w-4 h-4 text-emerald-600" /> Image Upload &amp; Framing
                   </h4>
-                  <label className="flex items-center gap-2 cursor-pointer bg-white px-3 py-1.5 rounded-lg border border-red-200 shadow-sm">
-                    <input 
-                      type="checkbox" 
-                      checked={editingBanner.badge_config?.enabled || false}
-                      onChange={(e) => {
-                        setEditingBanner({
-                          ...editingBanner,
-                          badge_config: {
-                            ...(editingBanner.badge_config || {}),
-                            enabled: e.target.checked
-                          }
-                        });
-                      }}
-                      className="w-4 h-4 accent-red-600 cursor-pointer"
-                    />
-                    <span className="text-xs font-bold text-red-950">Enable Badge</span>
-                  </label>
-                </div>
 
-                {editingBanner.badge_config?.enabled && (
-                  <div className="bg-white p-4 rounded-xl border border-red-200 space-y-3 shadow-sm">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                      
-                      {/* Badge Text */}
-                      <div className="sm:col-span-2">
-                        <label className="block text-[11px] font-bold text-slate-700 mb-1">Badge Text *</label>
-                        <input 
-                          type="text" 
-                          placeholder="e.g. 50% OFF, LIMITED DEAL, EXCLUSIVE" 
-                          value={editingBanner.badge_config?.text || ''}
-                          onChange={(e) => {
-                            setEditingBanner({
-                              ...editingBanner,
-                              badge_config: {
-                                ...(editingBanner.badge_config || {}),
-                                text: e.target.value
-                              }
-                            });
-                          }}
-                          className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold text-slate-900"
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Primary Image Upload */}
+                    <div className="bg-white p-3.5 rounded-xl border border-emerald-200 space-y-3">
+                      <label className="block text-xs font-bold text-slate-800">
+                        Main Banner Artwork / Photo
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          name="image_url"
+                          id="banner_img_input"
+                          value={editingBanner.image_url || ''}
+                          onChange={(e) => setEditingBanner({ ...editingBanner, image_url: e.target.value })}
+                          placeholder="https://... or /image.png"
+                          className="flex-1 bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs font-mono shadow-sm"
                         />
+                        <label className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-xs flex items-center gap-1 cursor-pointer shrink-0 shadow">
+                          <Upload className="w-3.5 h-3.5" /> {uploadingPrimary ? '...' : 'Upload'}
+                          <input type="file" accept="image/*" onChange={handlePrimaryImageUpload} className="hidden" />
+                        </label>
                       </div>
 
-                      {/* Badge Position */}
+                      {editingBanner.image_url && (
+                        <div className="relative w-full h-28 bg-slate-950 rounded-xl overflow-hidden border border-slate-200 flex items-center justify-center p-2">
+                          <img src={editingBanner.image_url} alt="Main Banner Preview" className="max-h-full max-w-full object-contain" />
+                          <button
+                            type="button"
+                            onClick={() => setEditingBanner({ ...editingBanner, image_url: '' })}
+                            className="absolute top-1.5 right-1.5 bg-red-600 text-white p-1 rounded-full text-[10px] hover:bg-red-700 cursor-pointer"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Image Fit & Position */}
+                    <div className="bg-white p-3.5 rounded-xl border border-emerald-200 space-y-3">
                       <div>
-                        <label className="block text-[11px] font-bold text-slate-700 mb-1">Position on Banner</label>
-                        <select 
-                          value={editingBanner.badge_config?.position || 'top-left'}
-                          onChange={(e) => {
-                            setEditingBanner({
-                              ...editingBanner,
-                              badge_config: {
-                                ...(editingBanner.badge_config || {}),
-                                position: e.target.value
-                              }
-                            });
-                          }}
-                          className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold text-slate-900"
-                        >
-                          <option value="top-left">Top Left</option>
-                          <option value="top-right">Top Right</option>
-                          <option value="bottom-left">Bottom Left</option>
-                          <option value="bottom-right">Bottom Right</option>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">Image Fit</label>
+                        <select name="image_fit" defaultValue={editingBanner.image_fit || 'contain'} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs font-bold">
+                          <option value="contain">Contain (Keep entire image visible)</option>
+                          <option value="cover">Cover (Fill entire banner box)</option>
+                          <option value="fill">Fill (Stretch to fit box)</option>
                         </select>
                       </div>
-
-                      {/* Badge Colors */}
                       <div>
-                        <label className="block text-[11px] font-bold text-slate-700 mb-1">Colors (BG &amp; Text)</label>
-                        <div className="flex items-center gap-2">
-                          <input 
-                            type="color" 
-                            value={editingBanner.badge_config?.bg_color || '#e50914'}
-                            onChange={(e) => {
-                              setEditingBanner({
-                                ...editingBanner,
-                                badge_config: {
-                                  ...(editingBanner.badge_config || {}),
-                                  bg_color: e.target.value
-                                }
-                              });
-                            }}
-                            className="w-8 h-8 rounded border border-slate-200 cursor-pointer p-0.5"
-                            title="Background Color"
-                          />
-                          <input 
-                            type="color" 
-                            value={editingBanner.badge_config?.text_color || '#ffffff'}
-                            onChange={(e) => {
-                              setEditingBanner({
-                                ...editingBanner,
-                                badge_config: {
-                                  ...(editingBanner.badge_config || {}),
-                                  text_color: e.target.value
-                                }
-                              });
-                            }}
-                            className="w-8 h-8 rounded border border-slate-200 cursor-pointer p-0.5"
-                            title="Text Color"
-                          />
-                          <span className="text-[10px] font-mono text-slate-500">{editingBanner.badge_config?.bg_color || '#e50914'}</span>
-                        </div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">Image Alignment</label>
+                        <select name="image_position" defaultValue={editingBanner.image_position || 'center'} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs font-bold">
+                          <option value="center">Center</option>
+                          <option value="top">Top</option>
+                          <option value="bottom">Bottom</option>
+                          <option value="left">Left</option>
+                          <option value="right">Right</option>
+                        </select>
                       </div>
-
-                    </div>
-
-                    {/* Preview pill */}
-                    <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
-                      <span className="text-[10px] font-bold text-slate-500">Live Preview:</span>
-                      <span 
-                        style={{ 
-                          backgroundColor: editingBanner.badge_config?.bg_color || '#e50914',
-                          color: editingBanner.badge_config?.text_color || '#ffffff'
-                        }}
-                        className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider shadow-sm"
-                      >
-                        {editingBanner.badge_config?.text || 'SAMPLE BADGE'}
-                      </span>
                     </div>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
 
-              {/* 3. DYNAMIC BUTTONS (SECTION 2 FIX) */}
+              {/* 5. DYNAMIC BUTTONS (MULTIPLE BUTTONS WITH PRESETS) */}
               <div className="bg-purple-50/50 p-4 rounded-xl border border-purple-200 space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <h4 className="text-xs font-black uppercase text-purple-900 tracking-wider flex items-center gap-1.5">
-                      <Link className="w-4 h-4 text-purple-600" /> 2. Dynamic Banner Buttons &amp; Direct Links
+                      <Link className="w-4 h-4 text-purple-600" /> Dynamic Action Buttons &amp; Direct URLs
                     </h4>
-                    <p className="text-[10px] text-purple-700">Add multiple buttons, custom text, link URLs, presets, position alignment, and colors</p>
+                    <p className="text-[10px] text-purple-700">Add multiple action buttons with custom target links and alignment</p>
                   </div>
                   <button 
                     type="button" 
                     onClick={handleAddButton} 
-                    className="px-3.5 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-sm flex items-center gap-1"
+                    className="px-3.5 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-sm flex items-center gap-1 cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" /> Add Button
                   </button>
@@ -635,49 +832,10 @@ export default function BannersManager({ adminEmail }) {
                 <div className="space-y-3">
                   {Array.isArray(editingBanner.buttons) && editingBanner.buttons.map((btn, btnIdx) => (
                     <div key={btn.id || btnIdx} className="bg-white p-3.5 rounded-xl border border-purple-200 shadow-sm space-y-3">
-                      
-                      <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-black text-purple-700">Button #{btnIdx + 1}</span>
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-purple-50 text-purple-600 border border-purple-200">
-                            Align: {btn.position || 'left'}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <button 
-                            type="button" 
-                            onClick={() => reorderElement('buttons', btnIdx, 'UP')}
-                            disabled={btnIdx === 0}
-                            className="p-1 rounded bg-slate-100 text-slate-600 hover:bg-slate-200 disabled:opacity-30"
-                            title="Move Up"
-                          >
-                            <ArrowUp className="w-3.5 h-3.5" />
-                          </button>
-                          <button 
-                            type="button" 
-                            onClick={() => reorderElement('buttons', btnIdx, 'DOWN')}
-                            disabled={btnIdx === editingBanner.buttons.length - 1}
-                            className="p-1 rounded bg-slate-100 text-slate-600 hover:bg-slate-200 disabled:opacity-30"
-                            title="Move Down"
-                          >
-                            <ArrowDown className="w-3.5 h-3.5" />
-                          </button>
-                          <button 
-                            type="button" 
-                            onClick={() => removeElement('buttons', btnIdx)} 
-                            className="p-1 rounded bg-red-50 text-red-600 hover:bg-red-100 text-xs font-bold"
-                            title="Delete Button"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
-
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-2.5">
                         
-                        {/* Button Text */}
                         <div className="lg:col-span-3">
-                          <label className="text-[10px] font-bold text-slate-600 block mb-1">Button Name / Text *</label>
+                          <label className="text-[10px] font-bold text-slate-600 block mb-1">Button Text *</label>
                           <input 
                             type="text" 
                             placeholder="Button Text" 
@@ -687,34 +845,15 @@ export default function BannersManager({ adminEmail }) {
                           />
                         </div>
                         
-                        {/* Direct Link Box & Presets */}
                         <div className="lg:col-span-5 space-y-1">
-                          <div className="flex items-center justify-between">
-                            <label className="text-[10px] font-bold text-slate-600">Target Link URL Box *</label>
-                            {btn.link && (
-                              <button 
-                                type="button" 
-                                onClick={() => {
-                                  const url = btn.link;
-                                  if (url.startsWith('http') || url.startsWith('tel:') || url.startsWith('mailto:')) {
-                                    window.open(url, '_blank');
-                                  } else {
-                                    window.open(`/${url.replace(/^\//, '')}`, '_blank');
-                                  }
-                                }}
-                                className="text-[10px] font-bold text-purple-600 hover:text-purple-800 underline flex items-center gap-0.5"
-                              >
-                                🔗 Test Link
-                              </button>
-                            )}
-                          </div>
+                          <label className="text-[10px] font-bold text-slate-600 block mb-1">Target URL Box *</label>
                           <div className="flex gap-1">
                             <input 
                               type="text" 
-                              placeholder="e.g. /offers, /ott-plans, https://..." 
+                              placeholder="e.g. /offers, /ott-plans, /fiber, /mobiles" 
                               value={btn.link || ''} 
                               onChange={(e) => updateElementField('buttons', btnIdx, 'link', e.target.value)} 
-                              className="flex-1 bg-slate-50 border border-purple-300 focus:border-purple-600 rounded-lg p-2 text-xs font-mono text-purple-900" 
+                              className="flex-1 bg-slate-50 border border-purple-300 rounded-lg p-2 text-xs font-mono text-purple-900" 
                             />
                             <select 
                               onChange={(e) => {
@@ -727,324 +866,38 @@ export default function BannersManager({ adminEmail }) {
                               <option value="/ott-plans">OTT Plans (/ott-plans)</option>
                               <option value="/fiber-internet">Fiber Internet (/fiber-internet)</option>
                               <option value="/mobiles">Mobiles (/mobiles)</option>
-                              <option value="/electronics">Electronics (/electronics)</option>
                               <option value="/contact">Contact (/contact)</option>
-                              <option value="/view-all">All Products (/view-all)</option>
                               <option value="https://wa.me/916305151531">WhatsApp Chat</option>
                             </select>
                           </div>
                         </div>
 
-                        {/* Link Type */}
                         <div className="lg:col-span-2">
-                          <label className="text-[10px] font-bold text-slate-600 block mb-1">Link Type</label>
-                          <select 
-                            value={btn.link_type || 'internal'} 
-                            onChange={(e) => updateElementField('buttons', btnIdx, 'link_type', e.target.value)} 
-                            className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold"
-                          >
-                            <option value="internal">Internal Page</option>
-                            <option value="external">External URL</option>
-                          </select>
-                        </div>
-
-                        {/* Button Position / Alignment */}
-                        <div className="lg:col-span-2">
-                          <label className="text-[10px] font-bold text-slate-600 block mb-1">Button Alignment</label>
-                          <select 
-                            value={btn.position || 'left'} 
-                            onChange={(e) => updateElementField('buttons', btnIdx, 'position', e.target.value)} 
-                            className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold"
-                          >
-                            <option value="left">Left</option>
-                            <option value="center">Center</option>
-                            <option value="right">Right</option>
-                          </select>
-                        </div>
-
-                      </div>
-
-                      {/* Colors & Visibility */}
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t border-slate-100 items-center">
-                        <div className="flex items-center gap-2">
-                          <label className="text-[10px] font-bold text-slate-600">Button Color:</label>
-                          <input 
-                            type="color" 
-                            value={btn.button_color || '#e50914'} 
-                            onChange={(e) => updateElementField('buttons', btnIdx, 'button_color', e.target.value)}
-                            className="w-7 h-7 rounded border cursor-pointer p-0.5"
-                          />
-                          <label className="text-[10px] font-bold text-slate-600 ml-2">Text:</label>
-                          <input 
-                            type="color" 
-                            value={btn.text_color || '#ffffff'} 
-                            onChange={(e) => updateElementField('buttons', btnIdx, 'text_color', e.target.value)}
-                            className="w-7 h-7 rounded border cursor-pointer p-0.5"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="text-[10px] font-bold text-slate-600 mr-2">Target:</label>
-                          <select 
-                            value={btn.target || '_self'} 
-                            onChange={(e) => updateElementField('buttons', btnIdx, 'target', e.target.value)}
-                            className="bg-slate-50 border border-slate-200 rounded p-1 text-xs font-bold"
-                          >
-                            <option value="_self">Same Tab</option>
-                            <option value="_blank">New Tab</option>
-                          </select>
-                        </div>
-
-                        <div className="flex justify-end">
-                          <select 
-                            value={btn.is_active !== false ? 'true' : 'false'} 
-                            onChange={(e) => updateElementField('buttons', btnIdx, 'is_active', e.target.value === 'true')} 
-                            className="bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-xs font-bold"
-                          >
-                            <option value="true">Active (Show)</option>
-                            <option value="false">Hidden (Off)</option>
-                          </select>
-                        </div>
-                      </div>
-
-                    </div>
-                  ))}
-
-                  {(!editingBanner.buttons || editingBanner.buttons.length === 0) && (
-                    <div className="text-center py-4 bg-white rounded-xl border border-dashed border-purple-200 text-xs text-slate-500">
-                      No buttons added yet. Click <strong>+ Add Button</strong> above to add custom action buttons.
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* 4. DYNAMIC MIDDLE FEATURE ITEMS (SECTION 3 FIX: OTT / Fiber / Combo Packages) */}
-              <div className="bg-amber-50/60 p-4 rounded-xl border border-amber-200 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="text-xs font-black uppercase text-amber-900 tracking-wider flex items-center gap-1.5">
-                      <Layers className="w-4 h-4 text-amber-600" /> 3. OTT / Fiber / Combo Package Content (Feature Lines)
-                    </h4>
-                    <p className="text-[10px] text-amber-800">Fully editable package items: Name, description, symbol/icon, icon color, reorder, add and delete</p>
-                  </div>
-                  <button 
-                    type="button" 
-                    onClick={handleAddFeatureItem} 
-                    className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-[11px] shadow-sm flex items-center gap-1"
-                  >
-                    <Plus className="w-3 h-3" /> Add Package Item
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {Array.isArray(editingBanner.feature_items) && editingBanner.feature_items.map((feat, featIdx) => (
-                    <div key={feat.id || featIdx} className="bg-white p-3.5 rounded-xl border border-amber-200 shadow-sm space-y-2.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-black text-amber-800">Package #{featIdx + 1}</span>
-                        <div className="flex items-center gap-1">
-                          <button 
-                            type="button" 
-                            onClick={() => reorderElement('feature_items', featIdx, 'UP')}
-                            disabled={featIdx === 0}
-                            className="p-1 rounded bg-slate-100 text-slate-600 hover:bg-slate-200 disabled:opacity-30"
-                            title="Move Left"
-                          >
-                            <ArrowUp className="w-3 h-3" />
-                          </button>
-                          <button 
-                            type="button" 
-                            onClick={() => reorderElement('feature_items', featIdx, 'DOWN')}
-                            disabled={featIdx === editingBanner.feature_items.length - 1}
-                            className="p-1 rounded bg-slate-100 text-slate-600 hover:bg-slate-200 disabled:opacity-30"
-                            title="Move Right"
-                          >
-                            <ArrowDown className="w-3 h-3" />
-                          </button>
-                          <button 
-                            type="button" 
-                            onClick={() => removeElement('feature_items', featIdx)} 
-                            className="p-1 text-red-600 hover:text-red-800 font-bold"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <div>
-                          <label className="text-[10px] font-bold text-slate-600 block mb-1">Symbol / Icon</label>
-                          <select 
-                            value={feat.icon || 'Tv'} 
-                            onChange={(e) => updateElementField('feature_items', featIdx, 'icon', e.target.value)}
-                            className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold"
-                          >
-                            <option value="Tv">Tv (OTT Platforms)</option>
-                            <option value="Wifi">Wifi (Fiber Broadband)</option>
-                            <option value="Layers">Layers (Combo Packages)</option>
-                            <option value="Flame">Flame (Flash Deals)</option>
-                            <option value="Zap">Zap (Lightning Fast)</option>
-                            <option value="Shield">Shield (100% Secure)</option>
-                            <option value="Sparkles">Sparkles (Exclusive)</option>
-                            <option value="Smartphone">Smartphone (Mobile)</option>
-                            <option value="Headphones">Headphones (Audio)</option>
-                            <option value="Laptop">Laptop (Devices)</option>
-                            <option value="Gift">Gift (Bonus Rewards)</option>
-                            <option value="Star">Star (Top Rated)</option>
-                            <option value="Clock">Clock (24/7 Access)</option>
-                            <option value="CheckCircle">CheckCircle (Verified)</option>
-                            <option value="Globe">Globe (Global Content)</option>
-                          </select>
-                        </div>
-
-                        <div>
-                          <label className="text-[10px] font-bold text-slate-600 block mb-1">Title / Name *</label>
-                          <input 
-                            type="text" 
-                            placeholder="e.g. OTT Subscriptions" 
-                            value={feat.title || ''} 
-                            onChange={(e) => updateElementField('feature_items', featIdx, 'title', e.target.value)} 
-                            className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold text-slate-900" 
-                          />
-                        </div>
-
-                        <div>
-                          <label className="text-[10px] font-bold text-slate-600 block mb-1">Subtitle / Description</label>
-                          <input 
-                            type="text" 
-                            placeholder="e.g. Top Premium Platforms" 
-                            value={feat.subtitle || ''} 
-                            onChange={(e) => updateElementField('feature_items', featIdx, 'subtitle', e.target.value)} 
-                            className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold text-slate-900" 
-                          />
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-2 pt-1">
-                          <div>
-                            <label className="text-[10px] font-bold text-slate-600 block mb-1">Icon Color</label>
-                            <div className="flex items-center gap-1.5">
-                              <input 
-                                type="color" 
-                                value={feat.color && feat.color.startsWith('#') ? feat.color : '#e50914'} 
-                                onChange={(e) => updateElementField('feature_items', featIdx, 'color', e.target.value)} 
-                                className="w-8 h-8 rounded border border-slate-200 cursor-pointer p-0.5" 
-                              />
-                              <input 
-                                type="text" 
-                                value={feat.color || '#e50914'} 
-                                onChange={(e) => updateElementField('feature_items', featIdx, 'color', e.target.value)} 
-                                className="w-full bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-[11px] font-mono" 
-                              />
-                            </div>
-                          </div>
-
-                          <div>
-                            <label className="text-[10px] font-bold text-slate-600 block mb-1">Visibility</label>
-                            <select 
-                              value={feat.is_active !== false ? 'true' : 'false'} 
-                              onChange={(e) => updateElementField('feature_items', featIdx, 'is_active', e.target.value === 'true')}
-                              className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold"
-                            >
-                              <option value="true">Show</option>
-                              <option value="false">Hide</option>
-                            </select>
+                          <label className="text-[10px] font-bold text-slate-600 block mb-1">Button Color</label>
+                          <div className="flex items-center gap-1.5">
+                            <input 
+                              type="color" 
+                              value={btn.button_color || '#e50914'} 
+                              onChange={(e) => updateElementField('buttons', btnIdx, 'button_color', e.target.value)}
+                              className="w-7 h-7 rounded border cursor-pointer p-0.5"
+                            />
+                            <span className="text-[10px] font-mono text-slate-500">{btn.button_color || '#e50914'}</span>
                           </div>
                         </div>
+
+                        <div className="lg:col-span-2 flex items-end justify-end">
+                          <button 
+                            type="button" 
+                            onClick={() => removeElement('buttons', btnIdx)} 
+                            className="px-2.5 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 text-xs font-bold flex items-center gap-1 cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" /> Remove
+                          </button>
+                        </div>
+
                       </div>
                     </div>
                   ))}
-                </div>
-              </div>
-
-              {/* 5. LOGO + SEPARATE PICTURE UPLOAD (SECTION 4 FIX) */}
-              <div className="bg-emerald-50/50 p-4 rounded-xl border border-emerald-200 space-y-4">
-                <h4 className="text-xs font-black uppercase text-emerald-900 tracking-wider flex items-center gap-1.5">
-                  <Upload className="w-4 h-4 text-emerald-600" /> 4. Main Banner Image / Logo + Separate Picture Upload
-                </h4>
-                <p className="text-[10px] text-emerald-800">
-                  Upload the main banner artwork/logo, and upload the separate bottom feature picture independently.
-                </p>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  
-                  {/* Primary Banner Image / Logo Artwork */}
-                  <div className="bg-white p-3.5 rounded-xl border border-emerald-200 space-y-3">
-                    <label className="block text-xs font-bold text-slate-800">
-                      Primary Banner Image / Logo Artwork
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        name="image_url"
-                        id="banner_img_input"
-                        value={editingBanner.image_url || ''}
-                        onChange={(e) => setEditingBanner({ ...editingBanner, image_url: e.target.value })}
-                        placeholder="https://... or /image.png"
-                        className="flex-1 bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs font-mono shadow-sm"
-                      />
-                      <label className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-xs flex items-center gap-1 cursor-pointer shrink-0 shadow">
-                        <Upload className="w-3.5 h-3.5" /> {uploadingPrimary ? '...' : 'Upload'}
-                        <input type="file" accept="image/*" onChange={handlePrimaryImageUpload} className="hidden" />
-                      </label>
-                    </div>
-
-                    {editingBanner.image_url && (
-                      <div className="relative w-full h-28 bg-slate-950 rounded-xl overflow-hidden border border-slate-200 flex items-center justify-center p-2">
-                        <img src={editingBanner.image_url} alt="Main Banner Preview" className="max-h-full max-w-full object-contain" />
-                        <button
-                          type="button"
-                          onClick={() => setEditingBanner({ ...editingBanner, image_url: '' })}
-                          className="absolute top-1.5 right-1.5 bg-red-600 text-white p-1 rounded-full text-[10px] hover:bg-red-700"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Separate Secondary Picture Upload (Router/Fiber/Combo Picture) */}
-                  <div className="bg-white p-3.5 rounded-xl border border-emerald-200 space-y-3">
-                    <label className="block text-xs font-bold text-slate-800">
-                      Separate Bottom Feature Picture (e.g. Fiber/Combo Card)
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={editingBanner.secondary_image_url || ''}
-                        onChange={(e) => setEditingBanner({ ...editingBanner, secondary_image_url: e.target.value })}
-                        placeholder="https://images.unsplash.com/..."
-                        className="flex-1 bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs font-mono shadow-sm"
-                      />
-                      <label className="px-3 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl font-bold text-xs flex items-center gap-1 cursor-pointer shrink-0 shadow">
-                        <Upload className="w-3.5 h-3.5" /> {uploadingSecondary ? '...' : 'Upload'}
-                        <input type="file" accept="image/*" onChange={handleSecondaryImageUpload} className="hidden" />
-                      </label>
-                    </div>
-
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-600 block mb-1">Caption / Subtitle Text</label>
-                      <input
-                        type="text"
-                        value={editingBanner.secondary_image_caption || ''}
-                        onChange={(e) => setEditingBanner({ ...editingBanner, secondary_image_caption: e.target.value })}
-                        placeholder="e.g. 🔥 High-Speed Fiber Internet + OTT Combo"
-                        className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold"
-                      />
-                    </div>
-
-                    {editingBanner.secondary_image_url && (
-                      <div className="relative w-full h-24 bg-slate-900 rounded-xl overflow-hidden border border-slate-200">
-                        <img src={editingBanner.secondary_image_url} alt="Secondary Preview" className="w-full h-full object-cover" />
-                        <button
-                          type="button"
-                          onClick={() => setEditingBanner({ ...editingBanner, secondary_image_url: '' })}
-                          className="absolute top-1.5 right-1.5 bg-red-600 text-white p-1 rounded-full text-[10px] hover:bg-red-700"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
                 </div>
               </div>
 
@@ -1053,7 +906,7 @@ export default function BannersManager({ adminEmail }) {
                 <button 
                   type="button" 
                   onClick={() => setEditingBanner(null)} 
-                  className="px-5 py-2.5 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold hover:bg-slate-200 transition-colors"
+                  className="px-5 py-2.5 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold hover:bg-slate-200 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
