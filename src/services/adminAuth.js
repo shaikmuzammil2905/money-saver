@@ -1,5 +1,7 @@
 import { supabase } from './supabase';
 
+export const PRIMARY_ADMIN_EMAIL = 'Fixyourmobiles7@gmail.com';
+
 /**
  * Sign in admin user with email and password
  */
@@ -7,9 +9,11 @@ export async function loginAdmin(email, password) {
   if (!supabase) throw new Error('Supabase is not configured.');
 
   try {
+    const cleanEmail = email.trim().toLowerCase();
+
     // 1. Authenticate with Supabase Auth
     const { data, error } = await supabase.auth.signInWithPassword({
-      email,
+      email: cleanEmail,
       password
     });
 
@@ -20,21 +24,18 @@ export async function loginAdmin(email, password) {
     const { data: adminProfile } = await supabase
       .from('admin_profiles')
       .select('*')
-      .or(`user_id.eq.${data.user.id},email.eq.${email.toLowerCase()}`)
+      .or(`user_id.eq.${data.user.id},email.eq.${cleanEmail}`)
       .maybeSingle();
 
     if (!adminProfile) {
       // Auto-create admin profile for the configured admin account on first login
-      const lowerEmail = email.toLowerCase();
       const knownAdminEmails = [
-        'fixyourmobiles7@gmail.com',
-        'admin@ottmoneysaver.com',
-        'ottmoneysaver@gmail.com'
+        'fixyourmobiles7@gmail.com'
       ];
-      if (knownAdminEmails.includes(lowerEmail)) {
+      if (knownAdminEmails.includes(cleanEmail)) {
         await supabase.from('admin_profiles').upsert({
           user_id: data.user.id,
-          email: lowerEmail,
+          email: cleanEmail,
           role: 'admin',
           updated_at: new Date().toISOString()
         }, { onConflict: 'user_id' });
@@ -61,19 +62,19 @@ export async function getCurrentAdmin() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) return null;
 
+    const userEmail = (session.user.email || '').toLowerCase();
+
     const { data: adminProfile } = await supabase
       .from('admin_profiles')
       .select('*')
-      .or(`user_id.eq.${session.user.id},email.eq.${session.user.email.toLowerCase()}`)
+      .or(`user_id.eq.${session.user.id},email.eq.${userEmail}`)
       .maybeSingle();
 
     // Allow known admin emails even if profile doesn't exist yet
     const knownAdminEmails = [
-      'fixyourmobiles7@gmail.com',
-      'admin@ottmoneysaver.com',
-      'ottmoneysaver@gmail.com'
+      'fixyourmobiles7@gmail.com'
     ];
-    if (!adminProfile && !knownAdminEmails.includes(session.user.email?.toLowerCase())) {
+    if (!adminProfile && !knownAdminEmails.includes(userEmail)) {
       return null;
     }
 
@@ -93,55 +94,84 @@ export async function logoutAdmin() {
 }
 
 /**
- * Request Password Reset Email via Supabase Auth
- *
- * ROOT CAUSE FIX (as shown in image copy 67.png):
- * The previous implementation had a hardcoded email whitelist that only allowed
- * 'admin@ottmoneysaver.com' and 'ottmoneysaver@gmail.com'. This caused:
- *   "Wrong email entered. Please check your admin email address."
- * even when 'Fixyourmobiles7@gmail.com' was entered — because it was not in the whitelist.
- *
- * Fix: Remove ALL pre-validation. Delegate entirely to Supabase Auth.
- * Supabase will send a real reset email only if the account exists.
- * This is secure by design (prevents email enumeration attacks).
- *
- * MANUAL STEP REQUIRED: Fixyourmobiles7@gmail.com must be registered in Supabase Auth.
- * If not: Supabase Dashboard → Authentication → Users → Add user → Enter email + password.
- * Then an admin_profiles record will auto-create on next login.
- *
- * REDIRECT URL: Must match "Site URL" and "Redirect URLs" in:
- *   Supabase Dashboard → Authentication → URL Configuration
- *   Add: https://your-production-domain.vercel.app/admin (replace with your actual domain)
+ * Request Password Reset Email via NodeMailer / Gmail SMTP Serverless API
  */
 export async function resetAdminPassword(email) {
-  if (!supabase) throw new Error('Supabase is not configured.');
-
   if (!email || !email.trim()) {
     throw new Error('Please enter your admin email address.');
   }
 
   const cleanEmail = email.trim().toLowerCase();
 
-  // Determine redirect URL — uses current origin so it works in both dev and production
-  const redirectTo = `${window.location.origin}/admin?reset=true`;
+  try {
+    // 1. Call real NodeMailer SMTP Serverless Endpoint
+    const res = await fetch('/api/send-reset-email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ email: cleanEmail })
+    });
 
-  const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
-    redirectTo,
-  });
+    const data = await res.json().catch(() => ({}));
 
-  if (error) {
-    console.error('Password reset email error:', error);
-    throw new Error(error.message || 'Failed to send password reset email. Please try again.');
+    if (!res.ok) {
+      throw new Error(data.error || data.message || 'Unable to send the reset email. Please try again.');
+    }
+
+    return data;
+  } catch (apiErr) {
+    // If API endpoint is unreachable (e.g. static preview), fallback to Supabase Auth
+    if (apiErr.message?.includes('Failed to fetch') && supabase) {
+      const redirectTo = `${window.location.origin}/admin?reset=true`;
+      const { error: supaErr } = await supabase.auth.resetPasswordForEmail(cleanEmail, { redirectTo });
+      if (supaErr) throw supaErr;
+      return { success: true, message: 'Password reset link sent to your registered admin email.' };
+    }
+    throw apiErr;
   }
-
-  // Supabase returns success even if email doesn't exist (security by design).
-  // The reset email is only delivered if the account exists in Supabase Auth.
 }
 
 /**
- * Update Admin Password after clicking the reset email link.
- * Supabase automatically establishes a session from the reset token in the URL.
- * The AdminLogin component detects ?reset=true or hash type=recovery and switches to 'reset' mode.
+ * Update Admin Password via Token (from email reset link)
+ */
+export async function updateAdminPasswordWithToken(token, newPassword) {
+  if (!token || !token.trim()) {
+    throw new Error('Reset token is missing.');
+  }
+
+  if (!newPassword || newPassword.length < 6) {
+    throw new Error('Password must be at least 6 characters long.');
+  }
+
+  try {
+    const res = await fetch('/api/reset-password', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ token: token.trim(), newPassword })
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      throw new Error(data.error || data.message || 'Failed to update password.');
+    }
+
+    return data;
+  } catch (apiErr) {
+    // Fallback: If user is authenticated via Supabase session
+    if (supabase) {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (!error) return { success: true, message: 'Password updated successfully.' };
+    }
+    throw apiErr;
+  }
+}
+
+/**
+ * Update Admin Password for active Supabase session
  */
 export async function updateAdminPassword(newPassword) {
   if (!supabase) throw new Error('Supabase is not configured.');

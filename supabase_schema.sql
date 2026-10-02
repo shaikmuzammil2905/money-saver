@@ -28,6 +28,18 @@ INSERT INTO public.admin_profiles (email, role)
 VALUES ('fixyourmobiles7@gmail.com', 'admin')
 ON CONFLICT (email) DO NOTHING;
 
+-- Admin Password Reset Tokens Table
+CREATE TABLE IF NOT EXISTS public.admin_password_resets (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email TEXT NOT NULL,
+    token_hash TEXT NOT NULL,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    used BOOLEAN DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc', now()),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc', now())
+);
+CREATE INDEX IF NOT EXISTS idx_admin_resets_hash ON public.admin_password_resets(token_hash);
+
 -- ==============================================================================
 -- 3. PRODUCTS TABLE (FULL ATTRIBUTES & CATALOG)
 -- ==============================================================================
@@ -448,7 +460,7 @@ DO $$
 DECLARE
   tbl TEXT;
   tbls TEXT[] := ARRAY[
-    'admin_profiles', 'products', 'banners', 'categories', 'badges', 'themes',
+    'admin_profiles', 'admin_password_resets', 'products', 'banners', 'categories', 'badges', 'themes',
     'home_sections', 'homepage_steps', 'offer_items', 'offer_slides', 'offer_categories',
     'footer_links', 'product_batches', 'media', 'site_settings', 'cart_settings',
     'contact_details', 'whatsapp_templates', 'users', 'orders', 'order_items',
@@ -475,7 +487,7 @@ DO $$
 DECLARE
   tbl TEXT;
   tbls TEXT[] := ARRAY[
-    'products', 'banners', 'categories', 'badges', 'themes',
+    'admin_password_resets', 'products', 'banners', 'categories', 'badges', 'themes',
     'home_sections', 'homepage_steps', 'offer_items', 'offer_slides', 'offer_categories',
     'footer_links', 'product_batches', 'media', 'site_settings', 'cart_settings',
     'contact_details', 'whatsapp_templates', 'users', 'orders', 'order_items', 'coupons'
@@ -503,7 +515,7 @@ DO $$
 DECLARE
   tbl TEXT;
   tbls TEXT[] := ARRAY[
-    'admin_profiles', 'products', 'banners', 'categories', 'badges', 'themes',
+    'admin_profiles', 'admin_password_resets', 'products', 'banners', 'categories', 'badges', 'themes',
     'home_sections', 'homepage_steps', 'offer_items', 'offer_slides', 'offer_categories',
     'footer_links', 'product_batches', 'media', 'site_settings', 'cart_settings',
     'contact_details', 'whatsapp_templates', 'users', 'orders', 'order_items',

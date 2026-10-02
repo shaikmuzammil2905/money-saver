@@ -374,7 +374,7 @@ export default function WebsiteSettingsManager({ adminEmail }) {
             <input
               type="email"
               disabled
-              value={adminEmail || 'admin@ottmoneysaver.com'}
+              value={adminEmail || 'Fixyourmobiles7@gmail.com'}
               className="w-full bg-slate-950/60 border border-slate-800 rounded-xl p-3 text-slate-400 text-xs font-mono cursor-not-allowed"
             />
           </div>

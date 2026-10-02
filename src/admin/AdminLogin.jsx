@@ -1,31 +1,55 @@
 import React, { useState, useEffect } from 'react';
 import { Lock, Mail, ShieldAlert, ArrowRight, Eye, EyeOff, Sparkles, KeyRound } from 'lucide-react';
-import { loginAdmin, resetAdminPassword, updateAdminPassword } from '../services/adminAuth';
+import { 
+  PRIMARY_ADMIN_EMAIL, 
+  loginAdmin, 
+  resetAdminPassword, 
+  updateAdminPasswordWithToken, 
+  updateAdminPassword 
+} from '../services/adminAuth';
 
 export default function AdminLogin({ onLoginSuccess }) {
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(PRIMARY_ADMIN_EMAIL);
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [mode, setMode] = useState('login'); // 'login', 'forgot', 'reset'
+  const [resetToken, setResetToken] = useState('');
 
   useEffect(() => {
-    // Check if we're coming from a password reset email link.
-    // Supabase embeds the session in the URL hash (#access_token=...&type=recovery)
-    // OR the redirect URL may include ?reset=true (our custom param).
+    // Check if we're coming from a password reset email link
     const params = new URLSearchParams(window.location.search);
+    const tokenFromUrl = params.get('token');
     const hash = window.location.hash;
 
-    if (params.get('reset') === 'true' || hash.includes('type=recovery')) {
+    if (tokenFromUrl) {
+      setResetToken(tokenFromUrl);
       setMode('reset');
-      // Keep URL clean but preserve hash so Supabase can exchange the token
+    } else if (params.get('reset') === 'true' || hash.includes('type=recovery')) {
+      setMode('reset');
       if (params.get('reset') === 'true') {
         window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
       }
     }
   }, []);
+
+  const handleSwitchToForgot = () => {
+    setMode('forgot');
+    setErrorMsg('');
+    setSuccessMsg('');
+    if (!email) {
+      setEmail(PRIMARY_ADMIN_EMAIL);
+    }
+  };
+
+  const handleSwitchToLogin = () => {
+    setMode('login');
+    setErrorMsg('');
+    setSuccessMsg('');
+    setPassword('');
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -40,17 +64,26 @@ export default function AdminLogin({ onLoginSuccess }) {
           onLoginSuccess(user);
         }
       } else if (mode === 'forgot') {
-        if (!email || !email.trim()) throw new Error('Please enter your admin email address.');
-        await resetAdminPassword(email.trim());
-        setSuccessMsg(`Password reset link sent successfully to ${email.trim()}. Please check your inbox.`);
+        const targetEmail = email && email.trim() ? email.trim() : PRIMARY_ADMIN_EMAIL;
+        await resetAdminPassword(targetEmail);
+        setSuccessMsg(`Password reset link sent to your registered admin email (${targetEmail}). Please check your inbox.`);
         setMode('login');
       } else if (mode === 'reset') {
         if (!password) throw new Error('Please enter a new password.');
         if (password.length < 6) throw new Error('Password must be at least 6 characters long.');
-        await updateAdminPassword(password);
+        
+        if (resetToken) {
+          // Token-based reset via NodeMailer secure serverless endpoint
+          await updateAdminPasswordWithToken(resetToken, password);
+        } else {
+          // Supabase session-based recovery update
+          await updateAdminPassword(password);
+        }
+
         setSuccessMsg('Password successfully updated. You can now login with your new password.');
         setMode('login');
         setPassword('');
+        setEmail(PRIMARY_ADMIN_EMAIL);
       }
     } catch (err) {
       setErrorMsg(err.message || 'Operation failed. Please check your credentials and try again.');
@@ -110,7 +143,7 @@ export default function AdminLogin({ onLoginSuccess }) {
           </div>
         )}
 
-        {/* Login Form */}
+        {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           
           {(mode === 'login' || mode === 'forgot') && (
@@ -125,7 +158,7 @@ export default function AdminLogin({ onLoginSuccess }) {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@ottmoneysaver.com"
+                  placeholder="Fixyourmobiles7@gmail.com"
                   className="w-full bg-slate-950 border border-slate-700 rounded-xl py-3 pl-11 pr-4 text-white text-sm focus:outline-none focus:border-[#008744] focus:ring-1 focus:ring-[#008744] transition-colors"
                 />
               </div>
@@ -141,7 +174,7 @@ export default function AdminLogin({ onLoginSuccess }) {
                 {mode === 'login' && (
                   <button 
                     type="button" 
-                    onClick={() => { setMode('forgot'); setErrorMsg(''); setSuccessMsg(''); }}
+                    onClick={handleSwitchToForgot}
                     className="text-xs text-[#008744] hover:text-emerald-400 font-semibold"
                   >
                     Forgot Password?
@@ -155,7 +188,7 @@ export default function AdminLogin({ onLoginSuccess }) {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder={mode === 'reset' ? "Enter new password" : "••••••••••••"}
+                  placeholder={mode === 'reset' ? "Enter new password (min 6 chars)" : "••••••••••••"}
                   className="w-full bg-slate-950 border border-slate-700 rounded-xl py-3 pl-11 pr-11 text-white text-sm focus:outline-none focus:border-[#008744] focus:ring-1 focus:ring-[#008744] transition-colors"
                 />
                 <button
@@ -193,7 +226,7 @@ export default function AdminLogin({ onLoginSuccess }) {
             <div className="text-center mt-4">
               <button 
                 type="button" 
-                onClick={() => { setMode('login'); setErrorMsg(''); setSuccessMsg(''); }}
+                onClick={handleSwitchToLogin}
                 className="text-sm text-slate-400 hover:text-white transition-colors"
               >
                 Back to Login
