@@ -259,11 +259,11 @@ export default function CartDrawer({
 
   // Handle Open Payment Link (GPay / PhonePe Direct UPI Launch with pre-filled amount)
   const handleOpenPaymentApp = (type) => {
-    const upiId = paymentConfig?.upiId || DEFAULT_PAYMENT_CONFIG.upiId;
-    const amount = subtotal || 0;
+    const upiId = paymentConfig?.upi_id || paymentConfig?.upiId || cartSettings?.upi_id || DEFAULT_PAYMENT_CONFIG.upiId;
+    const amount = finalPayableAmount || subtotal || 0;
     const payeeName = 'OTTMoneySaver';
     
-    // Standard UPI Link prefilling exact payee & cart subtotal amount
+    // Standard UPI Link prefilling exact payee & cart payable amount
     const standardUpiUrl = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(payeeName)}&am=${amount}&cu=INR&tn=OTTMoneySaver%20Order`;
     
     let targetUrl = standardUpiUrl;
@@ -731,17 +731,22 @@ export default function CartDrawer({
                   )}
 
                   {!screenshotPreview ? (
-                    <label className="border-2 border-dashed border-slate-300 hover:border-[#008744] bg-white rounded-xl p-4 flex flex-col items-center justify-center text-center cursor-pointer transition-colors">
-                      <Upload className="w-6 h-6 text-slate-400 mb-1" />
-                      <span className="text-xs font-bold text-slate-700">Click to Upload Payment Proof</span>
-                      <span className="text-[10px] text-slate-400 mt-0.5">Proof image for faster verification (Max 5MB)</span>
-                      <input
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp"
-                        onChange={handleFileChange}
-                        className="hidden"
-                      />
-                    </label>
+                    <div className="space-y-2">
+                      <div className="bg-amber-50 border border-amber-200 text-amber-900 px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between shadow-sm">
+                        <span>If paid, please share screenshot or Pay Now.</span>
+                      </div>
+                      <label className="border-2 border-dashed border-slate-300 hover:border-[#008744] bg-white rounded-xl p-4 flex flex-col items-center justify-center text-center cursor-pointer transition-colors">
+                        <Upload className="w-6 h-6 text-slate-400 mb-1" />
+                        <span className="text-xs font-bold text-slate-700">Click to Upload Payment Proof</span>
+                        <span className="text-[10px] text-slate-400 mt-0.5">Proof image for faster verification (Max 5MB)</span>
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          onChange={handleFileChange}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
                   ) : (
                     <div className="space-y-2">
                       <div className="relative w-full h-32 rounded-xl bg-slate-900 overflow-hidden flex items-center justify-center border border-slate-200">

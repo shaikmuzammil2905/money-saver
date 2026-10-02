@@ -55,11 +55,23 @@ export default function CategoriesManager({ adminEmail }) {
   // --- 01: MAIN CATEGORIES (TOP 6 CARDS) HANDLERS ---
   const handleToggleMainStatus = async (item, index) => {
     const updated = [...(mainCategories || [])];
-    updated[index] = { ...item, is_active: item.is_active === false ? true : false };
+    const newActiveState = item.is_active === false ? true : false;
+    updated[index] = { ...item, is_active: newActiveState };
     setMainCategories(updated);
     await saveSiteConfigKey('main_categories', updated);
-    await logActivity(adminEmail, updated[index].is_active ? 'ENABLED' : 'DISABLED', 'Main Category', item.name);
-    showToast(updated[index].is_active ? 'Main Category Enabled' : 'Main Category Disabled');
+
+    // Sync with Supabase categories table
+    await saveCmsItem('categories', {
+      name: item.name,
+      slug: (item.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+      icon: item.icon || 'Sparkles',
+      image_url: item.image_url || '',
+      is_active: newActiveState
+    });
+
+    await logActivity(adminEmail, newActiveState ? 'ENABLED' : 'DISABLED', 'Main Category', item.name);
+    refreshAllData();
+    showToast(newActiveState ? 'Main Category Enabled' : 'Main Category Disabled');
   };
 
   const handleMoveMainCat = async (index, direction) => {
@@ -82,7 +94,16 @@ export default function CategoriesManager({ adminEmail }) {
     const list = (mainCategories || []).filter((_, i) => i !== index);
     setMainCategories(list);
     await saveSiteConfigKey('main_categories', list);
+
+    // Also mark category inactive or delete in categories table
+    await saveCmsItem('categories', {
+      name: name,
+      slug: (name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+      is_active: false
+    });
+
     await logActivity(adminEmail, 'DELETED', 'Main Category', name);
+    refreshAllData();
     showToast('Main Category Deleted.');
   };
 
@@ -112,8 +133,20 @@ export default function CategoriesManager({ adminEmail }) {
 
       setMainCategories(list);
       await saveSiteConfigKey('main_categories', list);
+
+      // Sync with Supabase categories table
+      await saveCmsItem('categories', {
+        name: itemPayload.name,
+        slug: (itemPayload.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        icon: itemPayload.icon,
+        image_url: itemPayload.image_url,
+        is_active: itemPayload.is_active,
+        display_order: itemPayload.display_order
+      });
+
       await logActivity(adminEmail, editingMainCat?.id ? 'EDITED' : 'ADDED', 'Main Category', itemPayload.name);
       setEditingMainCat(null);
+      refreshAllData();
       showToast('Main Category Saved Successfully.');
     } catch (err) {
       alert('Error saving main category: ' + err.message);
@@ -125,12 +158,25 @@ export default function CategoriesManager({ adminEmail }) {
   // --- 02: SUB-CATEGORIES (SHOP BY CATEGORY) HANDLERS ---
   const handleToggleSubStatus = async (item, index) => {
     const updated = [...(subCategories || [])];
-    updated[index] = { ...item, is_active: item.is_active === false ? true : false };
+    const newActiveState = item.is_active === false ? true : false;
+    updated[index] = { ...item, is_active: newActiveState };
     setSubCategories(updated);
     await saveSiteConfigKey('sub_categories', updated);
-    await logActivity(adminEmail, updated[index].is_active ? 'ENABLED' : 'DISABLED', 'Sub-Category', item.name);
-    showToast(updated[index].is_active ? 'Sub-Category Enabled' : 'Sub-Category Disabled');
+
+    // Sync with Supabase categories table
+    await saveCmsItem('categories', {
+      name: item.name,
+      slug: (item.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+      icon: item.icon || 'Smartphone',
+      image_url: item.image || '',
+      is_active: newActiveState
+    });
+
+    await logActivity(adminEmail, newActiveState ? 'ENABLED' : 'DISABLED', 'Sub-Category', item.name);
+    refreshAllData();
+    showToast(newActiveState ? 'Sub-Category Enabled' : 'Sub-Category Disabled');
   };
+
 
   const handleMoveSubCat = async (index, direction) => {
     const list = [...(subCategories || [])];

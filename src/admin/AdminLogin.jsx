@@ -34,20 +34,20 @@ export default function AdminLogin({ onLoginSuccess }) {
           onLoginSuccess(user);
         }
       } else if (mode === 'forgot') {
-        if (!email) throw new Error('Please enter your email address.');
-        await resetAdminPassword(email);
-        setSuccessMsg('Password reset link sent to your email.');
+        if (!email || !email.trim()) throw new Error('Please enter your admin email address.');
+        await resetAdminPassword(email.trim());
+        setSuccessMsg(`Password reset link sent successfully to ${email.trim()}. Please check your inbox.`);
         setMode('login');
       } else if (mode === 'reset') {
         if (!password) throw new Error('Please enter a new password.');
         if (password.length < 6) throw new Error('Password must be at least 6 characters long.');
         await updateAdminPassword(password);
-        setSuccessMsg('Password successfully updated. You can now login.');
+        setSuccessMsg('Password successfully updated. You can now login with your new password.');
         setMode('login');
         setPassword('');
       }
     } catch (err) {
-      setErrorMsg(err.message || 'Operation failed. Please try again.');
+      setErrorMsg(err.message || 'Operation failed. Please check your credentials and try again.');
     } finally {
       setLoading(false);
     }

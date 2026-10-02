@@ -64,10 +64,10 @@ export default function Header({
       </div>
 
       {/* Main Header Navbar */}
-      <div className="max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8 py-2.5 sm:py-3 flex items-center justify-between gap-2 sm:gap-6 overflow-hidden">
+      <div className="max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8 py-2.5 sm:py-3 flex items-center justify-between gap-2 sm:gap-4">
         
         {/* Brand Logo & Nav Links Container */}
-        <div className="flex items-center gap-4 lg:gap-12 shrink-0">
+        <div className="flex items-center gap-3 lg:gap-8 shrink min-w-0">
           {/* Brand Logo */}
           <div className="flex items-center gap-1.5 sm:gap-2 cursor-pointer group shrink-0" onClick={() => handleNavClick('home')}>
             <div className="h-7 sm:h-9 md:h-11 w-auto flex items-center shrink-0">
@@ -89,12 +89,12 @@ export default function Header({
           </div>
 
           {/* Desktop Nav Links */}
-          <nav className="hidden lg:flex items-center gap-5 xl:gap-7 text-sm font-semibold">
+          <nav className="hidden lg:flex items-center gap-3 xl:gap-6 text-xs xl:text-sm font-semibold truncate">
             {navLinks.map((link) => (
               <button
                 key={link.id}
                 onClick={() => handleNavClick(link.id)}
-                className={`transition-colors duration-200 py-1 relative ${
+                className={`transition-colors duration-200 py-1 relative whitespace-nowrap ${
                   activeTab === link.id ? 'text-[#008744] font-extrabold' : 'text-slate-200 hover:text-[#e50914]'
                 }`}
               >
@@ -108,10 +108,10 @@ export default function Header({
         </div>
 
         {/* Right Header Actions */}
-        <div className="flex items-center gap-2 sm:gap-4">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           
           {/* Search Bar */}
-          <div className="relative hidden md:block w-48 lg:w-64">
+          <div className="relative hidden xl:block w-48 lg:w-56">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
@@ -133,8 +133,9 @@ export default function Header({
           {/* Cart Icon */}
           <button
             onClick={onOpenCart}
-            className="relative p-2 text-slate-200 hover:text-white hover:bg-slate-900 rounded-xl transition-colors shrink-0"
+            className="relative p-2 text-slate-200 hover:text-white hover:bg-slate-900 rounded-xl transition-colors shrink-0 flex items-center justify-center"
             aria-label="Shopping Cart"
+            title="Shopping Cart"
           >
             <ShoppingCart className="w-5 h-5 sm:w-6 sm:h-6" />
             {cartCount > 0 && (

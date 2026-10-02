@@ -19,7 +19,21 @@ export default function ViewAllProducts({
   // Determine category layout style from Supabase Admin setting ('grid' vs 'horizontal')
   const categoryLayoutStyle = siteSettings?.category_layout_style || siteSettings?.all_otts_category_layout || 'grid';
 
-  // Build ONE clean unified list of categories starting with 'All'
+  // Build disabled category names set
+  const disabledCategoryNames = useMemo(() => {
+    const disabled = new Set();
+    if (cmsCategories && cmsCategories.length > 0) {
+      cmsCategories.forEach(c => {
+        if (c.is_active === false) {
+          disabled.add(c.name.toLowerCase());
+          if (c.slug) disabled.add(c.slug.toLowerCase());
+        }
+      });
+    }
+    return disabled;
+  }, [cmsCategories]);
+
+  // Build ONE clean unified list of ACTIVE categories starting with 'All'
   const categoryOptions = useMemo(() => {
     const list = [{ id: 'All', name: 'All' }];
     
@@ -34,19 +48,28 @@ export default function ViewAllProducts({
         });
     }
 
-    // Also include any categories present in products
+    // Only add categories from active products if that category is not explicitly disabled
     activePublicProducts.forEach(p => {
-      if (p.category && !list.some(item => item.name.toLowerCase() === p.category.toLowerCase())) {
+      if (
+        p.category && 
+        !disabledCategoryNames.has(p.category.toLowerCase()) && 
+        !list.some(item => item.name.toLowerCase() === p.category.toLowerCase())
+      ) {
         list.push({ id: p.category, name: p.category });
       }
     });
 
     return list;
-  }, [cmsCategories, activePublicProducts]);
+  }, [cmsCategories, activePublicProducts, disabledCategoryNames]);
 
   // Filter & Sort Products
   const filteredProducts = useMemo(() => {
     return activePublicProducts.filter((product) => {
+      // Exclude products belonging to disabled categories
+      if (product.category && disabledCategoryNames.has(product.category.toLowerCase())) {
+        return false;
+      }
+
       const sec = Array.isArray(product.sections) ? product.sections : ['Home', 'All OTTs'];
       const matchesSection = sec.includes('All OTTs');
 
@@ -68,7 +91,7 @@ export default function ViewAllProducts({
       if (sortBy === 'rating') return b.rating - a.rating;
       return 0;
     });
-  }, [activePublicProducts, activeCategory, searchTerm, sortBy]);
+  }, [activePublicProducts, activeCategory, searchTerm, sortBy, disabledCategoryNames]);
 
   return (
     <section className="min-h-screen bg-slate-50 py-6 sm:py-8 font-sans">

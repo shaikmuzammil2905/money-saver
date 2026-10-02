@@ -90,6 +90,51 @@ export default function ProductsManager({ adminEmail }) {
     }
   };
 
+  const handleDuplicateProduct = async (prod) => {
+    try {
+      const newSlugId = `prod-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+      const descPoints = Array.isArray(prod.description_points) 
+        ? [...prod.description_points] 
+        : (prod.description ? prod.description.split('\n').filter(Boolean) : []);
+      const customInfo = Array.isArray(prod.custom_info) 
+        ? [...prod.custom_info] 
+        : ['Instant Activation', 'WhatsApp Support Available', 'Payment via UPI'];
+      const imagesArr = Array.isArray(prod.images) ? [...prod.images] : [prod.image];
+
+      const duplicatePayload = {
+        title: `${prod.title} - Copy`,
+        subtitle: prod.subtitle || '',
+        description: prod.description || '',
+        description_points: descPoints,
+        custom_info: customInfo,
+        price: Number(prod.price) || 0,
+        original_price: Number(prod.original_price || prod.price) || 0,
+        discount: prod.discount || '',
+        image: prod.image,
+        images: imagesArr,
+        category: prod.category,
+        category_group: prod.category_group || prod.category,
+        brand: prod.brand || '',
+        sku: prod.sku ? `${prod.sku}-COPY` : '',
+        badge: prod.badge || '',
+        badges: Array.isArray(prod.badges) ? [...prod.badges] : [],
+        batches: Array.isArray(prod.batches) ? [...prod.batches] : [],
+        sections: Array.isArray(prod.sections) ? [...prod.sections] : ['Home', 'All OTTs'],
+        in_stock: prod.in_stock !== false,
+        is_active: true,
+        display_order: products.length + 1,
+        slug_id: newSlugId
+      };
+
+      await saveCmsItem('products', duplicatePayload);
+      await logActivity(adminEmail, 'DUPLICATED', 'Products', duplicatePayload.title);
+      await refreshAllData();
+      showToast(`Product duplicated as "${duplicatePayload.title}"`);
+    } catch (err) {
+      alert('Error duplicating product: ' + err.message);
+    }
+  };
+
   const handleAddDescPoint = () => {
     setDescPoints((prev) => [...prev, '']);
   };

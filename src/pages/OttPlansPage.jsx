@@ -143,13 +143,23 @@ export default function OttPlansPage({ onAddToCart, onQuickView, onOpenWhatsApp 
   const { categories: cmsCategories, activePublicProducts } = useCMS();
   const [selectedCat, setSelectedCat] = useState('All');
 
-  const ottPublicProducts = useMemo(() => {
-    const activeCatNames = cmsCategories && cmsCategories.length > 0 
-      ? cmsCategories.filter(c => c.is_active !== false).map(c => c.name.toLowerCase())
-      : null;
+  const disabledCatNames = useMemo(() => {
+    const disabled = new Set();
+    if (cmsCategories && cmsCategories.length > 0) {
+      cmsCategories.forEach(c => {
+        if (c.is_active === false) {
+          disabled.add(c.name.toLowerCase());
+          if (c.slug) disabled.add(c.slug.toLowerCase());
+        }
+      });
+    }
+    return disabled;
+  }, [cmsCategories]);
 
-    const fromCms = activePublicProducts.filter(p => {
-      if (activeCatNames && p.category && !activeCatNames.includes(p.category.toLowerCase())) {
+  const ottPublicProducts = useMemo(() => {
+    return activePublicProducts.filter(p => {
+      // Strictly exclude products belonging to disabled categories
+      if (p.category && disabledCatNames.has(p.category.toLowerCase())) {
         return false;
       }
       return p.categoryGroup?.toLowerCase().includes('ott') || 
@@ -162,9 +172,7 @@ export default function OttPlansPage({ onAddToCart, onQuickView, onOpenWhatsApp 
       p.category?.toLowerCase().includes('combo') ||
       (Array.isArray(p.sections) && p.sections.includes('All OTTs'));
     });
-
-    return fromCms;
-  }, [activePublicProducts, cmsCategories]);
+  }, [activePublicProducts, disabledCatNames]);
 
   const filterCategories = useMemo(() => {
     const list = ['All'];
@@ -172,16 +180,20 @@ export default function OttPlansPage({ onAddToCart, onQuickView, onOpenWhatsApp 
       cmsCategories
         .filter(c => c.is_active !== false)
         .forEach(c => {
-          if (!list.includes(c.name)) list.push(c.name);
+          if (!disabledCatNames.has(c.name.toLowerCase()) && !list.includes(c.name)) {
+            list.push(c.name);
+          }
         });
     } else {
-      // Fallback only if CMS is completely empty
+      // Fallback only if CMS categories are empty
       ottPublicProducts.forEach(p => {
-        if (p.category && !list.includes(p.category)) list.push(p.category);
+        if (p.category && !disabledCatNames.has(p.category.toLowerCase()) && !list.includes(p.category)) {
+          list.push(p.category);
+        }
       });
     }
     return list;
-  }, [cmsCategories, ottPublicProducts]);
+  }, [cmsCategories, ottPublicProducts, disabledCatNames]);
 
   const filteredPlans = selectedCat === 'All' 
     ? ottPublicProducts 

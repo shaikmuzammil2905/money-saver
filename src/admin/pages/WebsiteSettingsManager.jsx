@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { 
-  Globe, Upload, Trash2, Check, Image as ImageIcon, Sparkles, Building, Phone, Mail, Share2 
+  Globe, Upload, Trash2, Check, Image as ImageIcon, Sparkles, Building, Phone, Mail, Share2, KeyRound, ShieldCheck, User 
 } from 'lucide-react';
 import { useCMS } from '../../context/CMSContext';
 import { uploadToCloudinary } from '../../services/cloudinary';
+import { changeAdminEmail } from '../../services/adminAuth';
 
 export default function WebsiteSettingsManager({ adminEmail }) {
   const { 
@@ -15,12 +16,54 @@ export default function WebsiteSettingsManager({ adminEmail }) {
   const [uploading, setUploading] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
 
+  // Account Settings state
+  const [newEmail, setNewEmail] = useState('');
+  const [confirmEmail, setConfirmEmail] = useState('');
+  const [emailSaving, setEmailSaving] = useState(false);
+  const [emailMsg, setEmailMsg] = useState('');
+  const [emailError, setEmailError] = useState('');
+
   const showToast = (msg) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(''), 3000);
   };
 
+  const handleChangeEmailSubmit = async (e) => {
+    e.preventDefault();
+    setEmailError('');
+    setEmailMsg('');
+
+    if (!newEmail || !newEmail.trim()) {
+      setEmailError('Please enter a new email address.');
+      return;
+    }
+    if (newEmail.trim().toLowerCase() !== confirmEmail.trim().toLowerCase()) {
+      setEmailError('New email and Confirm email do not match.');
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newEmail.trim())) {
+      setEmailError('Please enter a valid email address.');
+      return;
+    }
+
+    setEmailSaving(true);
+    try {
+      const res = await changeAdminEmail(newEmail.trim());
+      setEmailMsg(res.message || 'Verification email sent. Please check your new inbox.');
+      setNewEmail('');
+      setConfirmEmail('');
+      await logActivity(adminEmail, 'UPDATED', 'Admin Account Email', `Requested change to ${newEmail.trim()}`);
+      showToast('Admin email change request submitted!');
+    } catch (err) {
+      setEmailError(err.message || 'Failed to update admin email address.');
+    } finally {
+      setEmailSaving(false);
+    }
+  };
+
   const handleLogoUpload = async (e) => {
+
     const file = e.target.files[0];
     if (!file) return;
     setUploading(true);
@@ -306,6 +349,73 @@ export default function WebsiteSettingsManager({ adminEmail }) {
         </button>
 
       </form>
+
+      {/* ACCOUNT SETTINGS — CHANGE ADMIN EMAIL */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl space-y-4">
+        <h2 className="text-base font-bold text-white flex items-center gap-2 pb-3 border-b border-slate-800">
+          <KeyRound className="w-5 h-5 text-[#e50914]" /> ACCOUNT SETTINGS — Admin Email &amp; Security
+        </h2>
+
+        {emailError && (
+          <div className="p-3.5 rounded-xl bg-red-950/70 border border-red-800 text-red-200 text-xs font-semibold">
+            ⚠️ {emailError}
+          </div>
+        )}
+
+        {emailMsg && (
+          <div className="p-3.5 rounded-xl bg-emerald-950/70 border border-emerald-800 text-emerald-200 text-xs font-semibold">
+            ✅ {emailMsg}
+          </div>
+        )}
+
+        <form onSubmit={handleChangeEmailSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-1">Current Admin Email</label>
+            <input
+              type="email"
+              disabled
+              value={adminEmail || 'admin@ottmoneysaver.com'}
+              className="w-full bg-slate-950/60 border border-slate-800 rounded-xl p-3 text-slate-400 text-xs font-mono cursor-not-allowed"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">New Admin Email *</label>
+              <input
+                type="email"
+                required
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                placeholder="newadmin@email.com"
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white text-xs font-mono focus:border-emerald-500 focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">Confirm New Email *</label>
+              <input
+                type="email"
+                required
+                value={confirmEmail}
+                onChange={(e) => setConfirmEmail(e.target.value)}
+                placeholder="newadmin@email.com"
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-white text-xs font-mono focus:border-emerald-500 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={emailSaving}
+            className="w-full py-3 rounded-xl bg-gradient-to-r from-[#e50914] to-[#008744] hover:opacity-95 text-white font-bold text-xs shadow-lg transition-all"
+          >
+            {emailSaving ? 'Updating Admin Email...' : 'Change Admin Email'}
+          </button>
+        </form>
+      </div>
+
     </div>
   );
 }
+

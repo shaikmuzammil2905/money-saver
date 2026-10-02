@@ -100,11 +100,37 @@ export async function logoutAdmin() {
 export async function resetAdminPassword(email) {
   if (!supabase) throw new Error('Supabase is not configured.');
   
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+  if (!email || !email.trim()) {
+    throw new Error('Please enter your admin email address.');
+  }
+
+  const cleanEmail = email.trim().toLowerCase();
+
+  // Validate if email belongs to registered admin
+  try {
+    const { data: adminProfile } = await supabase
+      .from('admin_profiles')
+      .select('email')
+      .eq('email', cleanEmail)
+      .maybeSingle();
+
+    if (!adminProfile && cleanEmail !== 'admin@ottmoneysaver.com' && cleanEmail !== 'ottmoneysaver@gmail.com') {
+      throw new Error('Wrong email entered. Please check your admin email address.');
+    }
+  } catch (checkErr) {
+    if (checkErr.message?.includes('Wrong email entered')) {
+      throw checkErr;
+    }
+  }
+
+  const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
     redirectTo: window.location.origin + '/admin?reset=true',
   });
   
-  if (error) throw error;
+  if (error) {
+    console.error('Password reset email error:', error);
+    throw new Error(error.message || 'Failed to send password reset email. Please try again.');
+  }
 }
 
 /**
@@ -113,9 +139,64 @@ export async function resetAdminPassword(email) {
 export async function updateAdminPassword(newPassword) {
   if (!supabase) throw new Error('Supabase is not configured.');
   
+  if (!newPassword || newPassword.length < 6) {
+    throw new Error('Password must be at least 6 characters long.');
+  }
+
   const { error } = await supabase.auth.updateUser({
     password: newPassword
   });
   
   if (error) throw error;
 }
+
+/**
+ * Change Admin Email Address
+ */
+export async function changeAdminEmail(newEmail) {
+  if (!supabase) throw new Error('Supabase is not configured.');
+
+  if (!newEmail || !newEmail.trim()) {
+    throw new Error('Please enter a valid new email address.');
+  }
+
+  const cleanNewEmail = newEmail.trim().toLowerCase();
+  
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user) {
+    throw new Error('No active admin session found.');
+  }
+
+  const currentUser = session.user;
+
+  if (currentUser.email?.toLowerCase() === cleanNewEmail) {
+    throw new Error('New email is identical to your current email address.');
+  }
+
+  // 1. Update Supabase Auth email
+  const { data, error } = await supabase.auth.updateUser({
+    email: cleanNewEmail
+  });
+
+  if (error) {
+    throw new Error(`Failed to update authentication email: ${error.message}`);
+  }
+
+  // 2. Update admin_profiles record in DB
+  try {
+    await supabase.from('admin_profiles').upsert({
+      user_id: currentUser.id,
+      email: cleanNewEmail,
+      role: 'admin',
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'user_id' });
+  } catch (dbErr) {
+    console.warn('DB admin profile email sync warning:', dbErr);
+  }
+
+  return {
+    user: data.user,
+    message: 'A verification link has been sent to your new email address. Please verify it to complete the change.'
+  };
+}
+
