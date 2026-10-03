@@ -74,7 +74,12 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-const CART_STORAGE_KEY = 'ott_cart';
+const CART_SESSION_KEY = 'ott_cart_session';
+
+// Clean out stale legacy localStorage cart if present
+try {
+  localStorage.removeItem('ott_cart');
+} catch (e) {}
 
 function PublicWebsite() {
   const { activePublicProducts, homeSections, themes, banners, loading } = useCMS();
@@ -113,33 +118,25 @@ function PublicWebsite() {
     logPageView(`/${activeTab}`);
   }, [activeTab]);
 
-  // Load Cart from LocalStorage or default items
+  // Load Cart strictly from SessionStorage for a fresh shopping session
   const [cartItems, setCartItems] = useState(() => {
     try {
-      const saved = localStorage.getItem(CART_STORAGE_KEY);
-      if (saved) return JSON.parse(saved);
-    } catch (e) {
-      console.error('Error loading initial cart:', e);
-    }
-    return [
-      {
-        id: 'boat-550',
-        title: 'boAt Rockerz 550 Bluetooth Headphones',
-        subtitle: 'Over-Ear Wireless Headphone',
-        price: 1499,
-        originalPrice: 2999,
-        image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&auto=format&fit=crop&q=80',
-        quantity: 1,
-        inStock: true
+      const saved = sessionStorage.getItem(CART_SESSION_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
       }
-    ];
+    } catch (e) {
+      console.error('Error loading session cart:', e);
+    }
+    return [];
   });
 
-  // User Auth Profile State
+  // User Auth Profile State (Preserved in localStorage)
   const [user, setUser] = useState(() => getUserProfile());
 
-  // Wishlist state
-  const [wishlistIds, setWishlistIds] = useState(['boat-550']);
+  // Wishlist state (Fresh session)
+  const [wishlistIds, setWishlistIds] = useState([]);
 
   // Modals & Drawers States
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -154,12 +151,12 @@ function PublicWebsite() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('All');
 
-  // Persist Cart
+  // Persist active Cart strictly within the current shopping session
   useEffect(() => {
     try {
-      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems));
+      sessionStorage.setItem(CART_SESSION_KEY, JSON.stringify(cartItems));
     } catch (e) {
-      console.error('Error saving cart:', e);
+      console.error('Error saving session cart:', e);
     }
   }, [cartItems]);
 
@@ -359,7 +356,9 @@ function PublicWebsite() {
       default:
         {
           const activeSections = Array.isArray(homeSections)
-            ? homeSections.filter((s) => s.is_active !== false).sort((a, b) => (a.position || 1) - (b.position || 1))
+            ? homeSections
+                .filter((s) => s.is_active !== false)
+                .sort((a, b) => (Number(a.position ?? a.display_order) || 1) - (Number(b.position ?? b.display_order) || 1))
             : [];
 
           if (activeSections.length > 0) {

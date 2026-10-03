@@ -94,10 +94,16 @@ export default function OffersPage({ onAddToCart, onQuickView, wishlistIds = [],
                 ))}
               </div>
 
-              <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tight leading-tight drop-shadow-md">
+              <h1 
+                style={{ color: offersBanner.heading_color || '#ffffff' }}
+                className="text-3xl sm:text-5xl font-black uppercase tracking-tight leading-tight drop-shadow-md"
+              >
                 {offersBanner.heading || 'Exclusive Offers & Deals Up To 75% OFF'}
               </h1>
-              <p className="text-white/90 text-sm sm:text-base leading-relaxed max-w-2xl">
+              <p 
+                style={{ color: offersBanner.description_color || offersBanner.subheading_color || 'rgba(255,255,255,0.9)' }}
+                className="text-sm sm:text-base leading-relaxed max-w-2xl"
+              >
                 {offersBanner.description || 'Grab daily flash discounts on OTT subscriptions, high speed fiber internet, mobiles, earbuds, smartwatches & gadgets.'}
               </p>
 
@@ -110,7 +116,7 @@ export default function OffersPage({ onAddToCart, onQuickView, wishlistIds = [],
                       onClick={() => {
                         const link = btn.link || '/view-all';
                         if (btn.is_external || link.startsWith('http') || link.startsWith('tel:') || link.startsWith('mailto:')) {
-                          window.open(link, btn.target || '_blank');
+                          window.open(link, btn.target || (btn.open_new_tab ? '_blank' : '_self'));
                         } else if (typeof onNavigate === 'function') {
                           onNavigate(link.replace(/^\//, ''));
                         } else {
@@ -120,9 +126,10 @@ export default function OffersPage({ onAddToCart, onQuickView, wishlistIds = [],
                       style={{
                         transform: (btn.position_x || btn.position_y) ? `translate(${btn.position_x || 0}px, ${btn.position_y || 0}px)` : undefined,
                         backgroundColor: btn.button_color || '#000000',
-                        color: btn.text_color || '#ffffff'
+                        color: btn.text_color || '#ffffff',
+                        borderColor: btn.border_color || 'transparent'
                       }}
-                      className="px-6 py-3 rounded-xl font-extrabold text-sm shadow-xl hover:scale-105 transition-all flex items-center gap-2 cursor-pointer"
+                      className="px-6 py-3 rounded-xl font-extrabold text-sm shadow-xl hover:scale-105 transition-all flex items-center gap-2 cursor-pointer border"
                     >
                       <span>{btn.text || 'Explore Offers'}</span>
                       <ArrowRight className="w-4 h-4" />

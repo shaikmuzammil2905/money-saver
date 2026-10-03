@@ -170,28 +170,70 @@ export default function FiberInternetPage({ onAddToCart, onOpenWhatsApp }) {
               
               <div className="relative z-10 max-w-3xl space-y-4">
                 {bannerSubheading && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-950/80 border border-sky-500/60 text-sky-400 text-xs font-black uppercase tracking-wider">
+                  <span 
+                    style={{
+                      backgroundColor: fiberBanner.badge_bg_color || 'rgba(8,47,73,0.8)',
+                      color: fiberBanner.badge_color || '#38bdf8'
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-sky-500/60 text-xs font-black uppercase tracking-wider"
+                  >
                     <Wifi className="w-3.5 h-3.5" /> {bannerSubheading}
                   </span>
                 )}
-                <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tight leading-tight">
+                <h1 
+                  style={{ color: fiberBanner.heading_color || bannerTextColor }}
+                  className="text-3xl sm:text-5xl font-black uppercase tracking-tight leading-tight"
+                >
                   {bannerHeading}
                 </h1>
-                <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
+                <p 
+                  style={{ color: fiberBanner.description_color || fiberBanner.subheading_color || '#cbd5e1' }}
+                  className="text-sm sm:text-base leading-relaxed"
+                >
                   {bannerDescription}
                 </p>
 
                 <div className="flex flex-wrap items-center gap-4 pt-2">
-                  <button
-                    onClick={() => {
-                      if (bannerBtnLink.startsWith('http')) window.open(bannerBtnLink, '_blank');
-                      else onOpenWhatsApp();
-                    }}
-                    className="px-6 py-3 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-extrabold text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-sky-500/30 transition-all cursor-pointer"
-                  >
-                    <MessageCircle className="w-4 h-4 fill-current" />
-                    <span>{bannerBtnText}</span>
-                  </button>
+                  {Array.isArray(fiberBanner.buttons) && fiberBanner.buttons.length > 0 ? (
+                    fiberBanner.buttons.filter(b => b.is_active !== false).map((btn, bIdx) => (
+                      <button
+                        key={btn.id || bIdx}
+                        onClick={() => {
+                          const link = btn.link || bannerBtnLink;
+                          if (link.startsWith('http') || link.startsWith('tel:') || link.startsWith('mailto:')) {
+                            window.open(link, btn.target || (btn.open_new_tab ? '_blank' : '_self'));
+                          } else {
+                            window.location.href = link;
+                          }
+                        }}
+                        style={{
+                          backgroundColor: btn.button_color || '#0ea5e9',
+                          color: btn.text_color || '#ffffff',
+                          borderColor: btn.border_color || 'transparent'
+                        }}
+                        className="px-6 py-3 rounded-xl font-extrabold text-xs sm:text-sm flex items-center gap-2 shadow-lg transition-all cursor-pointer border"
+                      >
+                        <MessageCircle className="w-4 h-4 fill-current" />
+                        <span>{btn.text || bannerBtnText}</span>
+                      </button>
+                    ))
+                  ) : (
+                    <button
+                      onClick={() => {
+                        if (bannerBtnLink.startsWith('http')) window.open(bannerBtnLink, '_blank');
+                        else onOpenWhatsApp();
+                      }}
+                      style={{
+                        backgroundColor: fiberBanner.button_color || '#0ea5e9',
+                        color: fiberBanner.button_text_color || '#ffffff',
+                        borderColor: fiberBanner.button_border_color || 'transparent'
+                      }}
+                      className="px-6 py-3 rounded-xl font-extrabold text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-sky-500/30 transition-all cursor-pointer border"
+                    >
+                      <MessageCircle className="w-4 h-4 fill-current" />
+                      <span>{bannerBtnText}</span>
+                    </button>
+                  )}
                   <a
                     href="tel:6305151531"
                     className="px-6 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white font-extrabold text-xs sm:text-sm flex items-center gap-2 hover:border-slate-500 transition-all"

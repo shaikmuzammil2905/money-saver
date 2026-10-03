@@ -61,16 +61,53 @@ export default function ElectronicsPage({ onAddToCart, onQuickView, wishlistIds 
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(245,158,11,0.25),transparent_60%)] pointer-events-none" />
             <div className="relative z-10 max-w-3xl space-y-4">
               {(eleBanner.badge_text || eleBanner.subheading || 'High Performance Electronics') && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-950 border border-amber-500/60 text-amber-400 text-xs font-black uppercase tracking-wider">
+                <span 
+                  style={{
+                    backgroundColor: eleBanner.badge_bg_color || '#78350f',
+                    color: eleBanner.badge_color || '#fbbf24'
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-amber-500/60 text-xs font-black uppercase tracking-wider"
+                >
                   <Laptop className="w-3.5 h-3.5" /> {eleBanner.badge_text || eleBanner.subheading || 'High Performance Electronics'}
                 </span>
               )}
-              <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tight leading-tight">
+              <h1 
+                style={{ color: eleBanner.heading_color || '#ffffff' }}
+                className="text-3xl sm:text-5xl font-black uppercase tracking-tight leading-tight"
+              >
                 {eleBanner.heading || <>Electronics <span className="text-amber-400">&amp; Smart Devices</span></>}
               </h1>
-              <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
+              <p 
+                style={{ color: eleBanner.description_color || eleBanner.subheading_color || '#cbd5e1' }}
+                className="text-sm sm:text-base leading-relaxed"
+              >
                 {eleBanner.description || 'Shop 4K Smart TVs, high performance laptops, fast chargers & essential tech devices backed by official manufacturer warranties & instant doorstep setup.'}
               </p>
+              {Array.isArray(eleBanner.buttons) && eleBanner.buttons.length > 0 && (
+                <div className="flex flex-wrap gap-3 pt-2">
+                  {eleBanner.buttons.filter(b => b.is_active !== false).map((btn, bIdx) => (
+                    <button
+                      key={btn.id || bIdx}
+                      onClick={() => {
+                        const link = btn.link || '/electronics';
+                        if (link.startsWith('http') || link.startsWith('tel:') || link.startsWith('mailto:')) {
+                          window.open(link, btn.target || (btn.open_new_tab ? '_blank' : '_self'));
+                        } else {
+                          window.location.href = link;
+                        }
+                      }}
+                      style={{
+                        backgroundColor: btn.button_color || '#f59e0b',
+                        color: btn.text_color || '#000000',
+                        borderColor: btn.border_color || 'transparent'
+                      }}
+                      className="px-6 py-3 rounded-xl font-extrabold text-xs sm:text-sm flex items-center gap-2 shadow-lg transition-all cursor-pointer border"
+                    >
+                      <span>{btn.text || 'Explore Electronics'}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}

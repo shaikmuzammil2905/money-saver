@@ -229,6 +229,46 @@ export const DEFAULT_BANNERS = [
     overlay_color: 'rgba(16,185,129,0.25)',
     display_order: 11,
     is_active: true
+  },
+  {
+    banner_key: 'electronics_top_banner',
+    title_name: 'Electronics Top Banner',
+    heading: 'Electronics & Smart Devices',
+    subheading: 'HIGH PERFORMANCE ELECTRONICS',
+    description: 'Shop 4K Smart TVs, high performance laptops, fast chargers & essential tech devices backed by official manufacturer warranties & instant doorstep setup.',
+    button_text: 'Explore Electronics',
+    button_link: 'electronics',
+    image_url: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=1200&auto=format&fit=crop&q=80',
+    mobile_image_url: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=800&auto=format&fit=crop&q=80',
+    text_color: '#ffffff',
+    button_color: '#f59e0b',
+    bg_color: '#0f172a',
+    bg_color_2: '#020617',
+    bg_direction: 'to bottom right',
+    overlay_color: 'rgba(245,158,11,0.25)',
+    display_location: 'electronics',
+    display_order: 12,
+    is_active: true
+  },
+  {
+    banner_key: 'contact_top_banner',
+    title_name: 'Contact Page Banner',
+    heading: 'Get in Touch with OTTMoneySaver',
+    subheading: '24/7 CUSTOMER SUPPORT',
+    description: 'Have questions about an OTT subscription, Fiber broadband installation, or physical gadget order? Our support team is here to assist you 24/7.',
+    button_text: 'Instant WhatsApp Chat',
+    button_link: 'https://wa.me/916305151531',
+    image_url: '',
+    mobile_image_url: '',
+    text_color: '#ffffff',
+    button_color: '#e50914',
+    bg_color: '#050b1e',
+    bg_color_2: '#1e0505',
+    bg_direction: 'to bottom',
+    overlay_color: 'rgba(229,9,20,0.2)',
+    display_location: 'contact',
+    display_order: 13,
+    is_active: true
   }
 ];
 
@@ -662,14 +702,14 @@ async function migrateLegacySiteSettingsToTable(tableName) {
 // Whitelist table column schema map to prevent 400 Bad Request / PGRST204 errors
 export const TABLE_COLUMNS = {
   products: ['id', 'slug_id', 'title', 'subtitle', 'description', 'price', 'original_price', 'discount', 'image', 'images', 'category', 'category_group', 'brand', 'sku', 'rating', 'reviews_count', 'badge', 'in_stock', 'is_featured', 'display_order', 'is_active', 'created_at', 'updated_at', 'description_points', 'custom_info', 'badges', 'batches', 'sections', 'home_order', 'offers_order', 'all_otts_order'],
-  banners: ['id', 'banner_key', 'title_name', 'heading', 'subheading', 'badge_text', 'description', 'button_text', 'button_link', 'buttons', 'badges', 'image_url', 'mobile_image_url', 'text_color', 'button_color', 'bg_color', 'bg_color_2', 'bg_direction', 'overlay_color', 'display_location', 'target_categories', 'mode', 'display_order', 'is_active', 'created_at', 'updated_at'],
+  banners: ['id', 'banner_key', 'title_name', 'heading', 'heading_color', 'subheading', 'subheading_color', 'badge_text', 'badge_color', 'badge_bg_color', 'description', 'description_color', 'button_text', 'button_link', 'button_color', 'button_text_color', 'button_border_color', 'buttons', 'badges', 'image_url', 'mobile_image_url', 'text_color', 'bg_color', 'bg_color_2', 'bg_direction', 'overlay_color', 'display_location', 'target_categories', 'mode', 'display_order', 'is_active', 'created_at', 'updated_at'],
   coupons: ['id', 'code', 'discount_type', 'discount_value', 'min_order_amount', 'max_discount', 'usage_limit', 'used_count', 'starts_at', 'expires_at', 'duration_value', 'duration_unit', 'apply_to', 'allowed_categories', 'allowed_product_ids', 'description', 'is_active', 'created_at', 'updated_at'],
   homepage_slides: ['id', 'slide_key', 'heading', 'description', 'button_text', 'button_link', 'image_url', 'display_order', 'is_active', 'created_at', 'updated_at'],
   homepage_items: ['id', 'title', 'short_description', 'image_url', 'price', 'original_price', 'discount', 'link_url', 'badge', 'category', 'is_active', 'display_order', 'created_at', 'updated_at'],
   categories: ['id', 'name', 'slug', 'icon', 'image_url', 'group_name', 'display_order', 'is_active', 'created_at', 'updated_at'],
   badges: ['id', 'name', 'text', 'bg_color', 'text_color', 'position', 'is_active', 'created_at', 'display_order', 'updated_at'],
   themes: ['id', 'name', 'theme_key', 'description', 'layout_data', 'styles', 'is_active', 'created_at', 'updated_at', 'display_order'],
-  home_sections: ['id', 'box_key', 'title_label', 'section_type', 'content_id', 'settings', 'position', 'is_active', 'created_at', 'updated_at'],
+  home_sections: ['id', 'box_key', 'title_label', 'section_type', 'content_id', 'settings', 'position', 'display_order', 'is_active', 'created_at', 'updated_at'],
   offer_items: ['id', 'name', 'description', 'original_price', 'offer_price', 'discount', 'image', 'category', 'offer_badge', 'availability', 'display_order', 'is_active', 'show_on_home', 'show_on_explorer', 'created_at', 'updated_at'],
   offer_slides: ['id', 'heading', 'description', 'button_text', 'button_link', 'image_url', 'display_order', 'is_active', 'created_at', 'updated_at'],
   offer_categories: ['id', 'name', 'heading', 'description', 'image_url', 'display_order', 'is_active', 'created_at', 'updated_at'],
@@ -780,28 +820,43 @@ export async function getCmsTableData(tableName, defaultItems = [], orderColumn 
     // 3. Merge: Fallback rows contain rich JSON structures and latest updates
     let combined = [];
     if (fallbackRows.length > 0 && tableRows.length > 0) {
+      const getItemKey = (item) => {
+        if (!item) return '';
+        if (tableName === 'coupons' && item.code) return `coup_${String(item.code).trim().toUpperCase()}`;
+        if (item.banner_key) return `bnr_${item.banner_key}`;
+        if (item.box_key) return `box_${item.box_key}`;
+        if (item.slide_key) return `slide_${item.slide_key}`;
+        if (item.theme_key) return `thm_${item.theme_key}`;
+        if (item.slug_id) return `slugid_${item.slug_id}`;
+        if (item.slug) return `slug_${item.slug}`;
+        if (item.id) return `id_${item.id}`;
+        return '';
+      };
+
       const fallbackMap = new Map();
       fallbackRows.forEach(item => {
-        const key = item.id || item.banner_key || item.box_key || item.theme_key || item.slug_id || item.slug;
+        const key = getItemKey(item);
         if (key) fallbackMap.set(key, item);
       });
 
-      const mergedIds = new Set();
+      const mergedKeys = new Set();
       tableRows.forEach(tRow => {
-        const key = tRow.id || tRow.banner_key || tRow.box_key || tRow.theme_key || tRow.slug_id || tRow.slug;
+        const key = getItemKey(tRow);
         if (key && fallbackMap.has(key)) {
           const fItem = fallbackMap.get(key);
           combined.push({ ...tRow, ...fItem });
-          mergedIds.add(key);
+          mergedKeys.add(key);
         } else {
           combined.push(tRow);
+          if (key) mergedKeys.add(key);
         }
       });
 
       fallbackRows.forEach(fItem => {
-        const key = fItem.id || fItem.banner_key || fItem.box_key || fItem.theme_key || fItem.slug_id || fItem.slug;
-        if (key && !mergedIds.has(key)) {
+        const key = getItemKey(fItem);
+        if (key && !mergedKeys.has(key)) {
           combined.push(fItem);
+          mergedKeys.add(key);
         }
       });
     } else if (fallbackRows.length > 0) {
@@ -1045,7 +1100,7 @@ export async function deleteCmsItem(tableName, id) {
  * Update Row Display Order / Reorder Helper
  */
 export async function updateDisplayOrder(tableName, items, orderField = 'display_order') {
-  if (!supabase || !items || items.length === 0) return;
+  if (!supabase || !items || !Array.isArray(items) || items.length === 0) return;
 
   const isPositionOrder = tableName === 'home_sections';
   const fieldToUpdate = isPositionOrder ? 'position' : orderField;
@@ -1058,18 +1113,38 @@ export async function updateDisplayOrder(tableName, items, orderField = 'display
   try {
     for (let index = 0; index < items.length; index++) {
       const item = items[index];
-      if (item.id) {
-        await supabase
-          .from(tableName)
-          .update({ [fieldToUpdate]: index + 1, updated_at: new Date().toISOString() })
-          .eq('id', item.id);
+      const newOrder = index + 1;
+      const updateData = { [fieldToUpdate]: newOrder, updated_at: new Date().toISOString() };
+      
+      let query = supabase.from(tableName).update(updateData);
+      let matched = false;
+
+      if (item.id && isValidUUID(item.id)) {
+        await query.eq('id', item.id);
+        matched = true;
+      } else if (item.box_key) {
+        await query.eq('box_key', item.box_key);
+        matched = true;
+      } else if (item.banner_key) {
+        await query.eq('banner_key', item.banner_key);
+        matched = true;
+      } else if (item.slug_id) {
+        await query.eq('slug_id', item.slug_id);
+        matched = true;
+      } else if (item.code) {
+        await query.eq('code', item.code);
+        matched = true;
+      } else if (item.id) {
+        await query.eq('id', item.id);
+        matched = true;
       }
     }
-    // Also keep fallback JSON updated in site_settings for instant dual-consistency
-    await updateFallbackDisplayOrder(tableName, items, fieldToUpdate);
   } catch (err) {
-    await updateFallbackDisplayOrder(tableName, items, fieldToUpdate);
+    console.warn(`PostgreSQL display order update fallback for ${tableName}:`, err.message);
   }
+
+  // Also update fallback site_settings JSON array so ordering is 100% persistent and immediate everywhere
+  await updateFallbackDisplayOrder(tableName, items, fieldToUpdate);
 }
 
 

@@ -118,18 +118,21 @@ export default function HeroSection({ onExploreDeals, onShopNow }) {
                   <div className="flex items-center justify-center lg:justify-start gap-2 flex-wrap mb-1">
                     {Array.isArray(banner1.subheadings) && banner1.subheadings.length > 0 ? (
                       banner1.subheadings.filter(s => s.is_active !== false).map((sub, sIdx) => (
-                        <span key={sub.id || sIdx} style={{ transform: `translate(${sub.position_x || 0}px, ${sub.position_y || 0}px)` }} className="bg-amber-400 text-black px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wide relative shadow-sm">
+                        <span key={sub.id || sIdx} style={{ transform: `translate(${sub.position_x || 0}px, ${sub.position_y || 0}px)`, backgroundColor: banner1.badge_bg_color || '#f59e0b', color: banner1.badge_color || '#000000' }} className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wide relative shadow-sm">
                           {sub.text}
                         </span>
                       ))
                     ) : banner1.subheading && (
-                      <span className="bg-amber-400 text-black px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wide shadow-sm">
+                      <span 
+                        style={{ backgroundColor: banner1.badge_bg_color || '#f59e0b', color: banner1.badge_color || '#000000' }}
+                        className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wide shadow-sm"
+                      >
                         {banner1.subheading}
                       </span>
                     )}
 
                     {banner1.badge_config?.enabled && banner1.badge_config.text && (
-                      <span style={{ backgroundColor: banner1.badge_config.bg_color || '#e50914', color: banner1.badge_config.text_color || '#ffffff' }} className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase shadow-sm border border-red-400/40">
+                      <span style={{ backgroundColor: banner1.badge_config.bg_color || banner1.badge_bg_color || '#e50914', color: banner1.badge_config.text_color || banner1.badge_color || '#ffffff' }} className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase shadow-sm border border-red-400/40">
                         {banner1.badge_config.text}
                       </span>
                     )}
@@ -139,17 +142,22 @@ export default function HeroSection({ onExploreDeals, onShopNow }) {
                     <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-5xl font-black uppercase tracking-tight leading-none font-sans flex flex-wrap gap-x-2.5 gap-y-1">
                       {Array.isArray(banner1.heading_segments) && banner1.heading_segments.length > 0 ? (
                         banner1.heading_segments.map((seg, idx) => (
-                          <span key={idx} style={{ color: seg.color || '#e50914', display: seg.display || 'inline-block' }} className="drop-shadow-[0_2px_10px_rgba(229,9,20,0.5)] whitespace-pre-wrap">
+                          <span key={idx} style={{ color: seg.color || banner1.heading_color || '#e50914', display: seg.display || 'inline-block' }} className="drop-shadow-[0_2px_10px_rgba(229,9,20,0.5)] whitespace-pre-wrap">
                             {seg.text}
                           </span>
                         ))
                       ) : (
-                        <span className="text-[#e50914] block drop-shadow-[0_2px_10px_rgba(229,9,20,0.5)]">{banner1.heading || 'SAVE MONEY.'}</span>
+                        <span style={{ color: banner1.heading_color || '#e50914' }} className="block drop-shadow-[0_2px_10px_rgba(229,9,20,0.5)]">
+                          {banner1.heading || 'SAVE MONEY.'}
+                        </span>
                       )}
                     </h1>
                   </div>
 
-                  <p className="text-slate-300 text-xs sm:text-base font-normal leading-snug sm:leading-relaxed max-w-md mx-auto lg:mx-0">
+                  <p 
+                    style={{ color: banner1.description_color || banner1.subheading_color || '#cbd5e1' }}
+                    className="text-xs sm:text-base font-normal leading-snug sm:leading-relaxed max-w-md mx-auto lg:mx-0"
+                  >
                     {banner1.description || 'OTT subscriptions, high-speed fiber internet, mobiles & gadgets — all at smart prices.'}
                   </p>
 
@@ -160,8 +168,8 @@ export default function HeroSection({ onExploreDeals, onShopNow }) {
                         <button
                           key={btn.id || btnIdx}
                           onClick={() => {
-                            if (btn.is_external) {
-                              window.open(btn.link, btn.target || '_blank');
+                            if (btn.is_external || btn.link?.startsWith('http') || btn.link?.startsWith('tel:') || btn.link?.startsWith('mailto:')) {
+                              window.open(btn.link, btn.target || (btn.open_new_tab ? '_blank' : '_self'));
                             } else {
                               if (btn.link === 'offers' || btn.link === '/offers') onExploreDeals();
                               else if (btn.link === 'mobiles' || btn.link === '/mobiles') onShopNow();
@@ -169,9 +177,12 @@ export default function HeroSection({ onExploreDeals, onShopNow }) {
                             }
                           }}
                           style={{
+                            backgroundColor: btn.button_color || '#e50914',
+                            color: btn.text_color || '#ffffff',
+                            borderColor: btn.border_color || 'transparent',
                             transform: `translate(${btn.position_x || 0}px, ${btn.position_y || 0}px)`
                           }}
-                          className="px-5 py-2.5 sm:px-6 sm:py-3 rounded-xl font-extrabold text-xs sm:text-sm md:text-base shadow-lg transition-all hover:scale-105 cursor-pointer relative bg-gradient-to-r from-[#e50914] to-red-600 text-white border border-red-500/50"
+                          className="px-5 py-2.5 sm:px-6 sm:py-3 rounded-xl font-extrabold text-xs sm:text-sm md:text-base shadow-lg transition-all hover:scale-105 cursor-pointer relative border"
                         >
                           {btn.text || 'Click Here'}
                         </button>
@@ -180,7 +191,12 @@ export default function HeroSection({ onExploreDeals, onShopNow }) {
                       <>
                         <button
                           onClick={onExploreDeals}
-                          className="px-5 py-2.5 sm:px-6 sm:py-3 rounded-xl bg-gradient-to-r from-[#e50914] to-red-600 hover:from-red-600 hover:to-red-700 text-white font-extrabold text-xs sm:text-sm md:text-base shadow-lg shadow-red-600/40 hover:scale-105 transition-all flex items-center gap-1.5"
+                          style={{
+                            backgroundColor: banner1.button_color || '#e50914',
+                            color: banner1.button_text_color || '#ffffff',
+                            borderColor: banner1.button_border_color || 'transparent'
+                          }}
+                          className="px-5 py-2.5 sm:px-6 sm:py-3 rounded-xl hover:opacity-95 text-white font-extrabold text-xs sm:text-sm md:text-base shadow-lg shadow-red-600/40 hover:scale-105 transition-all flex items-center gap-1.5 border"
                         >
                           <span>{banner1.button_text || 'Explore Deals'}</span>
                         </button>
@@ -327,18 +343,21 @@ export default function HeroSection({ onExploreDeals, onShopNow }) {
                   <div className="flex items-center justify-center lg:justify-start gap-2 flex-wrap mb-1">
                     {Array.isArray(banner2.subheadings) && banner2.subheadings.length > 0 ? (
                       banner2.subheadings.filter(s => s.is_active !== false).map((sub, sIdx) => (
-                        <span key={sub.id || sIdx} style={{ transform: `translate(${sub.position_x || 0}px, ${sub.position_y || 0}px)` }} className="bg-amber-400 text-black px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wide relative shadow-sm">
+                        <span key={sub.id || sIdx} style={{ transform: `translate(${sub.position_x || 0}px, ${sub.position_y || 0}px)`, backgroundColor: banner2.badge_bg_color || '#f59e0b', color: banner2.badge_color || '#000000' }} className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wide relative shadow-sm">
                           {sub.text}
                         </span>
                       ))
                     ) : banner2.subheading && (
-                      <span className="bg-amber-400 text-black px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wide shadow-sm">
+                      <span 
+                        style={{ backgroundColor: banner2.badge_bg_color || '#f59e0b', color: banner2.badge_color || '#000000' }}
+                        className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wide shadow-sm"
+                      >
                         {banner2.subheading}
                       </span>
                     )}
 
                     {banner2.badge_config?.enabled && banner2.badge_config.text && (
-                      <span style={{ backgroundColor: banner2.badge_config.bg_color || '#e50914', color: banner2.badge_config.text_color || '#ffffff' }} className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase shadow-sm border border-red-400/40">
+                      <span style={{ backgroundColor: banner2.badge_config.bg_color || banner2.badge_bg_color || '#e50914', color: banner2.badge_config.text_color || banner2.badge_color || '#ffffff' }} className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase shadow-sm border border-red-400/40">
                         {banner2.badge_config.text}
                       </span>
                     )}
@@ -348,25 +367,23 @@ export default function HeroSection({ onExploreDeals, onShopNow }) {
                     <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-5xl font-black uppercase tracking-tight leading-none font-sans flex flex-wrap gap-x-2.5 gap-y-1">
                       {Array.isArray(banner2.heading_segments) && banner2.heading_segments.length > 0 ? (
                         banner2.heading_segments.map((seg, idx) => (
-                          <span key={idx} style={{ color: seg.color || '#e50914', display: seg.display || 'inline-block' }} className="drop-shadow-[0_2px_10px_rgba(229,9,20,0.5)] whitespace-pre-wrap">
+                          <span key={idx} style={{ color: seg.color || banner2.heading_color || '#e50914', display: seg.display || 'inline-block' }} className="drop-shadow-[0_2px_10px_rgba(229,9,20,0.5)] whitespace-pre-wrap">
                             {seg.text}
                           </span>
                         ))
                       ) : (
-                        <>
-                          <span className="bg-gradient-to-r from-orange-400 via-rose-400 to-pink-500 bg-clip-text text-transparent italic block drop-shadow-[0_0_20px_rgba(244,63,94,0.5)]">
-                            {banner2.heading?.split('.')[0] ? banner2.heading.split('.')[0] + '.' : 'SAVE MORE.'}
-                          </span>
-                          <span className="text-white italic block drop-shadow-[0_0_25px_rgba(255,255,255,0.5)]">
-                            {banner2.heading?.split('.')[1] ? banner2.heading.split('.')[1] + '.' : 'ENJOY MORE.'}
-                          </span>
-                        </>
+                        <span style={{ color: banner2.heading_color || '#ffffff' }} className="block drop-shadow-[0_0_25px_rgba(255,255,255,0.5)]">
+                          {banner2.heading || 'SAVE MORE. ENJOY MORE.'}
+                        </span>
                       )}
                     </h1>
                   </div>
 
-                  <p className="text-slate-300 text-xs sm:text-base font-normal leading-snug sm:leading-relaxed max-w-md mx-auto lg:mx-0">
-                    OTT subscriptions, high-speed fiber internet, mobiles &amp; gadgets — <span className="font-semibold text-pink-400">all at smart prices.</span>
+                  <p 
+                    style={{ color: banner2.description_color || banner2.subheading_color || '#cbd5e1' }}
+                    className="text-slate-300 text-xs sm:text-base font-normal leading-snug sm:leading-relaxed max-w-md mx-auto lg:mx-0"
+                  >
+                    {banner2.description || 'OTT subscriptions, high-speed fiber internet, mobiles & gadgets — all at smart prices.'}
                   </p>
 
                   {/* Dynamic Independent Position Buttons */}
@@ -376,8 +393,8 @@ export default function HeroSection({ onExploreDeals, onShopNow }) {
                         <button
                           key={btn.id || btnIdx}
                           onClick={() => {
-                            if (btn.is_external) {
-                              window.open(btn.link, btn.target || '_blank');
+                            if (btn.is_external || btn.link?.startsWith('http') || btn.link?.startsWith('tel:') || btn.link?.startsWith('mailto:')) {
+                              window.open(btn.link, btn.target || (btn.open_new_tab ? '_blank' : '_self'));
                             } else {
                               if (btn.link === 'offers' || btn.link === '/offers') onExploreDeals();
                               else if (btn.link === 'mobiles' || btn.link === '/mobiles') onShopNow();
@@ -385,9 +402,12 @@ export default function HeroSection({ onExploreDeals, onShopNow }) {
                             }
                           }}
                           style={{
+                            backgroundColor: btn.button_color || '#e50914',
+                            color: btn.text_color || '#ffffff',
+                            borderColor: btn.border_color || 'transparent',
                             transform: `translate(${btn.position_x || 0}px, ${btn.position_y || 0}px)`
                           }}
-                          className="px-5 py-2.5 sm:px-6 sm:py-3 rounded-xl font-extrabold text-xs sm:text-sm md:text-base shadow-lg shadow-pink-500/50 transition-all hover:scale-105 cursor-pointer relative bg-gradient-to-r from-orange-500 via-rose-500 to-pink-600 text-white border border-pink-400/50"
+                          className="px-5 py-2.5 sm:px-6 sm:py-3 rounded-xl font-extrabold text-xs sm:text-sm md:text-base shadow-lg transition-all hover:scale-105 cursor-pointer relative border"
                         >
                           {btn.text || 'Click Here'}
                         </button>
@@ -396,7 +416,12 @@ export default function HeroSection({ onExploreDeals, onShopNow }) {
                       <>
                         <button
                           onClick={onExploreDeals}
-                          className="px-5 py-2.5 sm:px-6 sm:py-3 rounded-xl bg-gradient-to-r from-orange-500 via-rose-500 to-pink-600 text-white font-extrabold text-xs sm:text-sm md:text-base shadow-lg shadow-pink-500/50 hover:scale-105 transition-all border border-pink-400/50"
+                          style={{
+                            backgroundColor: banner2.button_color || '#e50914',
+                            color: banner2.button_text_color || '#ffffff',
+                            borderColor: banner2.button_border_color || 'transparent'
+                          }}
+                          className="px-5 py-2.5 sm:px-6 sm:py-3 rounded-xl hover:opacity-95 text-white font-extrabold text-xs sm:text-sm md:text-base shadow-lg shadow-pink-500/50 hover:scale-105 transition-all border"
                         >
                           {banner2.button_text || 'Explore Deals'}
                         </button>

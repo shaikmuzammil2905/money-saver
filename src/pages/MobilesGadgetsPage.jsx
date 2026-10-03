@@ -82,16 +82,53 @@ export default function MobilesGadgetsPage({ onAddToCart, onQuickView, wishlistI
               
               <div className="relative z-10 max-w-3xl space-y-4">
                 {bannerSubheading && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-500/60 text-emerald-400 text-xs font-black uppercase tracking-wider">
+                  <span 
+                    style={{
+                      backgroundColor: mobBanner.badge_bg_color || 'rgba(6,78,59,0.8)',
+                      color: mobBanner.badge_color || '#34d399'
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-emerald-500/60 text-xs font-black uppercase tracking-wider"
+                  >
                     <Smartphone className="w-3.5 h-3.5" /> {bannerSubheading}
                   </span>
                 )}
-                <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tight leading-tight">
+                <h1 
+                  style={{ color: mobBanner.heading_color || bannerTextColor }}
+                  className="text-3xl sm:text-5xl font-black uppercase tracking-tight leading-tight"
+                >
                   {bannerHeading}
                 </h1>
-                <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
+                <p 
+                  style={{ color: mobBanner.description_color || mobBanner.subheading_color || '#cbd5e1' }}
+                  className="text-sm sm:text-base leading-relaxed"
+                >
                   {bannerDescription}
                 </p>
+                {Array.isArray(mobBanner.buttons) && mobBanner.buttons.length > 0 && (
+                  <div className="flex flex-wrap gap-3 pt-2">
+                    {mobBanner.buttons.filter(b => b.is_active !== false).map((btn, bIdx) => (
+                      <button
+                        key={btn.id || bIdx}
+                        onClick={() => {
+                          const link = btn.link || '/mobiles';
+                          if (link.startsWith('http') || link.startsWith('tel:') || link.startsWith('mailto:')) {
+                            window.open(link, btn.target || (btn.open_new_tab ? '_blank' : '_self'));
+                          } else {
+                            window.location.href = link;
+                          }
+                        }}
+                        style={{
+                          backgroundColor: btn.button_color || '#008744',
+                          color: btn.text_color || '#ffffff',
+                          borderColor: btn.border_color || 'transparent'
+                        }}
+                        className="px-6 py-3 rounded-xl font-extrabold text-xs sm:text-sm flex items-center gap-2 shadow-lg transition-all cursor-pointer border"
+                      >
+                        <span>{btn.text || 'Explore Mobiles'}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           );

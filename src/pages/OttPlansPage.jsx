@@ -248,27 +248,69 @@ export default function OttPlansPage({ onAddToCart, onQuickView, onOpenWhatsApp 
               
               <div className="relative z-10 max-w-3xl space-y-4">
                 {bannerSubheading && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-950/80 border border-red-600/60 text-[#e50914] text-xs font-black uppercase tracking-wider">
+                  <span 
+                    style={{
+                      backgroundColor: ottBanner.badge_bg_color || 'rgba(69,10,10,0.8)',
+                      color: ottBanner.badge_color || '#e50914'
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-red-600/60 text-xs font-black uppercase tracking-wider"
+                  >
                     <Tv className="w-3.5 h-3.5" /> {bannerSubheading}
                   </span>
                 )}
-                <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tight leading-tight">
+                <h1 
+                  style={{ color: ottBanner.heading_color || bannerTextColor }}
+                  className="text-3xl sm:text-5xl font-black uppercase tracking-tight leading-tight"
+                >
                   {bannerHeading}
                 </h1>
-                <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
+                <p 
+                  style={{ color: ottBanner.description_color || ottBanner.subheading_color || '#cbd5e1' }}
+                  className="text-sm sm:text-base leading-relaxed"
+                >
                   {bannerDescription}
                 </p>
                 <div className="flex flex-wrap gap-4 pt-2">
-                  <button
-                    onClick={() => {
-                      if (bannerBtnLink.startsWith('http')) window.open(bannerBtnLink, '_blank');
-                      else onOpenWhatsApp();
-                    }}
-                    className="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-emerald-700/30 transition-all cursor-pointer"
-                  >
-                    <MessageCircle className="w-4 h-4 fill-current" />
-                    <span>{bannerBtnText}</span>
-                  </button>
+                  {Array.isArray(ottBanner.buttons) && ottBanner.buttons.length > 0 ? (
+                    ottBanner.buttons.filter(b => b.is_active !== false).map((btn, bIdx) => (
+                      <button
+                        key={btn.id || bIdx}
+                        onClick={() => {
+                          const link = btn.link || bannerBtnLink;
+                          if (link.startsWith('http') || link.startsWith('tel:') || link.startsWith('mailto:')) {
+                            window.open(link, btn.target || (btn.open_new_tab ? '_blank' : '_self'));
+                          } else {
+                            window.location.href = link;
+                          }
+                        }}
+                        style={{
+                          backgroundColor: btn.button_color || '#059669',
+                          color: btn.text_color || '#ffffff',
+                          borderColor: btn.border_color || 'transparent'
+                        }}
+                        className="px-6 py-3 rounded-xl font-extrabold text-xs sm:text-sm flex items-center gap-2 shadow-lg transition-all cursor-pointer border"
+                      >
+                        <MessageCircle className="w-4 h-4 fill-current" />
+                        <span>{btn.text || bannerBtnText}</span>
+                      </button>
+                    ))
+                  ) : (
+                    <button
+                      onClick={() => {
+                        if (bannerBtnLink.startsWith('http')) window.open(bannerBtnLink, '_blank');
+                        else onOpenWhatsApp();
+                      }}
+                      style={{
+                        backgroundColor: ottBanner.button_color || '#059669',
+                        color: ottBanner.button_text_color || '#ffffff',
+                        borderColor: ottBanner.button_border_color || 'transparent'
+                      }}
+                      className="px-6 py-3 rounded-xl font-extrabold text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-emerald-700/30 transition-all cursor-pointer border"
+                    >
+                      <MessageCircle className="w-4 h-4 fill-current" />
+                      <span>{bannerBtnText}</span>
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

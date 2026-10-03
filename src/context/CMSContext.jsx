@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '../services/supabase';
+import { validateCouponAgainstCart, getCouponStatus } from '../utils/couponHelper';
 import {
   getCmsTableData,
   getCmsSingleRecord,
@@ -541,109 +542,16 @@ export function CMSProvider({ children }) {
     const cleanCode = code.trim().toUpperCase();
     const found = coupons.find(c => (c.code || '').toUpperCase() === cleanCode);
     if (!found) {
-      return { valid: false, message: 'Coupon invalid' };
+      return { valid: false, message: `Coupon "${cleanCode}" is invalid.` };
     }
 
-    if (!found.is_active) {
-      return { valid: false, message: 'Coupon invalid' };
-    }
-
-    const now = new Date();
-
-    // Check Start Date/Time
-    if (found.starts_at) {
-      const startTime = new Date(found.starts_at);
-      if (now < startTime) {
-        return { valid: false, message: 'Coupon is not active yet' };
-      }
-    }
-
-    // Check Expiry Date/Time
-    if (found.expires_at) {
-      const expiryTime = new Date(found.expires_at);
-      if (now > expiryTime) {
-        return { 
-          valid: false, 
-          isExpired: true,
-          message: 'Coupon expired' 
-        };
-      }
-    }
-
-    // Check Usage Limit
-    if (found.usage_limit && Number(found.usage_limit) > 0) {
-      const usedCount = Number(found.used_count || 0);
-      if (usedCount >= Number(found.usage_limit)) {
-        return { valid: false, message: 'Coupon usage limit reached' };
-      }
-    }
-
-    // Check Minimum Order Amount
-    if (found.min_order_amount && cartTotal < Number(found.min_order_amount)) {
-      return { 
-        valid: false, 
-        message: 'Minimum order amount not reached' 
-      };
-    }
-
-    // Check Target Categories / Products if specified
-    let eligibleTotal = cartTotal;
-    if (found.apply_to === 'categories' && Array.isArray(found.allowed_categories) && found.allowed_categories.length > 0) {
-      const allowed = found.allowed_categories.map(c => String(c).toLowerCase());
-      const matchingItems = cartItems.filter(item => {
-        const itemCat = String(item.category || item.categoryGroup || '').toLowerCase();
-        return allowed.some(a => itemCat.includes(a) || a.includes(itemCat));
-      });
-      if (matchingItems.length === 0) {
-        return { valid: false, message: 'This coupon is not valid for the items in your cart.' };
-      }
-      eligibleTotal = matchingItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-    } else if (found.apply_to === 'products' && Array.isArray(found.allowed_product_ids) && found.allowed_product_ids.length > 0) {
-      const allowedIds = found.allowed_product_ids.map(id => String(id).toLowerCase());
-      const matchingItems = cartItems.filter(item => 
-        allowedIds.includes(String(item.id || '').toLowerCase()) ||
-        allowedIds.includes(String(item.slug_id || '').toLowerCase()) ||
-        allowedIds.includes(String(item.productId || '').toLowerCase())
-      );
-      if (matchingItems.length === 0) {
-        return { valid: false, message: 'This coupon is not valid for the selected products in your cart.' };
-      }
-      eligibleTotal = matchingItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-    }
-
-    // Calculate Discount
-    let discount = 0;
-    if (found.discount_type === 'percentage') {
-      discount = Math.round((eligibleTotal * Number(found.discount_value)) / 100);
-      if (found.max_discount && Number(found.max_discount) > 0) {
-        discount = Math.min(discount, Number(found.max_discount));
-      }
-    } else {
-      discount = Number(found.discount_value);
-    }
-
-    if (discount > eligibleTotal) discount = eligibleTotal;
-    if (discount > cartTotal) discount = cartTotal;
-    if (discount < 0) discount = 0;
-
-    return {
-      valid: true,
-      coupon: found,
-      discount,
-      message: `Coupon "${cleanCode}" applied! ₹${discount.toLocaleString()} savings.`
-    };
+    return validateCouponAgainstCart(found, cartTotal, cartItems, Date.now());
   }, [coupons]);
 
   const getProductCoupon = useCallback((product) => {
     if (!product || !Array.isArray(coupons) || coupons.length === 0) return null;
     const now = Date.now();
-    const activeCoupons = coupons.filter(c => {
-      if (c.is_active === false) return false;
-      if (c.starts_at && now < new Date(c.starts_at).getTime()) return false;
-      if (c.expires_at && now > new Date(c.expires_at).getTime()) return false;
-      if (c.usage_limit && Number(c.used_count || 0) >= Number(c.usage_limit)) return false;
-      return true;
-    });
+    const activeCoupons = coupons.filter(c => getCouponStatus(c, now).status === 'ACTIVE');
 
     const prodId = String(product.id || product.slug_id || product.db_id || '').toLowerCase();
     const productMatch = activeCoupons.find(c => 

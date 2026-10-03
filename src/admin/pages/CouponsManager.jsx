@@ -5,54 +5,12 @@ import {
   ToggleLeft, ToggleRight, ChevronDown, ChevronUp, Search, Phone
 } from 'lucide-react';
 import { useCMS } from '../../context/CMSContext';
-
-// IST offset in milliseconds (UTC+5:30)
-const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
-
-function toISTDatetimeLocal(isoString) {
-  if (!isoString) return '';
-  try {
-    const utcMs = new Date(isoString).getTime();
-    const istMs = utcMs + IST_OFFSET_MS;
-    const d = new Date(istMs);
-    const pad = (n) => String(n).padStart(2, '0');
-    return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}T${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
-  } catch { return ''; }
-}
-
-function fromISTDatetimeLocalToISO(datetimeLocal) {
-  if (!datetimeLocal) return null;
-  try {
-    const [datePart, timePart] = datetimeLocal.split('T');
-    const [year, month, day] = datePart.split('-').map(Number);
-    const [hour, minute] = timePart.split(':').map(Number);
-    // User picked date/time in IST; subtract 5.5 hours to convert to UTC
-    const utcMs = Date.UTC(year, month - 1, day, hour, minute, 0, 0) - IST_OFFSET_MS;
-    return new Date(utcMs).toISOString();
-  } catch { return null; }
-}
-
-function getCouponStatus(coupon) {
-  if (!coupon.is_active) return { label: 'Inactive', color: 'slate' };
-
-  const now = Date.now();
-
-  if (coupon.starts_at) {
-    const startMs = new Date(coupon.starts_at).getTime();
-    if (!isNaN(startMs) && now < startMs) {
-      return { label: 'Scheduled', color: 'blue' };
-    }
-  }
-
-  if (coupon.expires_at) {
-    const expMs = new Date(coupon.expires_at).getTime();
-    if (!isNaN(expMs) && now > expMs) {
-      return { label: 'Expired', color: 'red' };
-    }
-  }
-
-  return { label: 'Active', color: 'emerald' };
-}
+import {
+  toISTDatetimeLocal,
+  fromISTDatetimeLocalToISO,
+  formatIST,
+  getCouponStatus
+} from '../../utils/couponHelper';
 
 const STATUS_COLORS = {
   emerald: 'bg-emerald-100 text-emerald-800 border-emerald-200',
@@ -94,7 +52,13 @@ export default function CouponsManager({ adminEmail }) {
 
   const openCreate = () => {
     setEditingCoupon('new');
-    setFormData({ ...EMPTY_FORM });
+    const nowIso = new Date().toISOString();
+    const thirtyDaysLaterIso = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    setFormData({
+      ...EMPTY_FORM,
+      starts_at: toISTDatetimeLocal(nowIso),
+      expires_at: toISTDatetimeLocal(thirtyDaysLaterIso)
+    });
   };
 
   const openEdit = (coupon) => {
@@ -146,12 +110,13 @@ export default function CouponsManager({ adminEmail }) {
 
       if (!cleanCode) throw new Error('Please enter a valid alphanumeric coupon code.');
 
-      // Validate uniqueness on create
-      if (editingCoupon === 'new') {
-        const existingCodes = (coupons || []).map(c => (c.code || '').toUpperCase());
-        if (existingCodes.includes(cleanCode)) {
-          throw new Error(`Coupon code "${cleanCode}" already exists. Please use a different code.`);
-        }
+      // Validate uniqueness across all coupons
+      const isDuplicate = (coupons || []).some(c => 
+        (c.code || '').toUpperCase() === cleanCode && 
+        (editingCoupon === 'new' || (c.id !== editingCoupon.id && (c.code || '').toUpperCase() !== (editingCoupon.code || '').toUpperCase()))
+      );
+      if (isDuplicate) {
+        throw new Error(`Coupon code "${cleanCode}" already exists. Please use a different code.`);
       }
 
       if (!formData.discount_value || Number(formData.discount_value) <= 0) {
@@ -260,20 +225,6 @@ export default function CouponsManager({ adminEmail }) {
     return (Array.isArray(products) ? products : []).filter(p => p.is_active !== false);
   }, [products]);
 
-  const formatIST = (isoString) => {
-    if (!isoString) return '—';
-    try {
-      const utcMs = new Date(isoString).getTime();
-      const istMs = utcMs + IST_OFFSET_MS;
-      const d = new Date(istMs);
-      const pad = (n) => String(n).padStart(2, '0');
-      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-      const h = d.getUTCHours();
-      const ampm = h >= 12 ? 'PM' : 'AM';
-      const h12 = h % 12 || 12;
-      return `${pad(d.getUTCDate())} ${months[d.getUTCMonth()]} ${d.getUTCFullYear()} ${pad(h12)}:${pad(d.getUTCMinutes())} ${ampm} IST`;
-    } catch { return isoString; }
-  };
 
   // Live calculation preview in modal
   const sampleCalc = useMemo(() => {
@@ -408,6 +359,14 @@ export default function CouponsManager({ adminEmail }) {
                     </button>
                   </div>
                 </div>
+
+                {/* Expired Notice */}
+                {status.label === 'Expired' && (
+                  <div className="mt-2.5 px-3 py-1.5 bg-red-50 border border-red-200 rounded-xl text-xs font-bold text-red-700 flex items-center gap-1.5">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>This coupon has expired.</span>
+                  </div>
+                )}
 
                 {/* Meta Info Row */}
                 <div className="mt-3 pt-3 border-t border-slate-100 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] text-slate-500">

@@ -26,10 +26,36 @@ const GRADIENT_DIRECTIONS = [
   { value: 'to bottom left', label: 'Diagonal ↙' }
 ];
 
+function ColorPickerField({ label, value, onChange, defaultValue = '#ffffff' }) {
+  const safeVal = value || defaultValue;
+  const isHex = /^#([0-9A-Fa-f]{3}){1,2}$/i.test(safeVal);
+
+  return (
+    <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-1.5 shadow-sm">
+      <label className="block text-[11px] font-bold text-slate-700">{label}</label>
+      <div className="flex items-center gap-2">
+        <input
+          type="color"
+          value={isHex ? safeVal : defaultValue}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-8 h-8 rounded border border-slate-300 cursor-pointer p-0.5 shrink-0"
+        />
+        <input
+          type="text"
+          value={safeVal}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="#FFFFFF"
+          className="w-full bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-xs font-mono font-bold text-slate-800 uppercase focus:outline-none focus:border-[#008744]"
+        />
+      </div>
+    </div>
+  );
+}
+
 export default function BannersManager({ adminEmail }) {
   const { 
     banners, setBanners, 
-    categories,
+    categories, loading,
     saveCmsItem, deleteCmsItem, updateDisplayOrder, logActivity, refreshAllData 
   } = useCMS();
 
@@ -38,6 +64,7 @@ export default function BannersManager({ adminEmail }) {
   const [uploadingPrimary, setUploadingPrimary] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
   const [activeSectionTab, setActiveSectionTab] = useState('All');
+  const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'active', 'hidden'
   const [bannerMode, setBannerMode] = useState('image'); // 'image' or 'color'
   const [previewDevice, setPreviewDevice] = useState('desktop'); // 'desktop' or 'mobile'
 
@@ -52,15 +79,15 @@ export default function BannersManager({ adminEmail }) {
   };
 
   const getSectionFromKey = (key = '', location = '') => {
-    if (location && location !== 'all') return location.toUpperCase();
-    const k = key.toLowerCase();
-    if (k.includes('home_main')) return 'Home Main';
-    if (k.includes('home_small') || k.includes('home_middle') || k.includes('home_bottom')) return 'Small Banners';
-    if (k.includes('ott')) return 'OTT Plans';
-    if (k.includes('fiber')) return 'Fiber Internet';
-    if (k.includes('mobile')) return 'Mobiles';
-    if (k.includes('electronic')) return 'Electronics';
-    if (k.includes('offer')) return 'Offers';
+    const k = (key || '').toLowerCase();
+    const loc = (location || '').toLowerCase();
+    if (k.includes('home_main') || (loc === 'home' && !k.includes('small') && !k.includes('middle') && !k.includes('bottom'))) return 'Home Main';
+    if (k.includes('home_small') || k.includes('home_middle') || k.includes('home_bottom') || loc === 'home_small') return 'Small Banners';
+    if (k.includes('ott') || loc === 'ott' || loc === 'ott-plans') return 'OTT Plans';
+    if (k.includes('fiber') || loc === 'fiber' || loc === 'broadband') return 'Fiber Internet';
+    if (k.includes('mobile') || loc === 'mobiles' || loc === 'mobiles-gadgets') return 'Mobiles';
+    if (k.includes('electronic') || loc === 'electronics') return 'Electronics';
+    if (k.includes('offer') || loc === 'offers') return 'Offers';
     return 'Other';
   };
 
@@ -71,9 +98,17 @@ export default function BannersManager({ adminEmail }) {
   }, [banners]);
 
   const filteredBanners = useMemo(() => {
-    if (activeSectionTab === 'All') return sortedBanners;
-    return sortedBanners.filter(b => getSectionFromKey(b.banner_key, b.display_location) === activeSectionTab);
-  }, [sortedBanners, activeSectionTab]);
+    let list = sortedBanners;
+    if (activeSectionTab !== 'All') {
+      list = list.filter(b => getSectionFromKey(b.banner_key, b.display_location) === activeSectionTab);
+    }
+    if (statusFilter === 'active') {
+      list = list.filter(b => b.is_active !== false);
+    } else if (statusFilter === 'hidden') {
+      list = list.filter(b => b.is_active === false);
+    }
+    return list;
+  }, [sortedBanners, activeSectionTab, statusFilter]);
 
   const handleToggleStatus = async (banner) => {
     try {
@@ -166,16 +201,23 @@ export default function BannersManager({ adminEmail }) {
         banner_key: editingBanner?.banner_key || `banner_${Date.now()}`,
         title_name: formData.get('title_name') || editingBanner?.title_name || 'Custom Banner',
         heading: formData.get('heading') || '',
+        heading_color: editingBanner.heading_color || '#ffffff',
         subheading: formData.get('subheading') || '',
+        subheading_color: editingBanner.subheading_color || '#cbd5e1',
         badge_text: formData.get('badge_text') || formData.get('subheading') || '',
+        badge_color: editingBanner.badge_color || '#ffffff',
+        badge_bg_color: editingBanner.badge_bg_color || '#e50914',
         description: formData.get('description') || '',
+        description_color: editingBanner.description_color || '#cbd5e1',
         mode: bannerMode,
         image_url: bannerMode === 'color' ? '' : (editingBanner.image_url || ''),
         mobile_image_url: bannerMode === 'color' ? '' : (editingBanner.mobile_image_url || editingBanner.image_url || ''),
         image_fit: formData.get('image_fit') || 'contain',
         image_position: formData.get('image_position') || 'center',
-        text_color: editingBanner.text_color || '#ffffff',
-        button_color: editingBanner.button_color || '#e50914',
+        text_color: editingBanner.heading_color || editingBanner.text_color || '#ffffff',
+        button_color: editingBanner.button_color || (buttonsList[0]?.button_color) || '#e50914',
+        button_text_color: editingBanner.button_text_color || (buttonsList[0]?.text_color) || '#ffffff',
+        button_border_color: editingBanner.button_border_color || (buttonsList[0]?.border_color) || 'transparent',
         bg_color: bgColor1,
         bg_color_2: bgColor2,
         bg_direction: bgDirection,
@@ -224,6 +266,8 @@ export default function BannersManager({ adminEmail }) {
       link: '/offers',
       button_color: '#e50914',
       text_color: '#ffffff',
+      border_color: 'transparent',
+      open_new_tab: false,
       is_active: true
     });
     setEditingBanner({ ...editingBanner, buttons: current });
@@ -283,14 +327,26 @@ export default function BannersManager({ adminEmail }) {
     const safeBanner = { ...b };
     setBannerMode(b.mode === 'color' || (!b.image_url && b.bg_color) ? 'color' : 'image');
 
+    // Individual colors fallback
+    safeBanner.heading_color = b.heading_color || b.text_color || '#ffffff';
+    safeBanner.subheading_color = b.subheading_color || '#cbd5e1';
+    safeBanner.badge_color = b.badge_color || '#ffffff';
+    safeBanner.badge_bg_color = b.badge_bg_color || '#e50914';
+    safeBanner.description_color = b.description_color || b.text_color || '#cbd5e1';
+    safeBanner.button_color = b.button_color || '#e50914';
+    safeBanner.button_text_color = b.button_text_color || '#ffffff';
+    safeBanner.button_border_color = b.button_border_color || 'transparent';
+
     // Buttons parsing
     if (Array.isArray(b.buttons) && b.buttons.length > 0) {
       safeBanner.buttons = b.buttons.map((btn, idx) => ({
         id: btn.id || `btn_${idx}`,
         text: btn.text || 'Explore Deals',
         link: btn.link || '/offers',
-        button_color: btn.button_color || '#e50914',
+        button_color: btn.button_color || b.button_color || '#e50914',
         text_color: btn.text_color || '#ffffff',
+        border_color: btn.border_color || 'transparent',
+        open_new_tab: btn.open_new_tab || btn.target === '_blank',
         is_active: btn.is_active !== false
       }));
     } else if (b.button_text) {
@@ -299,7 +355,9 @@ export default function BannersManager({ adminEmail }) {
         text: b.button_text,
         link: b.button_link || '/offers',
         button_color: b.button_color || '#e50914',
-        text_color: '#ffffff',
+        text_color: b.button_text_color || '#ffffff',
+        border_color: b.button_border_color || 'transparent',
+        open_new_tab: false,
         is_active: true
       }];
     } else {
@@ -369,22 +427,76 @@ export default function BannersManager({ adminEmail }) {
         </button>
       </div>
 
-      {/* Filter Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
-        {sectionTabs.map(tab => (
-          <button
-            key={tab}
-            onClick={() => setActiveSectionTab(tab)}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
-              activeSectionTab === tab
-                ? 'bg-slate-900 text-white shadow-md'
-                : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-            }`}
-          >
-            {tab}
-          </button>
-        ))}
+      {/* Filter Tabs & Status Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        {/* Section Tabs */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+          {sectionTabs.map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveSectionTab(tab)}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                activeSectionTab === tab
+                  ? 'bg-slate-900 text-white shadow-md'
+                  : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+
+        {/* Status Filters: All / Active / Hidden */}
+        <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl shrink-0 text-xs">
+          {[
+            { key: 'all', label: 'All', count: sortedBanners.length },
+            { key: 'active', label: 'Active', count: sortedBanners.filter(b => b.is_active !== false).length },
+            { key: 'hidden', label: 'Hidden', count: sortedBanners.filter(b => b.is_active === false).length }
+          ].map(sf => (
+            <button
+              key={sf.key}
+              onClick={() => setStatusFilter(sf.key)}
+              className={`px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                statusFilter === sf.key
+                  ? 'bg-white text-slate-900 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-900'
+              }`}
+            >
+              <span>{sf.label}</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                statusFilter === sf.key ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-600'
+              }`}>
+                {sf.count}
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
+
+      {/* Loading State */}
+      {loading && sortedBanners.length === 0 && (
+        <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center shadow-sm">
+          <div className="w-8 h-8 border-3 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="font-bold text-slate-700 text-sm">Loading banners from database...</p>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!loading && filteredBanners.length === 0 && (
+        <div className="bg-white border border-slate-200 rounded-2xl p-12 text-center shadow-sm space-y-3">
+          <ImageIcon className="w-12 h-12 text-slate-300 mx-auto" />
+          <h4 className="font-black text-slate-700 text-base">No Banners Found</h4>
+          <p className="text-xs text-slate-400 max-w-sm mx-auto">
+            No banners match the selected filter ({activeSectionTab} / {statusFilter}).
+          </p>
+          <button
+            onClick={() => { setActiveSectionTab('All'); setStatusFilter('all'); }}
+            className="px-4 py-2 rounded-xl bg-slate-900 text-white font-bold text-xs cursor-pointer hover:bg-slate-800 transition-colors"
+          >
+            Show All Banners ({sortedBanners.length})
+          </button>
+        </div>
+      )}
 
       {/* Banner Cards List */}
       <div className="grid grid-cols-1 gap-4">
@@ -582,15 +694,27 @@ export default function BannersManager({ adminEmail }) {
                   {/* Text Overlay */}
                   <div className="relative z-10 space-y-2">
                     {editingBanner.badge_text && (
-                      <span className="inline-block bg-[#e50914] text-white text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full shadow">
+                      <span 
+                        style={{
+                          backgroundColor: editingBanner.badge_bg_color || '#e50914',
+                          color: editingBanner.badge_color || '#ffffff'
+                        }}
+                        className="inline-block text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full shadow"
+                      >
                         {editingBanner.badge_text}
                       </span>
                     )}
-                    <h4 className="text-base sm:text-xl font-black leading-tight text-white drop-shadow">
+                    <h4 
+                      style={{ color: editingBanner.heading_color || '#ffffff' }}
+                      className="text-base sm:text-xl font-black leading-tight drop-shadow"
+                    >
                       {editingBanner.heading || 'Banner Heading'}
                     </h4>
                     {editingBanner.description && (
-                      <p className="text-white/80 text-[11px] leading-relaxed max-w-md line-clamp-2">
+                      <p 
+                        style={{ color: editingBanner.description_color || editingBanner.subheading_color || 'rgba(255,255,255,0.8)' }}
+                        className="text-[11px] leading-relaxed max-w-md line-clamp-2"
+                      >
                         {editingBanner.description}
                       </p>
                     )}
@@ -601,7 +725,11 @@ export default function BannersManager({ adminEmail }) {
                     {Array.isArray(editingBanner.buttons) && editingBanner.buttons.map((btn, i) => (
                       <span
                         key={i}
-                        style={{ backgroundColor: btn.button_color || '#e50914', color: btn.text_color || '#ffffff' }}
+                        style={{ 
+                          backgroundColor: btn.button_color || '#e50914', 
+                          color: btn.text_color || '#ffffff',
+                          border: btn.border_color ? `1px solid ${btn.border_color}` : 'none'
+                        }}
                         className="px-3 py-1 rounded-lg text-xs font-black shadow-sm"
                       >
                         {btn.text || 'Action'}
@@ -673,10 +801,10 @@ export default function BannersManager({ adminEmail }) {
                 )}
               </div>
 
-              {/* 2. Text Content & Editable Badge */}
+              {/* 2. Text Content & Individual Text Colors */}
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-4">
                 <h4 className="text-xs font-black uppercase text-slate-800 tracking-wider">
-                  📝 Content &amp; Editable Badge
+                  📝 Content &amp; Individual Text Colors
                 </h4>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -718,6 +846,39 @@ export default function BannersManager({ adminEmail }) {
                     />
                   </div>
                 </div>
+
+                {/* Individual Text Color Selectors */}
+                <div className="pt-3 border-t border-slate-200 space-y-2">
+                  <h5 className="text-[11px] font-black uppercase text-slate-600 tracking-wider">
+                    🎨 Individual Text Element Colors
+                  </h5>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    <ColorPickerField
+                      label="Heading Text Color"
+                      value={editingBanner.heading_color || '#ffffff'}
+                      onChange={(val) => setEditingBanner({ ...editingBanner, heading_color: val })}
+                      defaultValue="#ffffff"
+                    />
+                    <ColorPickerField
+                      label="Subheading / Desc Color"
+                      value={editingBanner.description_color || editingBanner.subheading_color || '#cbd5e1'}
+                      onChange={(val) => setEditingBanner({ ...editingBanner, description_color: val, subheading_color: val })}
+                      defaultValue="#cbd5e1"
+                    />
+                    <ColorPickerField
+                      label="Badge Text Color"
+                      value={editingBanner.badge_color || '#ffffff'}
+                      onChange={(val) => setEditingBanner({ ...editingBanner, badge_color: val })}
+                      defaultValue="#ffffff"
+                    />
+                    <ColorPickerField
+                      label="Badge Background Color"
+                      value={editingBanner.badge_bg_color || '#e50914'}
+                      onChange={(val) => setEditingBanner({ ...editingBanner, badge_bg_color: val })}
+                      defaultValue="#e50914"
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* 3. Dual Background Colors (Solid vs Gradient) */}
@@ -727,45 +888,18 @@ export default function BannersManager({ adminEmail }) {
                 </h4>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  {/* Background Color 1 */}
-                  <div className="bg-white p-3 rounded-xl border border-amber-200 space-y-1.5">
-                    <label className="block text-[11px] font-bold text-slate-700">Background Color 1</label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="color"
-                        value={editingBanner.bg_color || '#050b1e'}
-                        onChange={(e) => setEditingBanner({ ...editingBanner, bg_color: e.target.value })}
-                        className="w-8 h-8 rounded border border-slate-200 cursor-pointer p-0.5"
-                      />
-                      <input
-                        type="text"
-                        value={editingBanner.bg_color || '#050b1e'}
-                        onChange={(e) => setEditingBanner({ ...editingBanner, bg_color: e.target.value })}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-xs font-mono font-bold"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Background Color 2 */}
-                  <div className="bg-white p-3 rounded-xl border border-amber-200 space-y-1.5">
-                    <label className="block text-[11px] font-bold text-slate-700">Background Color 2</label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="color"
-                        value={editingBanner.bg_color_2 || editingBanner.bg_color || '#050b1e'}
-                        onChange={(e) => setEditingBanner({ ...editingBanner, bg_color_2: e.target.value })}
-                        className="w-8 h-8 rounded border border-slate-200 cursor-pointer p-0.5"
-                      />
-                      <input
-                        type="text"
-                        value={editingBanner.bg_color_2 || editingBanner.bg_color || '#050b1e'}
-                        onChange={(e) => setEditingBanner({ ...editingBanner, bg_color_2: e.target.value })}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-lg p-1.5 text-xs font-mono font-bold"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Gradient Direction */}
+                  <ColorPickerField
+                    label="Background Color 1"
+                    value={editingBanner.bg_color || '#050b1e'}
+                    onChange={(val) => setEditingBanner({ ...editingBanner, bg_color: val })}
+                    defaultValue="#050b1e"
+                  />
+                  <ColorPickerField
+                    label="Background Color 2"
+                    value={editingBanner.bg_color_2 || editingBanner.bg_color || '#050b1e'}
+                    onChange={(val) => setEditingBanner({ ...editingBanner, bg_color_2: val })}
+                    defaultValue="#050b1e"
+                  />
                   <div className="bg-white p-3 rounded-xl border border-amber-200 space-y-1.5">
                     <label className="block text-[11px] font-bold text-slate-700">Gradient Direction</label>
                     <select
@@ -791,7 +925,7 @@ export default function BannersManager({ adminEmail }) {
               <div className="bg-emerald-50/50 p-4 rounded-2xl border border-emerald-200 space-y-4">
                 <div className="flex items-center justify-between">
                   <h4 className="text-xs font-black uppercase text-emerald-950 tracking-wider flex items-center gap-1.5">
-                    <Crop className="w-4 h-4 text-emerald-600" /> PC &amp; Mobile Responsive Artwork Crop
+                    <Crop className="w-4 h-4 text-emerald-600" /> Banner Image &amp; Artwork Upload
                   </h4>
                   <div className="flex items-center gap-2">
                     <button
@@ -816,10 +950,10 @@ export default function BannersManager({ adminEmail }) {
                   <div className="bg-white p-3.5 rounded-xl border border-emerald-200 space-y-2">
                     <div className="flex items-center justify-between">
                       <label className="text-xs font-bold text-slate-800 flex items-center gap-1">
-                        <Monitor className="w-3.5 h-3.5 text-slate-500" /> Desktop Artwork (PC)
+                        <Monitor className="w-3.5 h-3.5 text-slate-500" /> Upload Banner Image (PC)
                       </label>
-                      <label className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-bold text-[11px] flex items-center gap-1 cursor-pointer">
-                        <Upload className="w-3 h-3" /> {uploadingPrimary ? '...' : 'Upload'}
+                      <label className="px-2.5 py-1 bg-[#008744] hover:bg-emerald-600 text-white rounded-lg font-bold text-[11px] flex items-center gap-1 cursor-pointer">
+                        <Upload className="w-3 h-3" /> {uploadingPrimary ? 'Uploading...' : 'Upload Image'}
                         <input type="file" accept="image/*" onChange={handlePrimaryImageUpload} className="hidden" />
                       </label>
                     </div>
@@ -850,12 +984,12 @@ export default function BannersManager({ adminEmail }) {
                   <div className="bg-white p-3.5 rounded-xl border border-emerald-200 space-y-2">
                     <div className="flex items-center justify-between">
                       <label className="text-xs font-bold text-slate-800 flex items-center gap-1">
-                        <Smartphone className="w-3.5 h-3.5 text-slate-500" /> Mobile Artwork
+                        <Smartphone className="w-3.5 h-3.5 text-slate-500" /> Mobile Banner Image
                       </label>
                       <button
                         type="button"
                         onClick={() => handleOpenCrop('mobile')}
-                        className="px-2.5 py-1 bg-[#008744] hover:bg-emerald-600 text-white rounded-lg font-bold text-[11px] flex items-center gap-1 cursor-pointer"
+                        className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-bold text-[11px] flex items-center gap-1 cursor-pointer"
                       >
                         <Crop className="w-3 h-3" /> Crop from PC Image
                       </button>
@@ -890,10 +1024,10 @@ export default function BannersManager({ adminEmail }) {
                 <div className="flex items-center justify-between">
                   <div>
                     <h4 className="text-xs font-black uppercase text-purple-950 tracking-wider flex items-center gap-1.5">
-                      <Link className="w-4 h-4 text-purple-600" /> Action Buttons
+                      <Link className="w-4 h-4 text-purple-600" /> Action Buttons (Individual Colors, Links &amp; Borders)
                     </h4>
                     <p className="text-[11px] text-purple-800">
-                      Each button has independent text, URL, background color, and text color.
+                      Each button has independent text, URL, background color, text color, and border color.
                     </p>
                   </div>
                   <button
@@ -905,13 +1039,12 @@ export default function BannersManager({ adminEmail }) {
                   </button>
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {Array.isArray(editingBanner.buttons) && editingBanner.buttons.map((btn, btnIdx) => (
-                    <div key={btn.id || btnIdx} className="bg-white p-3.5 rounded-xl border border-purple-200 shadow-sm space-y-3">
+                    <div key={btn.id || btnIdx} className="bg-white p-4 rounded-2xl border border-purple-200 shadow-sm space-y-3">
                       <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
-                        
-                        <div className="sm:col-span-3">
-                          <label className="text-[10px] font-bold text-slate-600 block mb-1">Button {btnIdx + 1} Text *</label>
+                        <div className="sm:col-span-4">
+                          <label className="text-[10px] font-bold text-slate-600 block mb-1">Button {btnIdx + 1} Label *</label>
                           <input
                             type="text"
                             value={btn.text || ''}
@@ -921,54 +1054,58 @@ export default function BannersManager({ adminEmail }) {
                           />
                         </div>
 
-                        <div className="sm:col-span-4">
-                          <label className="text-[10px] font-bold text-slate-600 block mb-1">Target URL / Link *</label>
+                        <div className="sm:col-span-6">
+                          <label className="text-[10px] font-bold text-slate-600 block mb-1">Target URL / Route / WhatsApp Link *</label>
                           <input
                             type="text"
                             value={btn.link || ''}
                             onChange={(e) => updateButtonField(btnIdx, 'link', e.target.value)}
-                            placeholder="e.g. /offers, /ott-plans, https://wa.me/..."
+                            placeholder="e.g. /offers, /ott-plans, https://wa.me/916305151531"
                             className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-mono"
                           />
                         </div>
 
-                        <div className="sm:col-span-2">
-                          <label className="text-[10px] font-bold text-slate-600 block mb-1">Button Color</label>
-                          <div className="flex items-center gap-1.5">
+                        <div className="sm:col-span-2 flex items-center justify-between sm:justify-end gap-2">
+                          <label className="flex items-center gap-1.5 text-[11px] font-bold text-slate-700 cursor-pointer">
                             <input
-                              type="color"
-                              value={btn.button_color || '#e50914'}
-                              onChange={(e) => updateButtonField(btnIdx, 'button_color', e.target.value)}
-                              className="w-7 h-7 rounded border cursor-pointer p-0.5"
+                              type="checkbox"
+                              checked={btn.open_new_tab || btn.target === '_blank'}
+                              onChange={(e) => updateButtonField(btnIdx, 'open_new_tab', e.target.checked)}
+                              className="accent-purple-600"
                             />
-                            <span className="text-[10px] font-mono text-slate-500">{btn.button_color || '#e50914'}</span>
-                          </div>
-                        </div>
-
-                        <div className="sm:col-span-2">
-                          <label className="text-[10px] font-bold text-slate-600 block mb-1">Text Color</label>
-                          <div className="flex items-center gap-1.5">
-                            <input
-                              type="color"
-                              value={btn.text_color || '#ffffff'}
-                              onChange={(e) => updateButtonField(btnIdx, 'text_color', e.target.value)}
-                              className="w-7 h-7 rounded border cursor-pointer p-0.5"
-                            />
-                            <span className="text-[10px] font-mono text-slate-500">{btn.text_color || '#ffffff'}</span>
-                          </div>
-                        </div>
-
-                        <div className="sm:col-span-1 flex justify-end">
+                            <span>New Tab</span>
+                          </label>
                           <button
                             type="button"
                             onClick={() => removeButton(btnIdx)}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                            className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                             title="Remove button"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
+                      </div>
 
+                      {/* Button Colors: Bg, Text, Border */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-100">
+                        <ColorPickerField
+                          label="Button Background Color"
+                          value={btn.button_color || '#e50914'}
+                          onChange={(val) => updateButtonField(btnIdx, 'button_color', val)}
+                          defaultValue="#e50914"
+                        />
+                        <ColorPickerField
+                          label="Button Text Color"
+                          value={btn.text_color || '#ffffff'}
+                          onChange={(val) => updateButtonField(btnIdx, 'text_color', val)}
+                          defaultValue="#ffffff"
+                        />
+                        <ColorPickerField
+                          label="Button Border Color"
+                          value={btn.border_color || 'transparent'}
+                          onChange={(val) => updateButtonField(btnIdx, 'border_color', val)}
+                          defaultValue="transparent"
+                        />
                       </div>
                     </div>
                   ))}
