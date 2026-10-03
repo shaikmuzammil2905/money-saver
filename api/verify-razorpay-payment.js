@@ -49,7 +49,7 @@ export default async function handler(req, res) {
     const body = await parseBody(req);
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature, appOrderId } = body;
 
-    const secret = process.env.RAZORPAY_KEY_SECRET;
+    const secret = process.env.RAZORPAY_KEY_SECRET || '5rDrBAaj2K3p2gWWnLv4duFV';
 
     let isValid = false;
 
@@ -58,10 +58,6 @@ export default async function handler(req, res) {
       hmac.update(`${razorpay_order_id}|${razorpay_payment_id}`);
       const generatedSignature = hmac.digest('hex');
       isValid = generatedSignature === razorpay_signature;
-    } else if (!secret) {
-      // In development mode or before secret is configured
-      console.warn('RAZORPAY_KEY_SECRET not set in environment. Simulating verification.');
-      isValid = Boolean(razorpay_payment_id || razorpay_order_id);
     }
 
     if (!isValid) {
