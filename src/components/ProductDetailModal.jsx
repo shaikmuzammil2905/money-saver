@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { X, ShoppingCart, ShieldCheck, CheckCircle, Ban } from 'lucide-react';
+import { X, ShoppingCart, ShieldCheck, CheckCircle, Ban, Tag } from 'lucide-react';
+import { useCMS } from '../context/CMSContext';
 
 export default function ProductDetailModal({
   product,
   onClose,
   onAddToCart
 }) {
+  const { getProductCoupon } = useCMS() || {};
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
 
@@ -17,6 +19,7 @@ export default function ProductDetailModal({
   if (!product) return null;
 
   const isAvailable = product.inStock !== false;
+  const couponInfo = getProductCoupon ? getProductCoupon(product) : null;
 
   const imageList = Array.isArray(product.images) && product.images.length > 0 
     ? product.images 
@@ -127,16 +130,36 @@ export default function ProductDetailModal({
 
                 {/* Price Section */}
                 <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 flex items-center justify-between">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-xl sm:text-2xl font-black text-slate-900">
-                      ₹{product.price?.toLocaleString()}
-                    </span>
-                    {product.originalPrice && product.originalPrice > product.price && (
-                      <span className="text-xs text-slate-400 line-through font-medium">
-                        ₹{product.originalPrice.toLocaleString()}
+                  {couponInfo ? (
+                    <div>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-xl sm:text-2xl font-black text-[#008744]">
+                          ₹{couponInfo.finalPrice?.toLocaleString()}
+                        </span>
+                        <span className="text-xs text-slate-400 line-through font-medium">
+                          ₹{product.price?.toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="mt-1">
+                        <span className="text-[10px] font-extrabold text-[#008744] bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                          {couponInfo.coupon.discount_type === 'percentage'
+                            ? `${couponInfo.coupon.discount_value}% OFF`
+                            : `₹${couponInfo.coupon.discount_value} OFF`} with {couponInfo.coupon.code}
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-xl sm:text-2xl font-black text-slate-900">
+                        ₹{product.price?.toLocaleString()}
                       </span>
-                    )}
-                  </div>
+                      {product.originalPrice && product.originalPrice > product.price && (
+                        <span className="text-xs text-slate-400 line-through font-medium">
+                          ₹{product.originalPrice.toLocaleString()}
+                        </span>
+                      )}
+                    </div>
+                  )}
                   {isAvailable ? (
                     <span className="bg-emerald-50 text-[#008744] text-[11px] font-extrabold px-2.5 py-1 rounded-lg border border-emerald-200">
                       In Stock

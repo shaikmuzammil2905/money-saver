@@ -1,5 +1,6 @@
 import React from 'react';
-import { Star, Heart, Plus, Eye, Ban } from 'lucide-react';
+import { Star, Heart, Plus, Eye, Ban, Tag } from 'lucide-react';
+import { useCMS } from '../context/CMSContext';
 
 export default function ProductCard({
   product,
@@ -8,9 +9,11 @@ export default function ProductCard({
   isWishlisted = false,
   onToggleWishlist
 }) {
+  const { getProductCoupon } = useCMS() || {};
   if (!product) return null;
 
   const isAvailable = product.inStock !== false;
+  const couponInfo = getProductCoupon ? getProductCoupon(product) : null;
 
   // Calculate discount percentage if not explicitly specified
   const calculatedDiscount = product.discount || (
@@ -136,19 +139,39 @@ export default function ProductCard({
         </h3>
 
         {/* Price Row */}
-        <div className="flex items-baseline gap-1.5 mt-1.5 flex-wrap">
-          <span className="text-sm sm:text-lg font-black text-slate-900">
-            ₹{product.price?.toLocaleString()}
-          </span>
-          {product.originalPrice && product.originalPrice > product.price && (
-            <span className="text-xs text-slate-400 line-through font-medium">
-              ₹{product.originalPrice.toLocaleString()}
+        {couponInfo ? (
+          <div className="mt-1.5 space-y-0.5">
+            <div className="flex items-baseline gap-1.5 flex-wrap">
+              <span className="text-sm sm:text-lg font-black text-[#008744]">
+                ₹{couponInfo.finalPrice?.toLocaleString()}
+              </span>
+              <span className="text-xs text-slate-400 line-through font-medium">
+                ₹{product.price?.toLocaleString()}
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] font-extrabold text-[#008744] bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                {couponInfo.coupon.discount_type === 'percentage'
+                  ? `${couponInfo.coupon.discount_value}% OFF`
+                  : `₹${couponInfo.coupon.discount_value} OFF`} with {couponInfo.coupon.code}
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-baseline gap-1.5 mt-1.5 flex-wrap">
+            <span className="text-sm sm:text-lg font-black text-slate-900">
+              ₹{product.price?.toLocaleString()}
             </span>
-          )}
-        </div>
+            {product.originalPrice && product.originalPrice > product.price && (
+              <span className="text-xs text-slate-400 line-through font-medium">
+                ₹{product.originalPrice.toLocaleString()}
+              </span>
+            )}
+          </div>
+        )}
 
         {/* You Save text */}
-        {savings > 0 && isAvailable && (
+        {savings > 0 && isAvailable && !couponInfo && (
           <p className="text-[10px] sm:text-xs font-bold text-[#008744] mt-0.5">
             You Save ₹{savings.toLocaleString()}
           </p>

@@ -41,27 +41,38 @@ export default function MobilesGadgetsPage({ onAddToCart, onQuickView, wishlistI
         
         {/* Banner Section */}
         {(() => {
-          const mobBanner = (banners && banners.find(b => b.banner_key === 'mobiles_top_banner')) || {};
+          const mobBanner = (banners && banners.find(b => b.banner_key === 'mobiles_top_banner' || b.display_location === 'mobiles')) || {};
           if (mobBanner.is_active === false) return null;
           const bannerHeading = mobBanner.heading || 'Mobiles & Smart Gadgets Carnival';
-          const bannerSubheading = mobBanner.subheading || 'Smartphones & Mobile Accessories';
+          const bannerSubheading = mobBanner.badge_text || mobBanner.subheading || 'Smartphones & Mobile Accessories';
           const bannerDescription = mobBanner.description || 'Explore 5G smartphones, active noise cancelling earbuds, premium bluetooth speakers, smartwatches & ultra-fast chargers with genuine brand warranty & express doorstep delivery.';
-          const bannerBgColor = mobBanner.bg_color || '#022c22';
           const bannerTextColor = mobBanner.text_color || '#ffffff';
           const bannerOverlayColor = mobBanner.overlay_color || 'rgba(16,185,129,0.25)';
           const bannerImageUrl = mobBanner.image_url || '';
+          const bannerMobileImageUrl = mobBanner.mobile_image_url || '';
+
+          const c1 = mobBanner.bg_color || '#022c22';
+          const c2 = mobBanner.bg_color_2 || c1;
+          const bgStyle = c1.toLowerCase() === c2.toLowerCase()
+            ? { backgroundColor: c1 }
+            : { background: `linear-gradient(${mobBanner.bg_direction || 'to right'}, ${c1}, ${c2})` };
 
           return (
             <div 
-              style={{ backgroundColor: bannerBgColor, color: bannerTextColor }}
+              style={{ ...bgStyle, color: bannerTextColor }}
               className="relative rounded-3xl p-6 sm:p-10 mb-8 border border-slate-800 shadow-2xl overflow-hidden"
             >
               {bannerImageUrl && (
-                <img 
-                  src={bannerImageUrl} 
-                  alt={bannerHeading}
-                  className="absolute inset-0 w-full h-full object-cover object-center pointer-events-none opacity-30"
-                />
+                <picture className="absolute inset-0 w-full h-full pointer-events-none">
+                  {bannerMobileImageUrl && (
+                    <source media="(max-width: 640px)" srcSet={bannerMobileImageUrl} />
+                  )}
+                  <img 
+                    src={bannerImageUrl} 
+                    alt={bannerHeading}
+                    className="w-full h-full object-cover opacity-30"
+                  />
+                </picture>
               )}
               <div 
                 style={{ backgroundColor: bannerOverlayColor }}
@@ -70,9 +81,11 @@ export default function MobilesGadgetsPage({ onAddToCart, onQuickView, wishlistI
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_50%,rgba(16,185,129,0.25),transparent_60%)] pointer-events-none" />
               
               <div className="relative z-10 max-w-3xl space-y-4">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-500/60 text-emerald-400 text-xs font-black uppercase tracking-wider">
-                  <Smartphone className="w-3.5 h-3.5" /> {bannerSubheading}
-                </span>
+                {bannerSubheading && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-500/60 text-emerald-400 text-xs font-black uppercase tracking-wider">
+                    <Smartphone className="w-3.5 h-3.5" /> {bannerSubheading}
+                  </span>
+                )}
                 <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tight leading-tight">
                   {bannerHeading}
                 </h1>

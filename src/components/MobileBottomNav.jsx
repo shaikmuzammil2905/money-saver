@@ -1,9 +1,11 @@
 import React from 'react';
-import { Home, Tag, Compass } from 'lucide-react';
+import { Home, Tag, Compass, ShoppingCart } from 'lucide-react';
 
 export default function MobileBottomNav({ 
   activeTab, 
-  setActiveTab
+  setActiveTab,
+  cartCount = 0,
+  onOpenCart
 }) {
   const tabs = [
     { id: 'home', label: 'Home', icon: Home },
@@ -12,7 +14,7 @@ export default function MobileBottomNav({
   ];
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] px-4 py-2 flex items-center justify-around font-sans">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] px-2 py-2 flex items-center justify-around font-sans">
       {tabs.map((tab) => {
         const IconComponent = tab.icon;
         const isActive = activeTab === tab.id;
@@ -24,7 +26,7 @@ export default function MobileBottomNav({
               setActiveTab(tab.id);
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
-            className={`relative flex flex-col items-center gap-1 py-1 px-5 rounded-2xl transition-all duration-200 ${
+            className={`relative flex flex-col items-center gap-1 py-1 px-3 rounded-2xl transition-all duration-200 cursor-pointer ${
               isActive 
                 ? 'text-[#e50914] font-extrabold scale-105' 
                 : 'text-slate-500 hover:text-slate-900 font-medium'
@@ -40,7 +42,23 @@ export default function MobileBottomNav({
           </button>
         );
       })}
+
+      {/* Mobile Cart Button */}
+      <button
+        onClick={onOpenCart}
+        className="relative flex flex-col items-center gap-1 py-1 px-3 rounded-2xl transition-all duration-200 text-slate-700 hover:text-slate-900 font-medium cursor-pointer"
+        aria-label="View Shopping Cart"
+      >
+        <div className="relative p-1 rounded-xl text-slate-700 hover:bg-slate-100 transition-colors">
+          <ShoppingCart className="w-5 h-5 stroke-[2.2]" />
+          {cartCount > 0 && (
+            <span className="absolute -top-1 -right-1 bg-[#008744] text-white text-[10px] font-black rounded-full w-4 h-4 flex items-center justify-center shadow-md animate-pulse">
+              {cartCount > 99 ? '99+' : cartCount}
+            </span>
+          )}
+        </div>
+        <span className="text-[11px] tracking-tight font-bold">Cart</span>
+      </button>
     </nav>
   );
 }
-

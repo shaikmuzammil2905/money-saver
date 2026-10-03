@@ -665,17 +665,24 @@ function HomePageManagerContent({ adminEmail }) {
 
   // --- HOME PAGE BUILDER (BOX SYSTEM) HANDLERS ---
   const handleMoveSection = async (index, direction) => {
-    const newSections = [...homeSections];
     const targetIdx = direction === 'UP' ? index - 1 : index + 1;
-    if (targetIdx < 0 || targetIdx >= newSections.length) return;
+    if (targetIdx < 0 || targetIdx >= homeSections.length) return;
 
+    const newSections = [...homeSections];
     const temp = newSections[index];
     newSections[index] = newSections[targetIdx];
     newSections[targetIdx] = temp;
 
-    setHomeSections(newSections);
-    await updateDisplayOrder('home_sections', newSections, 'position');
+    // Explicitly update sequential 1-based position for every section
+    const reordered = newSections.map((sec, idx) => ({
+      ...sec,
+      position: idx + 1
+    }));
+
+    setHomeSections(reordered);
+    await updateDisplayOrder('home_sections', reordered, 'position');
     await logActivity(adminEmail, 'REORDERED', 'Home Page Builder');
+    await refreshAllData();
     showToast('Home Page Section Order Saved.');
   };
 

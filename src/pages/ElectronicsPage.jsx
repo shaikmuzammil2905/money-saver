@@ -4,9 +4,19 @@ import { useCMS } from '../context/CMSContext';
 import ProductCard from '../components/ProductCard';
 
 export default function ElectronicsPage({ onAddToCart, onQuickView, wishlistIds = [], onToggleWishlist }) {
-  const { activePublicProducts } = useCMS();
+  const { activePublicProducts, banners } = useCMS();
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
+
+  const eleBanner = (banners && banners.find(b => b.banner_key === 'electronics_top_banner' || b.display_location === 'electronics')) || {};
+  const isBannerActive = eleBanner.is_active !== false;
+
+  const bannerBgStyle = (() => {
+    const c1 = eleBanner.bg_color || '#0a0f1d';
+    const c2 = eleBanner.bg_color_2 || c1;
+    if (c1.toLowerCase() === c2.toLowerCase()) return { backgroundColor: c1 };
+    return { background: `linear-gradient(${eleBanner.bg_direction || 'to right'}, ${c1}, ${c2})` };
+  })();
 
   const electronicsList = useMemo(() => {
     return activePublicProducts.filter(p => 
@@ -31,20 +41,39 @@ export default function ElectronicsPage({ onAddToCart, onQuickView, wishlistIds 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Banner Section */}
-        <div className="relative rounded-3xl bg-slate-950 text-white p-6 sm:p-10 mb-8 border border-slate-800 shadow-2xl overflow-hidden">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(245,158,11,0.25),transparent_60%)] pointer-events-none" />
-          <div className="relative z-10 max-w-3xl space-y-4">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-950 border border-amber-500/60 text-amber-400 text-xs font-black uppercase tracking-wider">
-              <Laptop className="w-3.5 h-3.5" /> High Performance Electronics
-            </span>
-            <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tight leading-tight">
-              Electronics <span className="text-amber-400">&amp; Smart Devices</span>
-            </h1>
-            <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
-              Shop 4K Smart TVs, high performance laptops, fast chargers &amp; essential tech devices backed by official manufacturer warranties &amp; instant doorstep setup.
-            </p>
+        {isBannerActive && (
+          <div 
+            style={bannerBgStyle}
+            className="relative rounded-3xl text-white p-6 sm:p-10 mb-8 border border-slate-800 shadow-2xl overflow-hidden"
+          >
+            {eleBanner.image_url && (
+              <picture className="absolute inset-0 w-full h-full pointer-events-none">
+                {eleBanner.mobile_image_url && (
+                  <source media="(max-width: 640px)" srcSet={eleBanner.mobile_image_url} />
+                )}
+                <img 
+                  src={eleBanner.image_url} 
+                  alt={eleBanner.heading || 'Electronics'} 
+                  className="w-full h-full object-cover opacity-30" 
+                />
+              </picture>
+            )}
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(245,158,11,0.25),transparent_60%)] pointer-events-none" />
+            <div className="relative z-10 max-w-3xl space-y-4">
+              {(eleBanner.badge_text || eleBanner.subheading || 'High Performance Electronics') && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-950 border border-amber-500/60 text-amber-400 text-xs font-black uppercase tracking-wider">
+                  <Laptop className="w-3.5 h-3.5" /> {eleBanner.badge_text || eleBanner.subheading || 'High Performance Electronics'}
+                </span>
+              )}
+              <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tight leading-tight">
+                {eleBanner.heading || <>Electronics <span className="text-amber-400">&amp; Smart Devices</span></>}
+              </h1>
+              <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
+                {eleBanner.description || 'Shop 4K Smart TVs, high performance laptops, fast chargers & essential tech devices backed by official manufacturer warranties & instant doorstep setup.'}
+              </p>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Filter Pills & Search */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">

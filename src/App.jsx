@@ -603,6 +603,8 @@ function PublicWebsite() {
           setActiveTab(tab);
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
+        cartCount={cartCount}
+        onOpenCart={() => setIsCartOpen(true)}
       />
 
     </div>

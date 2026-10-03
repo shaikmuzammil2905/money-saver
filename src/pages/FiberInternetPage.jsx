@@ -127,29 +127,40 @@ export default function FiberInternetPage({ onAddToCart, onOpenWhatsApp }) {
         
         {/* Hero Header */}
         {(() => {
-          const fiberBanner = (banners && banners.find(b => b.banner_key === 'fiber_top_banner')) || {};
+          const fiberBanner = (banners && banners.find(b => b.banner_key === 'fiber_top_banner' || b.display_location === 'fiber')) || {};
           if (fiberBanner.is_active === false) return null;
           const bannerHeading = fiberBanner.heading || 'Ultra Fast Fiber Broadband & OTT Bundles';
-          const bannerSubheading = fiberBanner.subheading || 'High-Speed Fiber Broadband';
+          const bannerSubheading = fiberBanner.badge_text || fiberBanner.subheading || 'High-Speed Fiber Broadband';
           const bannerDescription = fiberBanner.description || 'Experience seamless 4K streaming, zero-ping online gaming, and lightning fast downloads. All plans include free dual-band Wi-Fi router, zero installation charges, and bundled OTT platforms!';
           const bannerBtnText = fiberBanner.button_text || 'Check Fiber Availability in Your Area';
           const bannerBtnLink = fiberBanner.button_link || 'https://wa.me/916305151531';
-          const bannerBgColor = fiberBanner.bg_color || '#020617';
           const bannerTextColor = fiberBanner.text_color || '#ffffff';
           const bannerOverlayColor = fiberBanner.overlay_color || 'rgba(14,165,233,0.3)';
           const bannerImageUrl = fiberBanner.image_url || '';
+          const bannerMobileImageUrl = fiberBanner.mobile_image_url || '';
+
+          const c1 = fiberBanner.bg_color || '#020617';
+          const c2 = fiberBanner.bg_color_2 || c1;
+          const bgStyle = c1.toLowerCase() === c2.toLowerCase()
+            ? { backgroundColor: c1 }
+            : { background: `linear-gradient(${fiberBanner.bg_direction || 'to right'}, ${c1}, ${c2})` };
 
           return (
             <div 
-              style={{ backgroundColor: bannerBgColor, color: bannerTextColor }}
+              style={{ ...bgStyle, color: bannerTextColor }}
               className="relative rounded-3xl p-6 sm:p-10 mb-10 border border-slate-800 shadow-2xl overflow-hidden"
             >
               {bannerImageUrl && (
-                <img 
-                  src={bannerImageUrl} 
-                  alt={bannerHeading}
-                  className="absolute inset-0 w-full h-full object-cover object-center pointer-events-none opacity-30"
-                />
+                <picture className="absolute inset-0 w-full h-full pointer-events-none">
+                  {bannerMobileImageUrl && (
+                    <source media="(max-width: 640px)" srcSet={bannerMobileImageUrl} />
+                  )}
+                  <img 
+                    src={bannerImageUrl} 
+                    alt={bannerHeading}
+                    className="w-full h-full object-cover opacity-30" 
+                  />
+                </picture>
               )}
               <div 
                 style={{ backgroundColor: bannerOverlayColor }}
@@ -158,9 +169,11 @@ export default function FiberInternetPage({ onAddToCart, onOpenWhatsApp }) {
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_30%,rgba(14,165,233,0.3),transparent_60%)] pointer-events-none" />
               
               <div className="relative z-10 max-w-3xl space-y-4">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-950/80 border border-sky-500/60 text-sky-400 text-xs font-black uppercase tracking-wider">
-                  <Wifi className="w-3.5 h-3.5" /> {bannerSubheading}
-                </span>
+                {bannerSubheading && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-950/80 border border-sky-500/60 text-sky-400 text-xs font-black uppercase tracking-wider">
+                    <Wifi className="w-3.5 h-3.5" /> {bannerSubheading}
+                  </span>
+                )}
                 <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tight leading-tight">
                   {bannerHeading}
                 </h1>

@@ -26,34 +26,29 @@ function fromISTDatetimeLocalToISO(datetimeLocal) {
     const [datePart, timePart] = datetimeLocal.split('T');
     const [year, month, day] = datePart.split('-').map(Number);
     const [hour, minute] = timePart.split(':').map(Number);
-    const istMs = Date.UTC(year, month - 1, day, hour, minute, 0, 0) - IST_OFFSET_MS;
-    return new Date(istMs).toISOString();
+    // User picked date/time in IST; subtract 5.5 hours to convert to UTC
+    const utcMs = Date.UTC(year, month - 1, day, hour, minute, 0, 0) - IST_OFFSET_MS;
+    return new Date(utcMs).toISOString();
   } catch { return null; }
 }
 
-function generateCouponCode() {
-  const prefixes = ['SAVE', 'OTT', 'OFF', 'DEAL', 'GET', 'WIN', 'BIG'];
-  const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
-  const num = Math.floor(10 + Math.random() * 90);
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  const suffix = Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-  return `${prefix}${num}${suffix}`;
-}
-
 function getCouponStatus(coupon) {
-  const now = new Date();
-  const istNow = new Date(now.getTime() + IST_OFFSET_MS);
-
   if (!coupon.is_active) return { label: 'Inactive', color: 'slate' };
 
+  const now = Date.now();
+
   if (coupon.starts_at) {
-    const start = new Date(coupon.starts_at);
-    if (istNow < start) return { label: 'Scheduled', color: 'blue' };
+    const startMs = new Date(coupon.starts_at).getTime();
+    if (!isNaN(startMs) && now < startMs) {
+      return { label: 'Scheduled', color: 'blue' };
+    }
   }
 
   if (coupon.expires_at) {
-    const exp = new Date(coupon.expires_at);
-    if (istNow > exp) return { label: 'Expired', color: 'red' };
+    const expMs = new Date(coupon.expires_at).getTime();
+    if (!isNaN(expMs) && now > expMs) {
+      return { label: 'Expired', color: 'red' };
+    }
   }
 
   return { label: 'Active', color: 'emerald' };
@@ -68,7 +63,7 @@ const STATUS_COLORS = {
 
 const EMPTY_FORM = {
   code: '',
-  discount_type: 'percentage',
+  discount_type: 'fixed',
   discount_value: '',
   min_order_amount: '',
   max_discount: '',
@@ -106,7 +101,7 @@ export default function CouponsManager({ adminEmail }) {
     setEditingCoupon(coupon);
     setFormData({
       code: coupon.code || '',
-      discount_type: coupon.discount_type || 'percentage',
+      discount_type: coupon.discount_type || 'fixed',
       discount_value: coupon.discount_value != null ? String(coupon.discount_value) : '',
       min_order_amount: coupon.min_order_amount != null ? String(coupon.min_order_amount) : '',
       max_discount: coupon.max_discount != null ? String(coupon.max_discount) : '',
@@ -119,18 +114,6 @@ export default function CouponsManager({ adminEmail }) {
       allowed_product_ids: Array.isArray(coupon.allowed_product_ids) ? coupon.allowed_product_ids : [],
       description: coupon.description || ''
     });
-  };
-
-  const handleGenerateCode = () => {
-    let code = generateCouponCode();
-    // Ensure uniqueness
-    const existingCodes = new Set((coupons || []).map(c => c.code?.toUpperCase()));
-    let attempts = 0;
-    while (existingCodes.has(code) && attempts < 20) {
-      code = generateCouponCode();
-      attempts++;
-    }
-    setFormData(prev => ({ ...prev, code }));
   };
 
   const handleFieldChange = (field, value) => {
@@ -159,7 +142,9 @@ export default function CouponsManager({ adminEmail }) {
 
     try {
       if (!formData.code?.trim()) throw new Error('Coupon code is required.');
-      const cleanCode = formData.code.trim().toUpperCase();
+      const cleanCode = formData.code.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '');
+
+      if (!cleanCode) throw new Error('Please enter a valid alphanumeric coupon code.');
 
       // Validate uniqueness on create
       if (editingCoupon === 'new') {
@@ -180,8 +165,8 @@ export default function CouponsManager({ adminEmail }) {
       const startsAt = formData.starts_at ? fromISTDatetimeLocalToISO(formData.starts_at) : null;
       const expiresAt = formData.expires_at ? fromISTDatetimeLocalToISO(formData.expires_at) : null;
 
-      if (startsAt && expiresAt && new Date(startsAt) >= new Date(expiresAt)) {
-        throw new Error('Expiry date/time must be after the start date/time.');
+      if (startsAt && expiresAt && new Date(startsAt).getTime() >= new Date(expiresAt).getTime()) {
+        throw new Error('Expiry date/time must be strictly after the start date/time.');
       }
 
       const payload = {
@@ -225,9 +210,9 @@ export default function CouponsManager({ adminEmail }) {
   const handleDelete = async (coupon) => {
     if (!window.confirm(`Delete coupon "${coupon.code}"? This cannot be undone.`)) return;
     try {
-      await deleteCmsItem('coupons', coupon.id);
+      await deleteCmsItem('coupons', coupon.id || coupon.code);
       await logActivity(adminEmail, 'DELETED', 'Coupons', coupon.code);
-      setCoupons(prev => (prev || []).filter(c => c.id !== coupon.id));
+      setCoupons(prev => (prev || []).filter(c => c.id !== coupon.id && c.code !== coupon.code));
       showToast(`Coupon "${coupon.code}" Deleted.`);
     } catch (err) {
       alert('Error deleting coupon: ' + err.message);
@@ -235,10 +220,16 @@ export default function CouponsManager({ adminEmail }) {
   };
 
   const handleToggle = async (coupon) => {
+    const status = getCouponStatus(coupon);
+    if (!coupon.is_active && status.label === 'Expired') {
+      alert(`Coupon "${coupon.code}" has expired on ${formatIST(coupon.expires_at)}. To make it active, please click Edit and update the expiry date.`);
+      return;
+    }
+
     try {
       const updated = { ...coupon, is_active: !coupon.is_active };
       await saveCmsItem('coupons', updated);
-      setCoupons(prev => (prev || []).map(c => c.id === coupon.id ? updated : c));
+      setCoupons(prev => (prev || []).map(c => (c.id === coupon.id || c.code === coupon.code) ? updated : c));
       showToast(updated.is_active ? `"${coupon.code}" Activated` : `"${coupon.code}" Deactivated`);
     } catch (err) {
       alert('Error: ' + err.message);
@@ -284,8 +275,18 @@ export default function CouponsManager({ adminEmail }) {
     } catch { return isoString; }
   };
 
-  // Contact number for "Contact Now" CTA
-  const contactWhatsApp = 'https://wa.me/916305151531';
+  // Live calculation preview in modal
+  const sampleCalc = useMemo(() => {
+    const val = Number(formData.discount_value) || 0;
+    const base = 100;
+    if (formData.discount_type === 'percentage') {
+      const disc = Math.round((base * val) / 100);
+      return { base, discount: disc, final: Math.max(0, base - disc) };
+    } else {
+      const disc = val;
+      return { base, discount: disc, final: Math.max(0, base - disc) };
+    }
+  }, [formData.discount_type, formData.discount_value]);
 
   return (
     <div className="space-y-6 font-sans">
@@ -303,7 +304,7 @@ export default function CouponsManager({ adminEmail }) {
             <Tag className="w-6 h-6 text-[#e50914]" /> Coupon Code Manager
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Create, manage and target discount coupons with date/time controls (Asia/Kolkata timezone).
+            Create, manage and target discount coupons with IST date/time controls (Asia/Kolkata).
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -319,7 +320,7 @@ export default function CouponsManager({ adminEmail }) {
           </div>
           <button
             onClick={openCreate}
-            className="px-4 py-2.5 rounded-xl bg-[#e50914] hover:bg-red-700 text-white font-bold text-xs flex items-center gap-2 shadow-sm transition-all shrink-0"
+            className="px-4 py-2.5 rounded-xl bg-[#e50914] hover:bg-red-700 text-white font-bold text-xs flex items-center gap-2 shadow-sm transition-all shrink-0 cursor-pointer"
           >
             <Plus className="w-4 h-4" /> Create Coupon
           </button>
@@ -362,7 +363,7 @@ export default function CouponsManager({ adminEmail }) {
                       {coupon.code}
                       <button
                         onClick={() => handleCopy(coupon.code)}
-                        className="ml-1 text-slate-400 hover:text-white transition-colors"
+                        className="ml-1 text-slate-400 hover:text-white transition-colors cursor-pointer"
                         title="Copy code"
                       >
                         {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
@@ -387,7 +388,7 @@ export default function CouponsManager({ adminEmail }) {
                   <div className="flex items-center gap-2 shrink-0">
                     <button
                       onClick={() => handleToggle(coupon)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-black border transition-all ${
+                      className={`px-3 py-1.5 rounded-xl text-xs font-black border transition-all cursor-pointer ${
                         coupon.is_active ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-slate-100 border-slate-200 text-slate-600'
                       }`}
                     >
@@ -395,13 +396,13 @@ export default function CouponsManager({ adminEmail }) {
                     </button>
                     <button
                       onClick={() => openEdit(coupon)}
-                      className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-1 border border-slate-200 transition-colors"
+                      className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-1 border border-slate-200 transition-colors cursor-pointer"
                     >
                       <Edit3 className="w-3.5 h-3.5" /> Edit
                     </button>
                     <button
                       onClick={() => handleDelete(coupon)}
-                      className="px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 font-bold text-xs flex items-center gap-1 border border-red-200 transition-colors"
+                      className="px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 font-bold text-xs flex items-center gap-1 border border-red-200 transition-colors cursor-pointer"
                     >
                       <Trash2 className="w-3.5 h-3.5" /> Delete
                     </button>
@@ -417,21 +418,6 @@ export default function CouponsManager({ adminEmail }) {
                   <div className="col-span-2"><span className="font-bold text-slate-700">Starts:</span> {formatIST(coupon.starts_at)}</div>
                   <div className="col-span-2"><span className="font-bold text-slate-700">Expires:</span> {formatIST(coupon.expires_at)}</div>
                 </div>
-
-                {/* Expired Contact Now */}
-                {status.label === 'Expired' && (
-                  <div className="mt-3 p-2.5 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between">
-                    <p className="text-xs font-bold text-amber-800">This coupon has expired.</p>
-                    <a
-                      href={contactWhatsApp}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-xs font-black text-white bg-[#25d366] hover:bg-green-600 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors"
-                    >
-                      <Phone className="w-3 h-3" /> Contact Now
-                    </a>
-                  </div>
-                )}
               </div>
             );
           })}
@@ -452,34 +438,29 @@ export default function CouponsManager({ adminEmail }) {
               <button
                 onClick={() => setEditingCoupon(null)}
                 type="button"
-                className="text-slate-400 hover:text-slate-700 font-bold text-xl px-2"
+                className="text-slate-400 hover:text-slate-700 font-bold text-xl px-2 cursor-pointer"
               >✕</button>
             </div>
 
             <form onSubmit={handleSave} className="space-y-5">
 
-              {/* Coupon Code */}
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
-                <label className="block text-xs font-black text-slate-700 uppercase tracking-wider">Coupon Code *</label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={formData.code}
-                    onChange={(e) => handleFieldChange('code', e.target.value.toUpperCase().replace(/\s/g, ''))}
-                    placeholder="E.g. OTT50X9"
-                    required
-                    maxLength={20}
-                    className="flex-1 bg-white border border-slate-200 rounded-xl p-2.5 text-slate-900 font-mono font-bold text-sm uppercase focus:outline-none focus:border-[#008744]"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleGenerateCode}
-                    className="px-3 py-2 rounded-xl bg-[#008744] hover:bg-emerald-600 text-white font-bold text-xs flex items-center gap-1.5 transition-all shrink-0"
-                  >
-                    <Sparkles className="w-3.5 h-3.5" /> Generate
-                  </button>
-                </div>
-                <p className="text-[10px] text-slate-500">Use uppercase letters and numbers only. Code must be unique.</p>
+              {/* Coupon Code - Manual Admin Entry */}
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+                <label className="block text-xs font-black text-slate-700 uppercase tracking-wider">
+                  Coupon Code * <span className="text-slate-400 font-normal">(Enter manually, e.g. SAVE40, OTT50)</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.code}
+                  onChange={(e) => handleFieldChange('code', e.target.value.toUpperCase().replace(/\s/g, ''))}
+                  placeholder="Enter manual coupon code (e.g. SAVE40)"
+                  required
+                  maxLength={20}
+                  className="w-full bg-white border border-slate-200 rounded-xl p-3 text-slate-900 font-mono font-black text-base uppercase focus:outline-none focus:border-[#008744]"
+                />
+                <p className="text-[11px] text-slate-500">
+                  Admin entered coupon code is preserved in uppercase without random characters. Must be unique.
+                </p>
               </div>
 
               {/* Discount Type & Value */}
@@ -490,27 +471,28 @@ export default function CouponsManager({ adminEmail }) {
                     <button
                       type="button"
                       onClick={() => handleFieldChange('discount_type', 'percentage')}
-                      className={`flex-1 py-2 rounded-xl text-xs font-bold border flex items-center justify-center gap-1.5 transition-all ${
+                      className={`flex-1 py-2.5 rounded-xl text-xs font-bold border flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                         formData.discount_type === 'percentage'
                           ? 'bg-[#008744] text-white border-[#008744]'
                           : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
                       }`}
                     >
-                      <Percent className="w-3.5 h-3.5" /> Percentage
+                      <Percent className="w-3.5 h-3.5" /> Percentage (%)
                     </button>
                     <button
                       type="button"
                       onClick={() => handleFieldChange('discount_type', 'fixed')}
-                      className={`flex-1 py-2 rounded-xl text-xs font-bold border flex items-center justify-center gap-1.5 transition-all ${
+                      className={`flex-1 py-2.5 rounded-xl text-xs font-bold border flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                         formData.discount_type === 'fixed'
                           ? 'bg-[#e50914] text-white border-[#e50914]'
                           : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
                       }`}
                     >
-                      <DollarSign className="w-3.5 h-3.5" /> Fixed ₹
+                      <DollarSign className="w-3.5 h-3.5" /> Fixed Amount (₹)
                     </button>
                   </div>
                 </div>
+
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">
                     Discount Value * {formData.discount_type === 'percentage' ? '(%)' : '(₹)'}
@@ -522,10 +504,16 @@ export default function CouponsManager({ adminEmail }) {
                     step="any"
                     value={formData.discount_value}
                     onChange={(e) => handleFieldChange('discount_value', e.target.value)}
-                    placeholder={formData.discount_type === 'percentage' ? '10' : '100'}
+                    placeholder={formData.discount_type === 'percentage' ? 'e.g. 20' : 'e.g. 40'}
                     required
                     className="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-slate-900 text-sm font-bold focus:outline-none focus:border-[#008744]"
                   />
+                </div>
+
+                {/* Real-time Explicit Preview calculation */}
+                <div className="sm:col-span-2 bg-emerald-50 border border-emerald-200 p-3 rounded-xl text-xs text-emerald-900 font-semibold">
+                  <span className="font-black">Calculation Preview: </span>
+                  If product price is ₹{sampleCalc.base}, coupon applies a discount of <span className="font-black text-[#008744]">₹{sampleCalc.discount}</span>, making final payable price <span className="font-black text-[#e50914]">₹{sampleCalc.final}</span> on item.
                 </div>
 
                 <div>
@@ -570,7 +558,7 @@ export default function CouponsManager({ adminEmail }) {
                     type="text"
                     value={formData.description}
                     onChange={(e) => handleFieldChange('description', e.target.value)}
-                    placeholder="E.g. Diwali promo 2026"
+                    placeholder="E.g. Diwali discount on OTT plans"
                     className="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-slate-900 text-sm focus:outline-none focus:border-[#008744]"
                   />
                 </div>
@@ -579,7 +567,7 @@ export default function CouponsManager({ adminEmail }) {
               {/* Date & Time (IST) */}
               <div className="bg-blue-50 p-4 rounded-xl border border-blue-200 space-y-3">
                 <h4 className="text-xs font-black text-blue-900 uppercase tracking-wider flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5" /> Start & Expiry Date/Time — All times in IST (Asia/Kolkata)
+                  <Calendar className="w-3.5 h-3.5" /> Start & Expiry Date/Time — (Asia/Kolkata IST)
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
@@ -616,7 +604,7 @@ export default function CouponsManager({ adminEmail }) {
                 </h4>
                 <div className="flex flex-wrap gap-2">
                   {[
-                    { value: 'all', label: 'Entire Store', icon: '🏪' },
+                    { value: 'all', label: 'All Products (Entire Store)', icon: '🏪' },
                     { value: 'categories', label: 'Specific Categories', icon: '📂' },
                     { value: 'products', label: 'Specific Products', icon: '📦' }
                   ].map(opt => (
@@ -624,7 +612,7 @@ export default function CouponsManager({ adminEmail }) {
                       key={opt.value}
                       type="button"
                       onClick={() => handleFieldChange('apply_to', opt.value)}
-                      className={`px-3 py-2 rounded-xl text-xs font-bold border flex items-center gap-1.5 transition-all ${
+                      className={`px-3 py-2 rounded-xl text-xs font-bold border flex items-center gap-1.5 transition-all cursor-pointer ${
                         formData.apply_to === opt.value
                           ? 'bg-purple-700 text-white border-purple-700'
                           : 'bg-white text-slate-700 border-slate-200 hover:bg-purple-100'
@@ -664,7 +652,7 @@ export default function CouponsManager({ adminEmail }) {
                     <p className="text-xs font-bold text-slate-700">Select Products (coupon applies only to these):</p>
                     <div className="space-y-1 max-h-56 overflow-y-auto">
                       {activeProducts.map(prod => {
-                        const pid = prod.id || prod.slug_id;
+                        const pid = String(prod.id || prod.slug_id);
                         return (
                           <label key={pid} className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg p-2 cursor-pointer hover:border-purple-300">
                             <input
@@ -690,12 +678,12 @@ export default function CouponsManager({ adminEmail }) {
               <div className="flex items-center justify-between bg-slate-50 p-4 rounded-xl border border-slate-200">
                 <div>
                   <p className="text-xs font-black text-slate-900 uppercase tracking-wider">Coupon Status</p>
-                  <p className="text-[11px] text-slate-500 mt-0.5">Toggle to enable or disable this coupon immediately.</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">Toggle to enable or disable this coupon.</p>
                 </div>
                 <button
                   type="button"
                   onClick={() => handleFieldChange('is_active', !formData.is_active)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs border transition-all ${
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs border transition-all cursor-pointer ${
                     formData.is_active
                       ? 'bg-emerald-50 border-emerald-300 text-emerald-800'
                       : 'bg-red-50 border-red-300 text-red-800'
@@ -713,14 +701,14 @@ export default function CouponsManager({ adminEmail }) {
                 <button
                   type="button"
                   onClick={() => setEditingCoupon(null)}
-                  className="flex-1 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm border border-slate-200 transition-colors"
+                  className="flex-1 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm border border-slate-200 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-[#e50914] to-[#008744] hover:opacity-95 text-white font-bold text-sm shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-[#e50914] to-[#008744] hover:opacity-95 text-white font-bold text-sm shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
                 >
                   {saving ? (
                     <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Saving...</>

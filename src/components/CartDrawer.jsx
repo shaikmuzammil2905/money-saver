@@ -2,37 +2,46 @@ import React, { useState, useEffect } from 'react';
 import { 
   X, 
   ShoppingBag, 
-  Plus, 
-  Minus, 
   Trash2, 
   CheckCircle2, 
   ArrowRight, 
-  Upload, 
-  Image as ImageIcon, 
-  ExternalLink, 
   ShieldCheck, 
   Lock, 
   AlertCircle,
   MessageCircle,
-  QrCode,
-  Tag
+  Tag,
+  CreditCard
 } from 'lucide-react';
-import { getPaymentConfig } from '../services/paymentConfig';
 import { DEFAULT_PAYMENT_CONFIG } from '../config/payment';
-import { createOrder, uploadPaymentScreenshot } from '../services/orderService';
 import { useCMS } from '../context/CMSContext';
+
+// Helper to load Razorpay script on demand
+const loadRazorpayScript = () => {
+  return new Promise((resolve) => {
+    if (typeof window !== 'undefined' && window.Razorpay) {
+      resolve(true);
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+};
 
 export default function CartDrawer({
   isOpen,
   onClose,
-  cartItems,
+  cartItems = [],
   onUpdateQuantity,
   onRemoveItem,
   onClearCart,
   user,
   onOpenAuthModal
 }) {
-  const { cartSettings, whatsAppTemplate, validateCoupon } = useCMS();
+  const { cartSettings, validateCoupon } = useCMS();
   const [paymentConfig, setPaymentConfig] = useState(cartSettings || DEFAULT_PAYMENT_CONFIG);
 
   // Coupon State
@@ -43,7 +52,7 @@ export default function CartDrawer({
   const [couponError, setCouponError] = useState('');
   const [applyingCoupon, setApplyingCoupon] = useState(false);
 
-  // Independent fields state
+  // Customer Form State
   const [customerName, setCustomerName] = useState(() => {
     return localStorage.getItem('customerName') || '';
   });
@@ -57,27 +66,23 @@ export default function CartDrawer({
     return localStorage.getItem('customerEmail') || '';
   });
 
-  const [isEditingLocation, setIsEditingLocation] = useState(false);
   const [detectingLocation, setDetectingLocation] = useState(false);
   const [locationError, setLocationError] = useState('');
-
-  const [screenshotFile, setScreenshotFile] = useState(null);
-  const [screenshotPreview, setScreenshotPreview] = useState(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadError, setUploadError] = useState('');
-  const [submitValidationMsg, setSubmitValidationMsg] = useState('');
+  const [paymentError, setPaymentError] = useState('');
   
+  // Checkout & Payment State
   const [orderSubmitting, setOrderSubmitting] = useState(false);
-  const [submitButtonText, setSubmitButtonText] = useState('');
-  const [createdOrder, setCreatedOrder] = useState(null);
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [confirmedOrderId, setConfirmedOrderId] = useState('');
 
+  // 1. Synchronize payment config
   useEffect(() => {
     if (cartSettings) {
       setPaymentConfig(cartSettings);
     }
   }, [cartSettings]);
 
-  // Autofill fields when user logs in/registers, but only if they are currently empty
+  // 2. Autofill user data if logged in
   useEffect(() => {
     if (user) {
       if (user.fullName && !customerName) {
@@ -99,12 +104,34 @@ export default function CartDrawer({
     }
   }, [user]);
 
-  if (!isOpen) return null;
-
-  const subtotal = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
-  const totalOriginal = cartItems.reduce((acc, item) => acc + (item.originalPrice || item.price) * item.quantity, 0);
-  const totalSavings = totalOriginal - subtotal;
+  // Calculations
+  const subtotal = cartItems.reduce((acc, item) => acc + (Number(item.price) || 0) * (Number(item.quantity) || 1), 0);
+  const totalOriginal = cartItems.reduce((acc, item) => acc + (Number(item.originalPrice) || Number(item.price) || 0) * (Number(item.quantity) || 1), 0);
+  const totalSavings = Math.max(0, totalOriginal - subtotal);
   const finalPayableAmount = Math.max(0, subtotal - couponDiscount);
+
+  // 3. Auto-revalidate applied coupon when cart items or subtotal change
+  useEffect(() => {
+    if (appliedCoupon && validateCoupon) {
+      validateCoupon(appliedCoupon.code, subtotal, cartItems)
+        .then((res) => {
+          if (res.valid) {
+            setCouponDiscount(res.discount);
+          } else {
+            setAppliedCoupon(null);
+            setCouponDiscount(0);
+            setCouponError(res.message);
+          }
+        })
+        .catch(() => {
+          setAppliedCoupon(null);
+          setCouponDiscount(0);
+        });
+    }
+  }, [cartItems, subtotal, appliedCoupon, validateCoupon]);
+
+  // ALL HOOKS ARE ABOVE THIS LINE. Moving isOpen check here ensures strict compliance with Rules of Hooks!
+  if (!isOpen) return null;
 
   const handleApplyCoupon = async (e) => {
     e?.preventDefault();
@@ -125,29 +152,11 @@ export default function CartDrawer({
         setCouponError(res.message);
       }
     } catch (err) {
-      setCouponError('Coupon invalid');
+      setCouponError('Coupon invalid or expired');
     } finally {
       setApplyingCoupon(false);
     }
   };
-
-  // Auto-revalidate applied coupon when cart items or subtotal change
-  useEffect(() => {
-    if (appliedCoupon && validateCoupon) {
-      validateCoupon(appliedCoupon.code, subtotal, cartItems).then((res) => {
-        if (res.valid) {
-          setCouponDiscount(res.discount);
-        } else {
-          setAppliedCoupon(null);
-          setCouponDiscount(0);
-          setCouponError(res.message);
-        }
-      }).catch(() => {
-        setAppliedCoupon(null);
-        setCouponDiscount(0);
-      });
-    }
-  }, [cartItems, subtotal, appliedCoupon, validateCoupon]);
 
   const handleRemoveCoupon = () => {
     setAppliedCoupon(null);
@@ -180,7 +189,7 @@ export default function CartDrawer({
     setLocationError('');
 
     if (!navigator.geolocation) {
-      setLocationError('Geolocation is not supported by your browser. Please enter location manually.');
+      setLocationError('Geolocation is not supported by your browser.');
       setDetectingLocation(false);
       return;
     }
@@ -220,98 +229,30 @@ export default function CartDrawer({
           }
         } catch (err) {
           console.error('Reverse geocoding error:', err);
-          setLocationError('Unable to detect your location. Please enter your location manually.');
+          setLocationError('Unable to detect your location. Please enter manually.');
         } finally {
           setDetectingLocation(false);
         }
       },
       (error) => {
         console.error('Geolocation error:', error);
-        setLocationError('Unable to detect your location. Please enter your location manually.');
+        setLocationError('Unable to detect location. Please enter manually.');
         setDetectingLocation(false);
       },
       { enableHighAccuracy: true, timeout: 8000 }
     );
   };
 
-  // Handle Screenshot File Selection
-  const handleFileChange = (e) => {
-    const file = e.target.files?.[0];
-    setUploadError('');
-    setSubmitValidationMsg('');
+  // Razorpay Checkout Integration
+  const handlePayWithRazorpay = async () => {
+    setPaymentError('');
 
-    if (!file) return;
-
-    // Validate file type
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-    if (!validTypes.includes(file.type.toLowerCase())) {
-      setUploadError('Invalid file type. Please upload JPG, PNG, or WEBP image.');
-      return;
-    }
-
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      setUploadError('File size is too large. Maximum size is 5MB.');
-      return;
-    }
-
-    setScreenshotFile(file);
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setScreenshotPreview(reader.result);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleRemoveScreenshot = () => {
-    setScreenshotFile(null);
-    setScreenshotPreview(null);
-    setUploadError('');
-    setSubmitValidationMsg('');
-  };
-
-  // Payment Status Logic (Defaults to Payment Pending / Unpaid; set to Screenshot Uploaded if proof attached; Admin only can mark Paid)
-  const currentPaymentStatus = (screenshotPreview || screenshotFile)
-    ? 'Screenshot Uploaded'
-    : 'Payment Pending';
-
-  // Handle Open Payment Link (GPay / PhonePe Direct UPI Launch with pre-filled amount)
-  const handleOpenPaymentApp = (type) => {
-    const upiId = paymentConfig?.upi_id || paymentConfig?.upiId || cartSettings?.upi_id || DEFAULT_PAYMENT_CONFIG.upiId;
-    const amount = finalPayableAmount || subtotal || 0;
-    const payeeName = 'OTTMoneySaver';
-    
-    // Standard UPI Link prefilling exact payee & cart payable amount
-    const standardUpiUrl = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(payeeName)}&am=${amount}&cu=INR&tn=OTTMoneySaver%20Order`;
-    
-    let targetUrl = standardUpiUrl;
-    if (type === 'gpay') {
-      targetUrl = `tez://upi/pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(payeeName)}&am=${amount}&cu=INR`;
-    } else if (type === 'phonepe') {
-      targetUrl = `phonepe://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(payeeName)}&am=${amount}&cu=INR`;
-    }
-
-    try {
-      window.location.href = targetUrl;
-      setTimeout(() => {
-        window.location.href = standardUpiUrl;
-      }, 500);
-    } catch (err) {
-      window.open(standardUpiUrl, '_blank');
-    }
-  };
-
-  // Submit Order & Open WhatsApp (Progressive Enhancement Flow)
-  const handleCheckoutAndSubmit = async () => {
-    setSubmitValidationMsg('');
-
-    // 1. Validation Checks
     if (cartItems.length === 0) {
       alert('Your cart is empty.');
       return;
     }
     if (!customerName.trim()) {
-      alert('Please enter your name.');
+      alert('Please enter your full name.');
       return;
     }
     const phoneTrimmed = customerPhone.trim();
@@ -320,97 +261,115 @@ export default function CartDrawer({
       return;
     }
     if (!customerLocation.trim()) {
-      alert('Please enter your location.');
+      alert('Please enter your delivery location.');
       return;
     }
 
     setOrderSubmitting(true);
-    setSubmitButtonText('Preparing Order...');
 
     try {
-      // 2. Generate unique Order ID
-      const orderDate = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-      const orderId = `OMS-${orderDate}-${Math.floor(1000 + Math.random() * 9000)}`;
+      // 1. Ensure Razorpay Checkout SDK is loaded
+      const isLoaded = await loadRazorpayScript();
+      if (!isLoaded) {
+        throw new Error('Razorpay SDK failed to load. Please check your internet connection.');
+      }
 
-      // 3. Generate Automated WhatsApp Order Message Content
-      let productsText = '';
-      cartItems.forEach((item, index) => {
-        productsText += `${index + 1}. *${item.title}*\n   Qty: ${item.quantity}\n   Price: ₹${item.price.toLocaleString()}\n\n`;
+      // 2. Call backend serverless API to create trusted Razorpay order
+      const response = await fetch('/api/create-razorpay-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: cartItems,
+          couponCode: appliedCoupon?.code || '',
+          customerName: customerName.trim(),
+          customerPhone: customerPhone.trim(),
+          customerEmail: customerEmail.trim(),
+          customerLocation: customerLocation.trim()
+        })
       });
 
-      // 4. Upload to Supabase Storage and get Public URL
-      let uploadedScreenshotUrl = null;
-      setIsUploading(true);
-      try {
-        uploadedScreenshotUrl = await uploadPaymentScreenshot(screenshotFile);
-      } catch (uploadErr) {
-        console.warn('Supabase storage upload failed:', uploadErr);
-      } finally {
-        setIsUploading(false);
+      const orderData = await response.json();
+      if (!response.ok || !orderData.orderId) {
+        throw new Error(orderData.error || 'Failed to create order on server');
       }
 
-      const screenshotText = (uploadedScreenshotUrl && !uploadedScreenshotUrl.startsWith('data:'))
-        ? uploadedScreenshotUrl
-        : 'Attached separately (please attach manually in chat)';
+      // 3. Open Razorpay Modal
+      const options = {
+        key: orderData.keyId,
+        amount: orderData.amount,
+        currency: orderData.currency || 'INR',
+        name: 'OTTMoneySaver',
+        description: `Order ${orderData.appOrderId}`,
+        image: '/image.png',
+        order_id: orderData.orderId,
+        prefill: {
+          name: customerName.trim(),
+          contact: customerPhone.trim(),
+          email: customerEmail.trim() || ''
+        },
+        theme: {
+          color: '#008744'
+        },
+        handler: async function (paymentResponse) {
+          try {
+            // 4. Verify payment signature on backend
+            const verifyRes = await fetch('/api/verify-razorpay-payment', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpay_order_id: paymentResponse.razorpay_order_id,
+                razorpay_payment_id: paymentResponse.razorpay_payment_id,
+                razorpay_signature: paymentResponse.razorpay_signature,
+                appOrderId: orderData.appOrderId
+              })
+            });
 
-      let msg = '';
-      if (whatsAppTemplate) {
-        msg = whatsAppTemplate
-          .replace(/{PRODUCTS}/g, productsText.trim())
-          .replace(/{CUSTOMER_NAME}/g, customerName.trim())
-          .replace(/{CUSTOMER_PHONE}/g, customerPhone.trim())
-          .replace(/{CUSTOMER_LOCATION}/g, customerLocation.trim())
-          .replace(/{CUSTOMER_EMAIL}/g, customerEmail.trim() || 'N/A')
-          .replace(/{TOTAL}/g, finalPayableAmount.toLocaleString())
-          .replace(/{ORDER_ID}/g, orderId)
-          .replace(/{PAYMENT_STATUS}/g, currentPaymentStatus)
-          .replace(/{PAYMENT_SCREENSHOT}/g, screenshotText);
-      } else {
-        msg = `🛒 *OTTMoneySaver Order*\nOrder ID: *${orderId}*\nStatus: *${currentPaymentStatus}*\n\nName: ${customerName.trim()}\nMobile: ${customerPhone.trim()}\nLocation: ${customerLocation.trim()}\n\n*Products:*\n${productsText}\n*Total Payable:* ₹${finalPayableAmount.toLocaleString()}\n\nPayment Screenshot:\n${screenshotText}`;
-      }
-
-      // Create local Order Record
-      const orderPayload = {
-        orderId,
-        customerName: customerName.trim(),
-        mobileNumber: customerPhone.trim(),
-        location: customerLocation.trim(),
-        items: cartItems,
-        subtotal,
-        totalOriginal,
-        totalSavings,
-        couponDiscount,
-        appliedCouponCode: appliedCoupon?.code || '',
-        totalAmount: finalPayableAmount,
-        paymentStatus: currentPaymentStatus,
-        paymentScreenshotUrl: uploadedScreenshotUrl
+            const verifyResult = await verifyRes.json();
+            if (verifyResult.success) {
+              setPaymentSuccess(true);
+              setConfirmedOrderId(orderData.appOrderId);
+              onClearCart();
+            } else {
+              setPaymentError('Payment verification failed. Please contact support.');
+            }
+          } catch (vErr) {
+            console.error('Payment verification error:', vErr);
+            setPaymentError('Payment verification error. Please reach out to customer care.');
+          } finally {
+            setOrderSubmitting(false);
+          }
+        },
+        modal: {
+          ondismiss: function () {
+            setOrderSubmitting(false);
+          }
+        }
       };
-      const savedOrder = await createOrder(orderPayload);
-      setCreatedOrder(savedOrder);
 
-      // Launch WhatsApp Directly to 916305151531
-      let rawNum = cartSettings?.whatsapp_number || paymentConfig?.whatsappNumber || '916305151531';
-      let cleanNum = String(rawNum).replace(/\D/g, '');
-      if (!cleanNum.startsWith('91') && cleanNum.length === 10) {
-        cleanNum = '91' + cleanNum;
+      if (window.Razorpay) {
+        const rzp = new window.Razorpay(options);
+        rzp.on('payment.failed', function (failResp) {
+          console.error('Razorpay payment failed:', failResp.error);
+          setPaymentError(failResp.error?.description || 'Payment was unsuccessful. Please try again.');
+          setOrderSubmitting(false);
+        });
+        rzp.open();
+      } else {
+        throw new Error('Razorpay SDK not available on window.');
       }
-      if (!cleanNum) cleanNum = '916305151531';
-
-      const encodedMsg = encodeURIComponent(msg);
-      const whatsappUrl = `https://api.whatsapp.com/send?phone=${cleanNum}&text=${encodedMsg}`;
-
-      setOrderSubmitting(false);
-      setSubmitButtonText('');
-
-      // Direct location redirect opens WhatsApp app directly on mobile and WhatsApp Web on desktop
-      window.location.href = whatsappUrl;
 
     } catch (err) {
-      console.error('Order submission error:', err);
+      console.error('Razorpay flow error:', err);
+      setPaymentError(err.message || 'Unable to initiate Razorpay payment. Please try again.');
       setOrderSubmitting(false);
-      setSubmitButtonText('');
-      alert('Order created, but encountered an issue launching WhatsApp. Please contact support at 6305151531.');
     }
+  };
+
+  const cleanWhatsAppNumber = () => {
+    let rawNum = cartSettings?.whatsapp_number || paymentConfig?.whatsappNumber || '916305151531';
+    let clean = String(rawNum).replace(/\D/g, '');
+    if (!clean.startsWith('91') && clean.length === 10) clean = '91' + clean;
+    return clean || '916305151531';
   };
 
   return (
@@ -428,7 +387,7 @@ export default function CartDrawer({
           <div className="p-4 sm:p-6 bg-slate-950 text-white flex items-center justify-between">
             <div className="flex items-center gap-2">
               <ShoppingBag className="w-5 h-5 text-[#008744]" />
-              <h2 className="text-lg font-bold">Shopping Cart ({cartItems.reduce((a, b) => a + b.quantity, 0)})</h2>
+              <h2 className="text-lg font-bold">Shopping Cart ({cartItems.reduce((a, b) => a + (Number(b.quantity) || 1), 0)})</h2>
             </div>
             <button 
               onClick={onClose}
@@ -438,11 +397,47 @@ export default function CartDrawer({
             </button>
           </div>
 
-          {/* Drawer Body (Items + Checkout Steps) */}
+          {/* Drawer Body */}
           <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
             
-            {/* Empty Cart State */}
-            {cartItems.length === 0 ? (
+            {/* Payment Success View */}
+            {paymentSuccess ? (
+              <div className="py-12 px-4 text-center space-y-4">
+                <div className="w-16 h-16 bg-emerald-100 text-[#008744] rounded-full flex items-center justify-center mx-auto shadow-inner">
+                  <CheckCircle2 className="w-10 h-10" />
+                </div>
+                <h3 className="text-xl font-extrabold text-slate-900">Payment Successful!</h3>
+                <p className="text-xs text-slate-600">
+                  Your order has been verified and confirmed.
+                </p>
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl inline-block text-xs font-mono font-bold text-slate-800">
+                  Order ID: {confirmedOrderId}
+                </div>
+                
+                <div className="pt-4 space-y-2">
+                  <a
+                    href={`https://api.whatsapp.com/send?phone=${cleanWhatsAppNumber()}&text=${encodeURIComponent(`Hello OTTMoneySaver, my order ${confirmedOrderId} has been paid successfully. Please send activation details.`)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="w-full py-3 px-4 rounded-xl bg-[#008744] hover:bg-[#007038] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-all"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    <span>Get Instant Activation on WhatsApp</span>
+                  </a>
+
+                  <button
+                    onClick={() => {
+                      setPaymentSuccess(false);
+                      onClose();
+                    }}
+                    className="w-full py-2.5 px-4 rounded-xl border border-slate-200 text-slate-700 font-bold text-xs hover:bg-slate-50 transition-all"
+                  >
+                    Continue Shopping
+                  </button>
+                </div>
+              </div>
+            ) : cartItems.length === 0 ? (
+              /* Empty Cart State */
               <div className="h-full flex flex-col items-center justify-center text-center text-slate-500 py-16 space-y-3">
                 <ShoppingBag className="w-16 h-16 text-slate-300 mx-auto" />
                 <p className="font-extrabold text-base text-slate-700">Your cart is empty</p>
@@ -454,20 +449,20 @@ export default function CartDrawer({
                 <div className="space-y-3">
                   <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">Cart Items</h3>
                   {cartItems.map((item) => (
-                    <div key={item.id} className="flex gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-200/80 items-center shadow-sm">
+                    <div key={item.id || item.productId} className="flex gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-200/80 items-center shadow-sm">
                       <img 
-                        src={item.image} 
-                        alt={item.title} 
+                        src={item.image || '/image.png'} 
+                        alt={item.title || item.name} 
                         className="w-14 h-14 rounded-xl object-contain bg-white p-1 border border-slate-100 shrink-0" 
                       />
                       <div className="flex-1 min-w-0">
-                        <h4 className="text-xs font-bold text-slate-900 line-clamp-1">{item.title}</h4>
-                        <p className="text-[11px] text-slate-500 line-clamp-1">{item.subtitle}</p>
+                        <h4 className="text-xs font-bold text-slate-900 line-clamp-1">{item.title || item.name}</h4>
+                        <p className="text-[11px] text-slate-500 line-clamp-1">{item.subtitle || item.variantName || ''}</p>
                         
                         <div className="flex items-baseline gap-1.5 mt-1">
-                          <span className="text-xs font-black text-slate-900">₹{item.price.toLocaleString()}</span>
+                          <span className="text-xs font-black text-slate-900">₹{(Number(item.price) || 0).toLocaleString()}</span>
                           {item.originalPrice && (
-                            <span className="text-[10px] text-slate-400 line-through">₹{item.originalPrice.toLocaleString()}</span>
+                            <span className="text-[10px] text-slate-400 line-through">₹{Number(item.originalPrice).toLocaleString()}</span>
                           )}
                         </div>
                       </div>
@@ -484,14 +479,14 @@ export default function CartDrawer({
                         
                         <div className="flex items-center border border-slate-300 rounded-lg bg-white overflow-hidden text-xs">
                           <button 
-                            onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
+                            onClick={() => onUpdateQuantity(item.id, Math.max(1, (Number(item.quantity) || 1) - 1))}
                             className="px-2 py-0.5 text-slate-600 hover:bg-slate-100 font-bold"
                           >
                             -
                           </button>
                           <span className="px-2 font-black text-slate-900">{item.quantity}</span>
                           <button 
-                            onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
+                            onClick={() => onUpdateQuantity(item.id, (Number(item.quantity) || 1) + 1)}
                             className="px-2 py-0.5 text-slate-600 hover:bg-slate-100 font-bold"
                           >
                             +
@@ -508,7 +503,7 @@ export default function CartDrawer({
                     <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider">Customer Details</h3>
                     {!user ? (
                       <button
-                        onClick={() => onOpenAuthModal('register')}
+                        onClick={() => onOpenAuthModal && onOpenAuthModal('register')}
                         className="text-[11px] font-bold text-[#e50914] hover:underline flex items-center gap-1"
                       >
                         <Lock className="w-3.5 h-3.5" /> Login / Register
@@ -654,18 +649,8 @@ export default function CartDrawer({
                       )}
 
                       {couponError && (
-                        <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-bold">
-                          <span>⚠️ {couponError}</span>
-                          {couponError.toLowerCase().includes('expired') && (
-                            <a
-                              href={`https://wa.me/${String(cartSettings?.whatsapp_number || '916305151531').replace(/\D/g, '')}?text=${encodeURIComponent(`Hello OTTMoneySaver, I would like to inquire about renewal/deals for coupon: ${couponCodeInput}`)}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="px-2 py-1 rounded-lg bg-[#008744] text-white text-[10px] font-extrabold flex items-center gap-1 shrink-0"
-                            >
-                              Contact Now
-                            </a>
-                          )}
+                        <div className="p-2 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-bold">
+                          ⚠️ {couponError}
                         </div>
                       )}
                       {couponMsg && !couponError && (
@@ -682,155 +667,50 @@ export default function CartDrawer({
 
                     <div className="flex justify-between text-base font-black text-slate-900 pt-2 border-t border-slate-200">
                       <span>Final Amount</span>
-                      <span className="text-[#008744] text-lg">₹{finalPayableAmount.toLocaleString()}</span>
+                      <span className="text-[#008744] text-lg font-black">₹{finalPayableAmount.toLocaleString()}</span>
                     </div>
                   </div>
                 </div>
 
-                {/* 4. Payment Section (Configurable GPay & PhonePe Direct Launch) */}
-                <div className="p-4 bg-slate-900 text-white rounded-2xl space-y-3 shadow-md">
-                  <h3 className="text-xs font-black text-slate-200 uppercase tracking-wider flex items-center justify-between">
-                    <span>Pay Using</span>
-                    <span className="text-[10px] text-amber-400 font-mono">UPI ID: {paymentConfig?.upiId || DEFAULT_PAYMENT_CONFIG.upiId}</span>
-                  </h3>
-
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={() => handleOpenPaymentApp('gpay')}
-                      className="py-2.5 px-3 rounded-xl bg-white text-slate-900 hover:bg-slate-100 font-extrabold text-xs shadow flex items-center justify-center gap-1.5 transition-all active:scale-95"
-                    >
-                      <span className="text-blue-600 font-black">G</span>
-                      <span className="text-red-500 font-black">P</span>
-                      <span className="text-amber-500 font-black">a</span>
-                      <span className="text-emerald-600 font-black">y</span>
-                      <ExternalLink className="w-3 h-3 text-slate-400" />
-                    </button>
-
-                    <button
-                      onClick={() => handleOpenPaymentApp('phonepe')}
-                      className="py-2.5 px-3 rounded-xl bg-[#5f259f] text-white hover:bg-[#4d1d82] font-extrabold text-xs shadow flex items-center justify-center gap-1.5 transition-all active:scale-95"
-                    >
-                      <span>PhonePe</span>
-                      <ExternalLink className="w-3 h-3 text-white/70" />
-                    </button>
+                {/* Error Banner */}
+                {paymentError && (
+                  <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs font-bold flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{paymentError}</span>
                   </div>
-                </div>
-
-                {/* 5. Payment Screenshot Upload */}
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
-                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center justify-between">
-                    <span>Upload Payment Screenshot <span className="text-red-500">*</span></span>
-                    <span className="text-[10px] text-slate-500 font-normal">JPG, PNG, WEBP</span>
-                  </h3>
-
-                  {/* Submission Validation Message ONLY displayed if submit was clicked and file missing */}
-                  {submitValidationMsg && (
-                    <div className="p-2.5 bg-red-50 border border-red-200 rounded-xl text-red-600 text-xs font-bold flex items-center gap-1.5 animate-pulse">
-                      <AlertCircle className="w-4 h-4 shrink-0" />
-                      <span>{submitValidationMsg}</span>
-                    </div>
-                  )}
-
-                  {uploadError && (
-                    <div className="p-2.5 bg-red-50 border border-red-200 rounded-xl text-red-600 text-xs font-semibold">
-                      {uploadError}
-                    </div>
-                  )}
-
-                  {!screenshotPreview ? (
-                    <div className="space-y-2">
-                      <div className="bg-amber-50 border border-amber-200 text-amber-900 px-3 py-2 rounded-xl text-xs font-semibold flex items-center justify-between shadow-sm">
-                        <span>If paid, please share screenshot or Pay Now.</span>
-                      </div>
-                      <label className="border-2 border-dashed border-slate-300 hover:border-[#008744] bg-white rounded-xl p-4 flex flex-col items-center justify-center text-center cursor-pointer transition-colors">
-                        <Upload className="w-6 h-6 text-slate-400 mb-1" />
-                        <span className="text-xs font-bold text-slate-700">Click to Upload Payment Proof</span>
-                        <span className="text-[10px] text-slate-400 mt-0.5">Proof image for faster verification (Max 5MB)</span>
-                        <input
-                          type="file"
-                          accept="image/jpeg,image/png,image/webp"
-                          onChange={handleFileChange}
-                          className="hidden"
-                        />
-                      </label>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <div className="relative w-full h-32 rounded-xl bg-slate-900 overflow-hidden flex items-center justify-center border border-slate-200">
-                        <img
-                          src={screenshotPreview}
-                          alt="Payment Screenshot Preview"
-                          className="max-h-full max-w-full object-contain"
-                        />
-                        <button
-                          onClick={handleRemoveScreenshot}
-                          className="absolute top-2 right-2 bg-red-600 text-white p-1 rounded-full shadow hover:bg-red-700"
-                          title="Remove Screenshot"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="text-[#008744] font-bold flex items-center gap-1">
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Screenshot Selected
-                        </span>
-                        <label className="text-xs font-bold text-[#e50914] cursor-pointer hover:underline">
-                          Replace Image
-                          <input
-                            type="file"
-                            accept="image/jpeg,image/png,image/webp"
-                            onChange={handleFileChange}
-                            className="hidden"
-                          />
-                        </label>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* 6. Payment Status Display */}
-                <div className="p-3.5 rounded-2xl border bg-slate-900 text-white flex items-center justify-between text-xs font-bold shadow-md">
-                  <span className="text-slate-300">Payment Status:</span>
-                  <span className={`px-3 py-1 rounded-full text-xs font-black shadow-sm transition-all ${
-                    currentPaymentStatus === 'Screenshot Uploaded'
-                      ? 'bg-emerald-600 text-white'
-                      : 'bg-amber-600 text-white'
-                  }`}>
-                    {currentPaymentStatus === 'Screenshot Uploaded' ? 'Screenshot Uploaded 📸' : 'Payment Pending ⏳'}
-                  </span>
-                </div>
+                )}
               </>
             )}
 
           </div>
 
           {/* Drawer Footer Actions */}
-          {cartItems.length > 0 && (
+          {!paymentSuccess && cartItems.length > 0 && (
             <div className="p-4 sm:p-6 bg-slate-50 border-t border-slate-200 space-y-3 shrink-0">
               
-              <p className="text-[11px] text-slate-500 text-center font-medium">
-                After payment, verify details, upload payment screenshot, and click the button to send your order on WhatsApp.
-              </p>
+              <div className="flex items-center justify-center gap-2 text-[11px] text-slate-500 font-semibold">
+                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                <span>100% Secure Payment via Razorpay (Cards, UPI, NetBanking)</span>
+              </div>
 
-              {/* Submit Order Button */}
+              {/* Pay with Razorpay Button */}
               <button
-                onClick={handleCheckoutAndSubmit}
-                disabled={orderSubmitting || isUploading}
-                className="w-full py-4 px-6 rounded-2xl bg-[#008744] hover:bg-[#007038] disabled:bg-emerald-800 disabled:opacity-85 text-white font-black text-base shadow-xl shadow-emerald-700/30 active:scale-95 transition-all flex items-center justify-center gap-2 group"
+                onClick={handlePayWithRazorpay}
+                disabled={orderSubmitting}
+                className="w-full py-4 px-6 rounded-2xl bg-[#008744] hover:bg-[#007038] disabled:bg-emerald-800 disabled:opacity-80 text-white font-black text-base shadow-xl shadow-emerald-700/30 active:scale-95 transition-all flex items-center justify-center gap-2 group cursor-pointer"
               >
-                <MessageCircle className="w-5 h-5 stroke-[2.5]" />
+                <CreditCard className="w-5 h-5 stroke-[2.5]" />
                 <span>
                   {orderSubmitting 
-                    ? (submitButtonText || 'Preparing Order...') 
-                    : 'Submit Order'}
+                    ? 'Processing Payment...' 
+                    : `Pay Securely ₹${finalPayableAmount.toLocaleString()} with Razorpay`}
                 </span>
                 {!orderSubmitting && <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />}
               </button>
 
               <button
                 onClick={onClearCart}
-                className="w-full py-1 text-xs text-slate-500 hover:text-red-600 transition-colors text-center font-medium"
+                className="w-full py-1 text-xs text-slate-500 hover:text-red-600 transition-colors text-center font-medium cursor-pointer"
               >
                 Clear Cart
               </button>

@@ -221,8 +221,7 @@ export function CMSProvider({ children }) {
       setCategories(cats || []);
       setBadges(bdgs || []);
       setBatches(btchs || []);
-      setMembers(usersList || []);
-      setHomeSections(hSections || []);
+      setHomeSections(Array.isArray(hSections) ? [...hSections].sort((a, b) => (Number(a.position) || 1) - (Number(b.position) || 1)) : []);
       setHomeSlides(hSlides || []);
       setHomeItems(hItems || []);
       setThemes(tThemes || []);
@@ -588,29 +587,34 @@ export function CMSProvider({ children }) {
     }
 
     // Check Target Categories / Products if specified
+    let eligibleTotal = cartTotal;
     if (found.apply_to === 'categories' && Array.isArray(found.allowed_categories) && found.allowed_categories.length > 0) {
       const allowed = found.allowed_categories.map(c => String(c).toLowerCase());
-      const hasMatchingItem = cartItems.some(item => {
+      const matchingItems = cartItems.filter(item => {
         const itemCat = String(item.category || item.categoryGroup || '').toLowerCase();
         return allowed.some(a => itemCat.includes(a) || a.includes(itemCat));
       });
-      if (!hasMatchingItem) {
-        return { valid: false, message: 'Coupon invalid' };
+      if (matchingItems.length === 0) {
+        return { valid: false, message: 'This coupon is not valid for the items in your cart.' };
       }
-    }
-
-    if (found.apply_to === 'products' && Array.isArray(found.allowed_product_ids) && found.allowed_product_ids.length > 0) {
+      eligibleTotal = matchingItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+    } else if (found.apply_to === 'products' && Array.isArray(found.allowed_product_ids) && found.allowed_product_ids.length > 0) {
       const allowedIds = found.allowed_product_ids.map(id => String(id).toLowerCase());
-      const hasMatchingProduct = cartItems.some(item => allowedIds.includes(String(item.id).toLowerCase()));
-      if (!hasMatchingProduct) {
-        return { valid: false, message: 'Coupon invalid' };
+      const matchingItems = cartItems.filter(item => 
+        allowedIds.includes(String(item.id || '').toLowerCase()) ||
+        allowedIds.includes(String(item.slug_id || '').toLowerCase()) ||
+        allowedIds.includes(String(item.productId || '').toLowerCase())
+      );
+      if (matchingItems.length === 0) {
+        return { valid: false, message: 'This coupon is not valid for the selected products in your cart.' };
       }
+      eligibleTotal = matchingItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
     }
 
     // Calculate Discount
     let discount = 0;
     if (found.discount_type === 'percentage') {
-      discount = Math.round((cartTotal * Number(found.discount_value)) / 100);
+      discount = Math.round((eligibleTotal * Number(found.discount_value)) / 100);
       if (found.max_discount && Number(found.max_discount) > 0) {
         discount = Math.min(discount, Number(found.max_discount));
       }
@@ -618,6 +622,7 @@ export function CMSProvider({ children }) {
       discount = Number(found.discount_value);
     }
 
+    if (discount > eligibleTotal) discount = eligibleTotal;
     if (discount > cartTotal) discount = cartTotal;
     if (discount < 0) discount = 0;
 
@@ -627,6 +632,36 @@ export function CMSProvider({ children }) {
       discount,
       message: `Coupon "${cleanCode}" applied! ₹${discount.toLocaleString()} savings.`
     };
+  }, [coupons]);
+
+  const getProductCoupon = useCallback((product) => {
+    if (!product || !Array.isArray(coupons) || coupons.length === 0) return null;
+    const now = Date.now();
+    const activeCoupons = coupons.filter(c => {
+      if (c.is_active === false) return false;
+      if (c.starts_at && now < new Date(c.starts_at).getTime()) return false;
+      if (c.expires_at && now > new Date(c.expires_at).getTime()) return false;
+      if (c.usage_limit && Number(c.used_count || 0) >= Number(c.usage_limit)) return false;
+      return true;
+    });
+
+    const prodId = String(product.id || product.slug_id || product.db_id || '').toLowerCase();
+    const productMatch = activeCoupons.find(c => 
+      c.apply_to === 'products' && 
+      Array.isArray(c.allowed_product_ids) && 
+      c.allowed_product_ids.some(id => String(id).toLowerCase() === prodId)
+    );
+    if (productMatch) return productMatch;
+
+    const prodCat = String(product.category || product.categoryGroup || '').toLowerCase();
+    const categoryMatch = activeCoupons.find(c =>
+      c.apply_to === 'categories' &&
+      Array.isArray(c.allowed_categories) &&
+      c.allowed_categories.some(cat => prodCat.includes(String(cat).toLowerCase()))
+    );
+    if (categoryMatch) return categoryMatch;
+
+    return activeCoupons.find(c => !c.apply_to || c.apply_to === 'all') || null;
   }, [coupons]);
 
   return (
@@ -678,6 +713,7 @@ export function CMSProvider({ children }) {
         coupons,
         setCoupons,
         validateCoupon,
+        getProductCoupon,
         cartSettings,
         setCartSettings,
         whatsAppTemplate,

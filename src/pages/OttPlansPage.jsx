@@ -205,29 +205,40 @@ export default function OttPlansPage({ onAddToCart, onQuickView, onOpenWhatsApp 
         
         {/* Banner Section */}
         {(() => {
-          const ottBanner = (banners && banners.find(b => b.banner_key === 'ott_top_banner')) || {};
+          const ottBanner = (banners && banners.find(b => b.banner_key === 'ott_top_banner' || b.display_location === 'ott-plans')) || {};
           if (ottBanner.is_active === false) return null;
           const bannerHeading = ottBanner.heading || 'All OTT Platform Subscriptions & Combo Packs';
-          const bannerSubheading = ottBanner.subheading || 'Premium Digital Subscriptions';
+          const bannerSubheading = ottBanner.badge_text || ottBanner.subheading || 'Premium Digital Subscriptions';
           const bannerDescription = ottBanner.description || 'Get genuine premium memberships for Netflix, Prime Video, Disney+ Hotstar, ZEE5, Sony LIV and 12-in-1 combo bundles at up to 75% OFF regular prices! Instant digital delivery guaranteed.';
           const bannerBtnText = ottBanner.button_text || 'Instant Activation via WhatsApp';
           const bannerBtnLink = ottBanner.button_link || 'https://wa.me/916305151531';
-          const bannerBgColor = ottBanner.bg_color || '#020617';
           const bannerTextColor = ottBanner.text_color || '#ffffff';
           const bannerOverlayColor = ottBanner.overlay_color || 'rgba(229,9,20,0.3)';
           const bannerImageUrl = ottBanner.image_url || '';
+          const bannerMobileImageUrl = ottBanner.mobile_image_url || '';
+
+          const c1 = ottBanner.bg_color || '#020617';
+          const c2 = ottBanner.bg_color_2 || c1;
+          const bgStyle = c1.toLowerCase() === c2.toLowerCase()
+            ? { backgroundColor: c1 }
+            : { background: `linear-gradient(${ottBanner.bg_direction || 'to right'}, ${c1}, ${c2})` };
 
           return (
             <div 
-              style={{ backgroundColor: bannerBgColor, color: bannerTextColor }}
+              style={{ ...bgStyle, color: bannerTextColor }}
               className="relative rounded-3xl p-6 sm:p-10 mb-8 border border-slate-800 shadow-2xl overflow-hidden"
             >
               {bannerImageUrl && (
-                <img 
-                  src={bannerImageUrl} 
-                  alt={bannerHeading}
-                  className="absolute inset-0 w-full h-full object-cover object-center pointer-events-none opacity-40"
-                />
+                <picture className="absolute inset-0 w-full h-full pointer-events-none">
+                  {bannerMobileImageUrl && (
+                    <source media="(max-width: 640px)" srcSet={bannerMobileImageUrl} />
+                  )}
+                  <img 
+                    src={bannerImageUrl} 
+                    alt={bannerHeading}
+                    className="w-full h-full object-cover object-center opacity-40"
+                  />
+                </picture>
               )}
               <div 
                 style={{ backgroundColor: bannerOverlayColor }}
@@ -236,9 +247,11 @@ export default function OttPlansPage({ onAddToCart, onQuickView, onOpenWhatsApp 
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(229,9,20,0.3),transparent_60%)] pointer-events-none" />
               
               <div className="relative z-10 max-w-3xl space-y-4">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-950/80 border border-red-600/60 text-[#e50914] text-xs font-black uppercase tracking-wider">
-                  <Tv className="w-3.5 h-3.5" /> {bannerSubheading}
-                </span>
+                {bannerSubheading && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-950/80 border border-red-600/60 text-[#e50914] text-xs font-black uppercase tracking-wider">
+                    <Tv className="w-3.5 h-3.5" /> {bannerSubheading}
+                  </span>
+                )}
                 <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tight leading-tight">
                   {bannerHeading}
                 </h1>

@@ -57,18 +57,22 @@ export default function OffersPage({ onAddToCart, onQuickView, wishlistIds = [],
         {/* Offers Top Slide Banner */}
         {isBannerVisible && (
           <div 
-            style={{
-              backgroundColor: offersBanner.bg_color || undefined
-            }}
-            className={`relative rounded-3xl text-white p-6 sm:p-10 mb-8 shadow-2xl overflow-hidden ${
-              !offersBanner.bg_color ? 'bg-gradient-to-r from-[#e50914] via-rose-600 to-orange-500' : ''
-            }`}
+            style={(() => {
+              const c1 = offersBanner.bg_color || '#e50914';
+              const c2 = offersBanner.bg_color_2 || offersBanner.bg_color || '#ea580c';
+              if (c1.toLowerCase() === c2.toLowerCase()) return { backgroundColor: c1 };
+              return { background: `linear-gradient(${offersBanner.bg_direction || 'to right'}, ${c1}, ${c2})` };
+            })()}
+            className="relative rounded-3xl text-white p-6 sm:p-10 mb-8 shadow-2xl overflow-hidden"
           >
             {/* Background Image if uploaded */}
             {offersBanner.image_url && (
-              <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
+              <picture className="absolute inset-0 z-0 opacity-25 pointer-events-none">
+                {offersBanner.mobile_image_url && (
+                  <source media="(max-width: 640px)" srcSet={offersBanner.mobile_image_url} />
+                )}
                 <img src={offersBanner.image_url} alt="Offer Background" className="w-full h-full object-cover" />
-              </div>
+              </picture>
             )}
 
             <div className="relative z-10 max-w-3xl space-y-4">

@@ -589,7 +589,9 @@ async function saveFallbackCmsItem(tableName, itemData) {
 
   const targetId = itemData.id || itemData.box_key || itemData.banner_key || itemData.theme_key;
   const existingIdx = updated.findIndex(i => 
-    (i.id && i.id === targetId) || 
+    (itemData.id && i.id && i.id === itemData.id) || 
+    (tableName === 'coupons' && itemData.code && i.code && i.code.toUpperCase() === itemData.code.toUpperCase()) ||
+    (targetId && i.id && i.id === targetId) || 
     (i.box_key && itemData.box_key && i.box_key === itemData.box_key) || 
     (i.banner_key && itemData.banner_key && i.banner_key === itemData.banner_key) || 
     (i.theme_key && itemData.theme_key && i.theme_key === itemData.theme_key)
@@ -620,7 +622,13 @@ async function saveFallbackCmsItem(tableName, itemData) {
 async function deleteFallbackCmsItem(tableName, id) {
   const key = `cms_table_${tableName}`;
   const current = await getFallbackTableData(tableName, []);
-  const updated = current.filter(i => i.id !== id && i.box_key !== id && i.banner_key !== id && i.theme_key !== id);
+  const updated = current.filter(i => 
+    i.id !== id && 
+    (!i.code || i.code !== id) && 
+    i.box_key !== id && 
+    i.banner_key !== id && 
+    i.theme_key !== id
+  );
 
   const { error } = await supabase.from('site_settings').upsert({
     key,
@@ -654,7 +662,8 @@ async function migrateLegacySiteSettingsToTable(tableName) {
 // Whitelist table column schema map to prevent 400 Bad Request / PGRST204 errors
 export const TABLE_COLUMNS = {
   products: ['id', 'slug_id', 'title', 'subtitle', 'description', 'price', 'original_price', 'discount', 'image', 'images', 'category', 'category_group', 'brand', 'sku', 'rating', 'reviews_count', 'badge', 'in_stock', 'is_featured', 'display_order', 'is_active', 'created_at', 'updated_at', 'description_points', 'custom_info', 'badges', 'batches', 'sections', 'home_order', 'offers_order', 'all_otts_order'],
-  banners: ['id', 'banner_key', 'title_name', 'heading', 'subheading', 'description', 'button_text', 'button_link', 'buttons', 'badges', 'image_url', 'mobile_image_url', 'text_color', 'button_color', 'bg_color', 'overlay_color', 'display_order', 'is_active', 'created_at', 'updated_at'],
+  banners: ['id', 'banner_key', 'title_name', 'heading', 'subheading', 'badge_text', 'description', 'button_text', 'button_link', 'buttons', 'badges', 'image_url', 'mobile_image_url', 'text_color', 'button_color', 'bg_color', 'bg_color_2', 'bg_direction', 'overlay_color', 'display_location', 'target_categories', 'mode', 'display_order', 'is_active', 'created_at', 'updated_at'],
+  coupons: ['id', 'code', 'discount_type', 'discount_value', 'min_order_amount', 'max_discount', 'usage_limit', 'used_count', 'starts_at', 'expires_at', 'duration_value', 'duration_unit', 'apply_to', 'allowed_categories', 'allowed_product_ids', 'description', 'is_active', 'created_at', 'updated_at'],
   homepage_slides: ['id', 'slide_key', 'heading', 'description', 'button_text', 'button_link', 'image_url', 'display_order', 'is_active', 'created_at', 'updated_at'],
   homepage_items: ['id', 'title', 'short_description', 'image_url', 'price', 'original_price', 'discount', 'link_url', 'badge', 'category', 'is_active', 'display_order', 'created_at', 'updated_at'],
   categories: ['id', 'name', 'slug', 'icon', 'image_url', 'group_name', 'display_order', 'is_active', 'created_at', 'updated_at'],
@@ -918,6 +927,8 @@ export async function saveCmsItem(tableName, itemData) {
     options = cleanPayload.id ? { onConflict: 'id' } : (cleanPayload.template_key ? { onConflict: 'template_key' } : undefined);
   } else if (tableName === 'categories') {
     options = cleanPayload.id ? { onConflict: 'id' } : (cleanPayload.slug ? { onConflict: 'slug' } : undefined);
+  } else if (tableName === 'coupons') {
+    options = cleanPayload.id ? { onConflict: 'id' } : { onConflict: 'code' };
   } else if (cleanPayload.id) {
     options = { onConflict: 'id' };
   }
@@ -1048,16 +1059,14 @@ export async function updateDisplayOrder(tableName, items, orderField = 'display
     for (let index = 0; index < items.length; index++) {
       const item = items[index];
       if (item.id) {
-        const { error } = await supabase
+        await supabase
           .from(tableName)
           .update({ [fieldToUpdate]: index + 1, updated_at: new Date().toISOString() })
           .eq('id', item.id);
-        
-        if (error) {
-          return await updateFallbackDisplayOrder(tableName, items, fieldToUpdate);
-        }
       }
     }
+    // Also keep fallback JSON updated in site_settings for instant dual-consistency
+    await updateFallbackDisplayOrder(tableName, items, fieldToUpdate);
   } catch (err) {
     await updateFallbackDisplayOrder(tableName, items, fieldToUpdate);
   }
