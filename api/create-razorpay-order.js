@@ -109,8 +109,8 @@ export default async function handler(req, res) {
     const appOrderId = `OMS-${todayStr}-${Math.floor(1000 + Math.random() * 9000)}`;
 
     // 4. Initialize Razorpay Client
-    const razorpayKeyId = process.env.RAZORPAY_KEY_ID || process.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_TjR5A9fD0rCgHZ';
-    const razorpaySecret = process.env.RAZORPAY_KEY_SECRET || '5rDrBAaj2K3p2gWWnLv4duFV';
+    const razorpayKeyId = process.env.RAZORPAY_KEY_ID || process.env.VITE_RAZORPAY_KEY_ID;
+    const razorpaySecret = process.env.RAZORPAY_KEY_SECRET;
 
     let razorpayOrderId = null;
 

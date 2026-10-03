@@ -47,11 +47,11 @@ export default async function handler(req, res) {
 
   try {
     const body = await parseBody(req);
-    const razorpayKeyId = process.env.RAZORPAY_KEY_ID || process.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_TjR5A9fD0rCgHZ';
-    const razorpaySecret = process.env.RAZORPAY_KEY_SECRET || '5rDrBAaj2K3p2gWWnLv4duFV';
+    const razorpayKeyId = process.env.RAZORPAY_KEY_ID || process.env.VITE_RAZORPAY_KEY_ID;
+    const razorpaySecret = process.env.RAZORPAY_KEY_SECRET;
 
     if (!razorpayKeyId || !razorpaySecret) {
-      return res.status(401).json({ error: 'Razorpay credentials not configured in environment' });
+      return res.status(401).json({ error: 'Razorpay credentials not configured in environment variables (RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET)' });
     }
 
     const razorpay = new Razorpay({

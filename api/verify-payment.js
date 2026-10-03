@@ -59,7 +59,10 @@ export default async function handler(req, res) {
       });
     }
 
-    const secret = process.env.RAZORPAY_KEY_SECRET || '5rDrBAaj2K3p2gWWnLv4duFV';
+    const secret = process.env.RAZORPAY_KEY_SECRET;
+    if (!secret) {
+      return res.status(500).json({ success: false, error: 'RAZORPAY_KEY_SECRET not configured on server' });
+    }
 
     // Algorithm: HMAC-SHA256(order_id + "|" + payment_id, KEY_SECRET)
     const hmac = crypto.createHmac('sha256', secret);
