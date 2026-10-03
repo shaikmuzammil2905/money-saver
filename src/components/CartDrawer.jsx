@@ -690,10 +690,10 @@ export default function CartDrawer({
               
               <div className="flex items-center justify-center gap-2 text-[11px] text-slate-500 font-semibold">
                 <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                <span>100% Secure Payment via Razorpay (Cards, UPI, NetBanking)</span>
+                <span>100% Secure Payment (Cards, UPI, NetBanking)</span>
               </div>
 
-              {/* Pay with Razorpay Button */}
+              {/* Pay Button */}
               <button
                 onClick={handlePayWithRazorpay}
                 disabled={orderSubmitting}
@@ -702,8 +702,8 @@ export default function CartDrawer({
                 <CreditCard className="w-5 h-5 stroke-[2.5]" />
                 <span>
                   {orderSubmitting 
-                    ? 'Processing Payment...' 
-                    : `Pay Securely ₹${finalPayableAmount.toLocaleString()} with Razorpay`}
+                    ? 'Processing...' 
+                    : `Pay ₹${finalPayableAmount.toLocaleString()}`}
                 </span>
                 {!orderSubmitting && <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />}
               </button>
