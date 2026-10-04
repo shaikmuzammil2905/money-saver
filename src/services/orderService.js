@@ -255,3 +255,167 @@ export async function getCustomerOrders(mobileNumber) {
 
   return orders;
 }
+
+const TRANSACTIONS_STORAGE_KEY = 'ott_transactions';
+
+/**
+ * Format Full WhatsApp Order Message (Restoring complete screenshot format)
+ */
+export function formatWhatsAppOrderMessage(order) {
+  if (!order) return 'Hello OTTMoneySaver, my payment has been completed successfully. Please send activation details.';
+
+  const items = Array.isArray(order.items) && order.items.length > 0
+    ? order.items
+    : [{ title: 'OTT Subscription Plan', quantity: 1, price: order.totalAmount || 0 }];
+
+  const productLines = items.map((item, idx) => {
+    const pName = item.title || item.name || 'Product';
+    const qty = item.quantity || 1;
+    const price = item.price || item.unit_price || 0;
+    return `${idx + 1}. Product: ${pName}\n   Qty: ${qty}\n   Price: ₹${price}`;
+  }).join('\n\n');
+
+  const orderDateObj = order.createdAt ? new Date(order.createdAt) : new Date();
+  const dateFormatted = orderDateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
+  const timeFormatted = orderDateObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+
+  const customerDetails = [
+    `Customer Name: ${order.customerName || 'Valued Customer'}`,
+    `Mobile: ${order.mobileNumber || ''}`,
+    order.location ? `Location: ${order.location}` : null,
+    order.email ? `Email: ${order.email}` : null
+  ].filter(Boolean).join('\n');
+
+  const paymentDetails = [
+    `Total Amount: ₹${order.totalAmount || 0}`,
+    `Payment Status: Successful`,
+    `Order ID: ${order.orderId || ''}`,
+    order.transactionId ? `Transaction ID: ${order.transactionId}` : null,
+    `Payment Date: ${dateFormatted}`,
+    `Payment Time: ${timeFormatted}`
+  ].filter(Boolean).join('\n');
+
+  return `Hello OTTMoneySaver,\n\nMy payment has been completed successfully.\n\nI would like to confirm my order:\n\n${productLines}\n\nCustomer Details:\n${customerDetails}\n\nPayment Details:\n${paymentDetails}\n\nPlease send my activation details.\n\nThank you!`;
+}
+
+/**
+ * Save verified completed transaction persistently (Idempotent)
+ */
+export async function saveCompletedTransaction(order) {
+  if (!order || !order.orderId) return null;
+
+  const now = new Date();
+  const transactionRecord = {
+    orderId: order.orderId,
+    transactionId: order.transactionId || order.razorpayPaymentId || `TXN-${Date.now()}`,
+    items: order.items || [],
+    totalAmount: order.totalAmount,
+    subtotal: order.subtotal || order.totalAmount,
+    customerName: order.customerName,
+    mobileNumber: order.mobileNumber,
+    email: order.email || '',
+    location: order.location || '',
+    paymentStatus: 'Successful',
+    paymentMethod: order.paymentMethod || 'Razorpay / UPI',
+    paymentDate: now.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }),
+    paymentTime: now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+    createdAt: now.toISOString(),
+    activationStatus: 'Pending Activation'
+  };
+
+  // 1. Idempotently update LocalStorage
+  try {
+    const existing = JSON.parse(localStorage.getItem(TRANSACTIONS_STORAGE_KEY) || '[]');
+    const filtered = existing.filter(t => t.orderId !== order.orderId);
+    filtered.unshift(transactionRecord);
+    localStorage.setItem(TRANSACTIONS_STORAGE_KEY, JSON.stringify(filtered));
+  } catch (err) {
+    console.error('Error saving transaction to localStorage:', err);
+  }
+
+  // 2. Persist in Supabase backend
+  if (supabase) {
+    try {
+      await supabase
+        .from('orders')
+        .update({
+          payment_status: 'Paid',
+          order_status: 'Confirmed',
+          transaction_id: transactionRecord.transactionId,
+          email: transactionRecord.email || null,
+          updated_at: transactionRecord.createdAt
+        })
+        .eq('order_id', order.orderId);
+    } catch (dbErr) {
+      console.warn('Supabase transaction update warning:', dbErr.message);
+    }
+  }
+
+  return transactionRecord;
+}
+
+/**
+ * Get all saved transactions for customer
+ */
+export async function getCustomerTransactions(mobileNumber) {
+  let list = [];
+  try {
+    list = JSON.parse(localStorage.getItem(TRANSACTIONS_STORAGE_KEY) || '[]');
+    if (mobileNumber) {
+      list = list.filter(t => t.mobileNumber === mobileNumber);
+    }
+  } catch (err) {
+    console.error('Error fetching transactions from localStorage:', err);
+  }
+
+  if (supabase && mobileNumber) {
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*, order_items(*)')
+        .eq('mobile_number', mobileNumber)
+        .eq('payment_status', 'Paid')
+        .order('created_at', { ascending: false });
+
+      if (!error && data && data.length > 0) {
+        const dbMapped = data.map(d => {
+          const dDate = new Date(d.created_at);
+          return {
+            orderId: d.order_id,
+            transactionId: d.transaction_id || d.razorpay_payment_id || 'TXN-SUCCESS',
+            items: d.order_items ? d.order_items.map(item => ({
+              id: item.product_id,
+              title: item.title,
+              subtitle: item.subtitle,
+              price: item.unit_price,
+              quantity: item.quantity
+            })) : [],
+            totalAmount: d.total_amount,
+            subtotal: d.subtotal,
+            customerName: d.customer_name,
+            mobileNumber: d.mobile_number,
+            email: d.email || '',
+            location: d.location || '',
+            paymentStatus: 'Successful',
+            paymentMethod: 'Razorpay / UPI',
+            paymentDate: dDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }),
+            paymentTime: dDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+            createdAt: d.created_at,
+            activationStatus: d.order_status || 'Confirmed'
+          };
+        });
+
+        // Merge without duplicates
+        const map = new Map();
+        list.forEach(item => map.set(item.orderId, item));
+        dbMapped.forEach(item => map.set(item.orderId, item));
+        return Array.from(map.values()).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      }
+    } catch (e) {
+      console.warn('Supabase transactions fetch warning:', e.message);
+    }
+  }
+
+  return list;
+}
+

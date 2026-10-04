@@ -207,6 +207,10 @@ export default function BannersManager({ adminEmail }) {
         heading: formData.get('heading') || editingBanner?.heading || '',
         heading_color: editingBanner.heading_color || '#ffffff',
         heading_alignment: headingAlignment,
+        show_badge: editingBanner.show_badge !== false,
+        show_heading: editingBanner.show_heading !== false,
+        show_subheading: editingBanner.show_subheading !== false,
+        show_cta: editingBanner.show_cta !== false,
         subheading: cleanBadge,
         subheading_color: editingBanner.subheading_color || '#cbd5e1',
         badge_text: cleanBadge,
@@ -344,6 +348,10 @@ export default function BannersManager({ adminEmail }) {
     safeBanner.background_mode = initialMode;
     safeBanner.mode = initialMode;
     safeBanner.heading_alignment = b.heading_alignment || 'left';
+    safeBanner.show_badge = b.show_badge !== false;
+    safeBanner.show_heading = b.show_heading !== false;
+    safeBanner.show_subheading = b.show_subheading !== false;
+    safeBanner.show_cta = b.show_cta !== false;
 
     // Individual colors fallback
     safeBanner.heading_color = b.heading_color || b.text_color || '#ffffff';
@@ -740,7 +748,7 @@ export default function BannersManager({ adminEmail }) {
 
                       {/* Text Overlay */}
                       <div className={`relative z-10 space-y-2 flex flex-col ${alignClasses}`}>
-                        {editingBanner.badge_text && (
+                        {editingBanner.show_badge !== false && editingBanner.badge_text && (
                           <span 
                             style={{
                               backgroundColor: editingBanner.badge_bg_color || '#e50914',
@@ -751,38 +759,54 @@ export default function BannersManager({ adminEmail }) {
                             {editingBanner.badge_text}
                           </span>
                         )}
-                        <h4 
-                          style={{ color: editingBanner.heading_color || '#ffffff' }}
-                          className="text-base sm:text-xl font-black leading-tight drop-shadow"
-                        >
-                          {editingBanner.heading || 'Banner Heading'}
-                        </h4>
-                        {editingBanner.description && (
+                        {editingBanner.show_heading !== false && (
+                          <h4 
+                            style={{ color: editingBanner.heading_color || '#ffffff' }}
+                            className="text-base sm:text-xl font-black leading-tight drop-shadow whitespace-pre-wrap break-words"
+                          >
+                            {editingBanner.heading || 'Banner Heading'}
+                          </h4>
+                        )}
+                        {editingBanner.show_subheading !== false && (editingBanner.description || editingBanner.subheading) && (
                           <p 
                             style={{ color: editingBanner.description_color || editingBanner.subheading_color || 'rgba(255,255,255,0.8)' }}
                             className="text-[11px] leading-relaxed max-w-md line-clamp-2"
                           >
-                            {editingBanner.description}
+                            {editingBanner.description || editingBanner.subheading}
                           </p>
                         )}
                       </div>
 
                       {/* Buttons Preview */}
-                      <div className={`relative z-10 pt-3 flex flex-wrap gap-2 ${btnJustify}`}>
-                        {Array.isArray(editingBanner.buttons) && editingBanner.buttons.map((btn, i) => (
-                          <span
-                            key={i}
-                            style={{ 
-                              backgroundColor: btn.button_color || '#e50914', 
-                              color: btn.text_color || '#ffffff',
-                              border: btn.border_color ? `1px solid ${btn.border_color}` : 'none'
-                            }}
-                            className="px-3 py-1 rounded-lg text-xs font-black shadow-sm"
-                          >
-                            {btn.text || 'Action'}
-                          </span>
-                        ))}
-                      </div>
+                      {editingBanner.show_cta !== false && (
+                        <div className={`relative z-10 pt-3 flex flex-wrap gap-2 ${btnJustify}`}>
+                          {Array.isArray(editingBanner.buttons) && editingBanner.buttons.length > 0 ? (
+                            editingBanner.buttons.filter(b => b.is_active !== false).map((btn, i) => (
+                              <span
+                                key={i}
+                                style={{ 
+                                  backgroundColor: btn.button_color || '#e50914', 
+                                  color: btn.text_color || '#ffffff',
+                                  border: btn.border_color ? `1px solid ${btn.border_color}` : 'none'
+                                }}
+                                className="px-3 py-1 rounded-lg text-xs font-black shadow-sm"
+                              >
+                                {btn.text || 'Action'}
+                              </span>
+                            ))
+                          ) : (
+                            <span
+                              style={{ 
+                                backgroundColor: editingBanner.button_color || '#e50914', 
+                                color: editingBanner.button_text_color || '#ffffff'
+                              }}
+                              className="px-3 py-1 rounded-lg text-xs font-black shadow-sm"
+                            >
+                              {editingBanner.button_text || 'Explore Deals'}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 })()}
@@ -953,83 +977,152 @@ export default function BannersManager({ adminEmail }) {
                 </div>
               </div>
 
-              {/* 4. Text Content & Single Configurable Subheading / Badge */}
-              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-4">
-                <h4 className="text-xs font-black uppercase text-slate-800 tracking-wider">
-                  📝 Content &amp; Individual Text Colors
-                </h4>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Subheading / Badge Text (Leave blank to hide badge)
-                    </label>
-                    <input
-                      type="text"
-                      name="badge_text"
-                      value={editingBanner.badge_text || ''}
-                      onChange={(e) => setEditingBanner({ ...editingBanner, badge_text: e.target.value, subheading: e.target.value })}
-                      placeholder="e.g. EXCLUSIVE DEALS or BIG SAVINGS!"
-                      className="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-xs font-bold"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Heading / Main Title *</label>
-                    <input
-                      type="text"
-                      name="heading"
-                      required
-                      value={editingBanner.heading || ''}
-                      onChange={(e) => setEditingBanner({ ...editingBanner, heading: e.target.value })}
-                      placeholder="e.g. PREMIUM DIGITAL SUBSCRIPTIONS"
-                      className="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-xs font-bold"
-                    />
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Description / Subtitle</label>
-                    <textarea
-                      name="description"
-                      rows="2"
-                      value={editingBanner.description || ''}
-                      onChange={(e) => setEditingBanner({ ...editingBanner, description: e.target.value })}
-                      className="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-xs"
-                    />
-                  </div>
+              {/* 4. Text Content: Clean Single Structure with ON/OFF Toggles */}
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-5">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+                  <h4 className="text-xs font-black uppercase text-slate-800 tracking-wider">
+                    📝 Content &amp; Visibility Controls
+                  </h4>
+                  <span className="text-[11px] font-bold text-slate-500">
+                    Toggle elements ON/OFF to cleanly show or hide them
+                  </span>
                 </div>
 
-                {/* Individual Text Color Selectors */}
-                <div className="pt-3 border-t border-slate-200 space-y-2">
-                  <h5 className="text-[11px] font-black uppercase text-slate-600 tracking-wider">
-                    🎨 Individual Text Element Colors
-                  </h5>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                    <ColorPickerField
-                      label="Heading Text Color"
-                      value={editingBanner.heading_color || '#ffffff'}
-                      onChange={(val) => setEditingBanner({ ...editingBanner, heading_color: val })}
-                      defaultValue="#ffffff"
-                    />
-                    <ColorPickerField
-                      label="Subheading / Desc Color"
-                      value={editingBanner.description_color || editingBanner.subheading_color || '#cbd5e1'}
-                      onChange={(val) => setEditingBanner({ ...editingBanner, description_color: val, subheading_color: val })}
-                      defaultValue="#cbd5e1"
-                    />
-                    <ColorPickerField
-                      label="Badge Text Color"
-                      value={editingBanner.badge_color || '#ffffff'}
-                      onChange={(val) => setEditingBanner({ ...editingBanner, badge_color: val })}
-                      defaultValue="#ffffff"
-                    />
-                    <ColorPickerField
-                      label="Badge Background Color"
-                      value={editingBanner.badge_bg_color || '#e50914'}
-                      onChange={(val) => setEditingBanner({ ...editingBanner, badge_bg_color: val })}
-                      defaultValue="#e50914"
-                    />
+                {/* 4A. Badge Toggle & Field */}
+                <div className="bg-white p-3.5 rounded-xl border border-slate-200 space-y-3 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                      <Tag className="w-3.5 h-3.5 text-amber-500" /> Badge / Promotional Tag
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setEditingBanner({ ...editingBanner, show_badge: !(editingBanner.show_badge !== false) })}
+                      className={`px-3 py-1 rounded-lg text-xs font-black transition-all border cursor-pointer ${
+                        editingBanner.show_badge !== false
+                          ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                          : 'bg-slate-100 text-slate-500 border-slate-200'
+                      }`}
+                    >
+                      Show Badge: {editingBanner.show_badge !== false ? 'ON' : 'OFF'}
+                    </button>
                   </div>
+
+                  {editingBanner.show_badge !== false && (
+                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 pt-1">
+                      <div className="sm:col-span-6">
+                        <input
+                          type="text"
+                          name="badge_text"
+                          value={editingBanner.badge_text || ''}
+                          onChange={(e) => setEditingBanner({ ...editingBanner, badge_text: e.target.value, subheading: e.target.value })}
+                          placeholder="e.g. 🔥 MEGA DISCOUNT CARNIVAL"
+                          className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold"
+                        />
+                      </div>
+                      <div className="sm:col-span-3">
+                        <ColorPickerField
+                          label="Badge Text Color"
+                          value={editingBanner.badge_color || '#ffffff'}
+                          onChange={(val) => setEditingBanner({ ...editingBanner, badge_color: val })}
+                          defaultValue="#ffffff"
+                        />
+                      </div>
+                      <div className="sm:col-span-3">
+                        <ColorPickerField
+                          label="Badge Background Color"
+                          value={editingBanner.badge_bg_color || '#e50914'}
+                          onChange={(val) => setEditingBanner({ ...editingBanner, badge_bg_color: val })}
+                          defaultValue="#e50914"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* 4B. Heading Toggle & Field */}
+                <div className="bg-white p-3.5 rounded-xl border border-slate-200 space-y-3 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-blue-500" /> Main Heading Title
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setEditingBanner({ ...editingBanner, show_heading: !(editingBanner.show_heading !== false) })}
+                      className={`px-3 py-1 rounded-lg text-xs font-black transition-all border cursor-pointer ${
+                        editingBanner.show_heading !== false
+                          ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                          : 'bg-slate-100 text-slate-500 border-slate-200'
+                      }`}
+                    >
+                      Show Heading: {editingBanner.show_heading !== false ? 'ON' : 'OFF'}
+                    </button>
+                  </div>
+
+                  {editingBanner.show_heading !== false && (
+                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 pt-1">
+                      <div className="sm:col-span-8">
+                        <input
+                          type="text"
+                          name="heading"
+                          value={editingBanner.heading || ''}
+                          onChange={(e) => setEditingBanner({ ...editingBanner, heading: e.target.value })}
+                          placeholder="e.g. MEGA SAVING FESTIVAL — UP TO 85% OFF!"
+                          className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold"
+                        />
+                      </div>
+                      <div className="sm:col-span-4">
+                        <ColorPickerField
+                          label="Heading Text Color"
+                          value={editingBanner.heading_color || '#ffffff'}
+                          onChange={(val) => setEditingBanner({ ...editingBanner, heading_color: val })}
+                          defaultValue="#ffffff"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* 4C. Subheading / Description Toggle & Field */}
+                <div className="bg-white p-3.5 rounded-xl border border-slate-200 space-y-3 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                      <Info className="w-3.5 h-3.5 text-emerald-500" /> Subheading / Description
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setEditingBanner({ ...editingBanner, show_subheading: !(editingBanner.show_subheading !== false) })}
+                      className={`px-3 py-1 rounded-lg text-xs font-black transition-all border cursor-pointer ${
+                        editingBanner.show_subheading !== false
+                          ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                          : 'bg-slate-100 text-slate-500 border-slate-200'
+                      }`}
+                    >
+                      Show Subheading: {editingBanner.show_subheading !== false ? 'ON' : 'OFF'}
+                    </button>
+                  </div>
+
+                  {editingBanner.show_subheading !== false && (
+                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 pt-1">
+                      <div className="sm:col-span-8">
+                        <textarea
+                          name="description"
+                          rows="2"
+                          value={editingBanner.description || ''}
+                          onChange={(e) => setEditingBanner({ ...editingBanner, description: e.target.value })}
+                          placeholder="e.g. Exclusive discount subscription, high-speed fiber internet bundles, and smart gadget deals."
+                          className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-medium"
+                        />
+                      </div>
+                      <div className="sm:col-span-4">
+                        <ColorPickerField
+                          label="Subheading / Desc Color"
+                          value={editingBanner.description_color || editingBanner.subheading_color || '#cbd5e1'}
+                          onChange={(val) => setEditingBanner({ ...editingBanner, description_color: val, subheading_color: val })}
+                          defaultValue="#cbd5e1"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1173,25 +1266,41 @@ export default function BannersManager({ adminEmail }) {
 
               {/* 5. Independent Buttons Configuration */}
               <div className="bg-purple-50/50 p-4 rounded-2xl border border-purple-200 space-y-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-purple-200">
                   <div>
                     <h4 className="text-xs font-black uppercase text-purple-950 tracking-wider flex items-center gap-1.5">
-                      <Link className="w-4 h-4 text-purple-600" /> Action Buttons (Individual Colors, Links &amp; Borders)
+                      <Link className="w-4 h-4 text-purple-600" /> Action Buttons (CTA)
                     </h4>
                     <p className="text-[11px] text-purple-800">
-                      Each button has independent text, URL, background color, text color, and border color.
+                      Configure button label, target link, and independent colors.
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={handleAddButton}
-                    className="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs flex items-center gap-1 cursor-pointer shadow-sm"
-                  >
-                    <Plus className="w-3.5 h-3.5" /> Add New Button
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEditingBanner({ ...editingBanner, show_cta: !(editingBanner.show_cta !== false) })}
+                      className={`px-3 py-1 rounded-lg text-xs font-black transition-all border cursor-pointer ${
+                        editingBanner.show_cta !== false
+                          ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                          : 'bg-slate-100 text-slate-500 border-slate-200'
+                      }`}
+                    >
+                      Show CTA: {editingBanner.show_cta !== false ? 'ON' : 'OFF'}
+                    </button>
+                    {editingBanner.show_cta !== false && (
+                      <button
+                        type="button"
+                        onClick={handleAddButton}
+                        className="px-3 py-1 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs flex items-center gap-1 cursor-pointer shadow-sm"
+                      >
+                        <Plus className="w-3.5 h-3.5" /> Add Button
+                      </button>
+                    )}
+                  </div>
                 </div>
 
-                <div className="space-y-4">
+                {editingBanner.show_cta !== false && (
+                  <div className="space-y-4">
                   {Array.isArray(editingBanner.buttons) && editingBanner.buttons.map((btn, btnIdx) => (
                     <div key={btn.id || btnIdx} className="bg-white p-4 rounded-2xl border border-purple-200 shadow-sm space-y-3">
                       <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
@@ -1262,6 +1371,7 @@ export default function BannersManager({ adminEmail }) {
                     </div>
                   ))}
                 </div>
+                )}
               </div>
 
               {/* Modal Actions */}

@@ -80,6 +80,9 @@ export default async function handler(req, res) {
         .update({
           payment_status: 'Paid',
           order_status: 'Confirmed',
+          transaction_id: razorpay_payment_id || null,
+          razorpay_payment_id: razorpay_payment_id || null,
+          razorpay_order_id: razorpay_order_id || null,
           updated_at: new Date().toISOString()
         })
         .eq('order_id', appOrderId);
@@ -88,7 +91,8 @@ export default async function handler(req, res) {
     return res.status(200).json({
       success: true,
       message: 'Payment verified and order confirmed successfully.',
-      appOrderId
+      appOrderId,
+      transactionId: razorpay_payment_id
     });
 
   } catch (err) {

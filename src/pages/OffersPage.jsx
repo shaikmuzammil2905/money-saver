@@ -106,7 +106,7 @@ export default function OffersPage({ onAddToCart, onQuickView, wishlistIds = [],
 
             <div className={`relative z-10 ${alignContainerClasses} space-y-4`}>
               {/* Single Configured Badge */}
-              {singleBadge && (
+              {offersBanner.show_badge !== false && singleBadge && (
                 <div className={`flex flex-wrap items-center gap-2 ${btnJustify}`}>
                   <span 
                     style={{
@@ -121,21 +121,26 @@ export default function OffersPage({ onAddToCart, onQuickView, wishlistIds = [],
                 </div>
               )}
 
-              <h1 
-                style={{ color: offersBanner.heading_color || '#ffffff' }}
-                className="text-3xl sm:text-5xl font-black uppercase tracking-tight leading-tight drop-shadow-md"
-              >
-                {offersBanner.heading || 'Exclusive Offers & Deals Up To 75% OFF'}
-              </h1>
-              <p 
-                style={{ color: offersBanner.description_color || offersBanner.subheading_color || 'rgba(255,255,255,0.9)' }}
-                className="text-sm sm:text-base leading-relaxed max-w-2xl"
-              >
-                {offersBanner.description || 'Grab daily flash discounts on OTT subscriptions, high speed fiber internet, mobiles, earbuds, smartwatches & gadgets.'}
-              </p>
+              {offersBanner.show_heading !== false && (
+                <h1 
+                  style={{ color: offersBanner.heading_color || '#ffffff' }}
+                  className="text-3xl sm:text-5xl font-black uppercase tracking-tight leading-tight drop-shadow-md whitespace-pre-wrap break-words"
+                >
+                  {offersBanner.heading || 'Exclusive Offers & Deals Up To 75% OFF'}
+                </h1>
+              )}
+
+              {offersBanner.show_subheading !== false && (offersBanner.description || offersBanner.subheading) && (
+                <p 
+                  style={{ color: offersBanner.description_color || offersBanner.subheading_color || 'rgba(255,255,255,0.9)' }}
+                  className="text-sm sm:text-base leading-relaxed max-w-2xl"
+                >
+                  {offersBanner.description || offersBanner.subheading || 'Grab daily flash discounts on OTT subscriptions, high speed fiber internet, mobiles, earbuds, smartwatches & gadgets.'}
+                </p>
+              )}
 
               {/* Dynamic Action Buttons */}
-              {buttonsList.length > 0 && (
+              {offersBanner.show_cta !== false && buttonsList.length > 0 && (
                 <div className={`pt-2 flex flex-wrap gap-3 ${btnJustify}`}>
                   {buttonsList.map((btn, i) => (
                     <button

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Search, ShoppingCart, MapPin, Phone, MessageCircle, Menu, X, Flame, ChevronRight } from 'lucide-react';
+import { Search, ShoppingCart, MapPin, Phone, MessageCircle, Menu, X, Flame, ChevronRight, Receipt } from 'lucide-react';
 import { useCMS } from '../context/CMSContext';
+import TransactionHistoryModal from './TransactionHistoryModal';
 
 export default function Header({ 
   cartCount, 
@@ -15,6 +16,7 @@ export default function Header({
   onOpenAuthModal
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
   const { siteSettings, contactDetails } = useCMS();
 
   const phoneDisplay = contactDetails?.phone || '6305151531';
@@ -130,10 +132,20 @@ export default function Header({
             )}
           </div>
 
+          {/* Transaction History / Orders Icon */}
+          <button
+            onClick={() => setHistoryModalOpen(true)}
+            className="relative p-2 text-slate-200 hover:text-white hover:bg-slate-900 rounded-xl transition-colors shrink-0 flex items-center justify-center cursor-pointer"
+            aria-label="Order History"
+            title="My Orders & Transactions"
+          >
+            <Receipt className="w-5 h-5 sm:w-6 sm:h-6" />
+          </button>
+
           {/* Cart Icon */}
           <button
             onClick={onOpenCart}
-            className="relative p-2 text-slate-200 hover:text-white hover:bg-slate-900 rounded-xl transition-colors shrink-0 flex items-center justify-center"
+            className="relative p-2 text-slate-200 hover:text-white hover:bg-slate-900 rounded-xl transition-colors shrink-0 flex items-center justify-center cursor-pointer"
             aria-label="Shopping Cart"
             title="Shopping Cart"
           >
@@ -145,11 +157,10 @@ export default function Header({
             )}
           </button>
 
-
           {/* Mobile Hamburger Toggle */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden p-2 text-slate-200 hover:text-white hover:bg-slate-900 rounded-xl transition-colors shrink-0"
+            className="lg:hidden p-2 text-slate-200 hover:text-white hover:bg-slate-900 rounded-xl transition-colors shrink-0 cursor-pointer"
             aria-label="Toggle Menu"
           >
             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -186,11 +197,30 @@ export default function Header({
                 <ChevronRight className="w-4 h-4 opacity-70" />
               </button>
             ))}
-            
 
+            <button
+              onClick={() => {
+                setMobileMenuOpen(false);
+                setHistoryModalOpen(true);
+              }}
+              className="w-full text-left py-2.5 px-3 rounded-lg text-sm font-bold flex items-center justify-between text-slate-200 hover:bg-slate-800 transition-colors border-t border-slate-800 mt-2 pt-2 cursor-pointer"
+            >
+              <span className="flex items-center gap-2">
+                <Receipt className="w-4 h-4 text-[#008744]" />
+                <span>My Orders &amp; Transactions</span>
+              </span>
+              <ChevronRight className="w-4 h-4 opacity-70" />
+            </button>
           </div>
         </div>
       )}
+
+      {/* Transaction History Modal */}
+      <TransactionHistoryModal
+        isOpen={historyModalOpen}
+        onClose={() => setHistoryModalOpen(false)}
+        customerPhone={user?.mobileNumber || ''}
+      />
 
     </header>
   );

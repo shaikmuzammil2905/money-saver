@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, User, Phone, MapPin, Package, Clock, CheckCircle2, AlertCircle, Edit2, LogOut, ChevronRight } from 'lucide-react';
-import { getCustomerOrders, saveUserProfile } from '../services/orderService';
+import { X, User, Phone, MapPin, Package, Clock, CheckCircle2, AlertCircle, Edit2, LogOut, ChevronRight, MessageCircle } from 'lucide-react';
+import { getCustomerOrders, saveUserProfile, formatWhatsAppOrderMessage } from '../services/orderService';
 
 export default function CustomerProfileModal({ isOpen, onClose, user, onLogout, onUpdateUser }) {
   const [activeTab, setActiveTab] = useState('orders'); // 'orders' or 'profile'
@@ -161,6 +161,18 @@ export default function CustomerProfileModal({ isOpen, onClose, user, onLogout, 
                         <span className="text-sm font-black text-[#008744]">
                           ₹{ord.totalAmount?.toLocaleString()}
                         </span>
+                      </div>
+
+                      <div className="pt-2">
+                        <a
+                          href={`https://api.whatsapp.com/send?phone=916305151531&text=${encodeURIComponent(formatWhatsAppOrderMessage(ord))}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="w-full py-2 px-3 rounded-xl bg-[#008744] hover:bg-[#007038] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition-all"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" />
+                          <span>Send Order Details on WhatsApp</span>
+                        </a>
                       </div>
 
                       {ord.paymentScreenshotUrl && (

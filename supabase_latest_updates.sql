@@ -62,6 +62,10 @@ ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT tr
 ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS visible BOOLEAN DEFAULT true;
 ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS background_mode TEXT DEFAULT 'image-blur';
 ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS heading_alignment TEXT DEFAULT 'left';
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS show_badge BOOLEAN DEFAULT true;
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS show_heading BOOLEAN DEFAULT true;
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS show_subheading BOOLEAN DEFAULT true;
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS show_cta BOOLEAN DEFAULT true;
 ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc', now());
 ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc', now());
 

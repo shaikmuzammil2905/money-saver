@@ -10,10 +10,15 @@ import {
   AlertCircle,
   MessageCircle,
   Tag,
-  CreditCard
+  CreditCard,
+  ChevronDown,
+  ChevronUp,
+  Receipt
 } from 'lucide-react';
 import { DEFAULT_PAYMENT_CONFIG } from '../config/payment';
 import { useCMS } from '../context/CMSContext';
+import { formatWhatsAppOrderMessage, saveCompletedTransaction } from '../services/orderService';
+import TransactionHistoryModal from './TransactionHistoryModal';
 
 // Helper to load Razorpay script on demand
 const loadRazorpayScript = () => {
@@ -74,6 +79,9 @@ export default function CartDrawer({
   const [orderSubmitting, setOrderSubmitting] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [confirmedOrderId, setConfirmedOrderId] = useState('');
+  const [completedOrder, setCompletedOrder] = useState(null);
+  const [showOrderDetails, setShowOrderDetails] = useState(false);
+  const [showTransactionModal, setShowTransactionModal] = useState(false);
 
   // 1. Synchronize payment config
   useEffect(() => {
@@ -326,6 +334,23 @@ export default function CartDrawer({
 
             const verifyResult = await verifyRes.json();
             if (verifyResult.success) {
+              const verifiedOrderRecord = {
+                orderId: orderData.appOrderId,
+                transactionId: paymentResponse.razorpay_payment_id || verifyResult.transactionId || 'TXN-SUCCESS',
+                razorpayPaymentId: paymentResponse.razorpay_payment_id,
+                razorpayOrderId: paymentResponse.razorpay_order_id,
+                items: [...cartItems],
+                subtotal: subtotal,
+                totalAmount: orderData.finalAmount || finalPayableAmount,
+                customerName: customerName.trim(),
+                mobileNumber: customerPhone.trim(),
+                email: customerEmail.trim() || '',
+                location: customerLocation.trim() || '',
+                createdAt: new Date().toISOString()
+              };
+
+              setCompletedOrder(verifiedOrderRecord);
+              await saveCompletedTransaction(verifiedOrderRecord);
               setPaymentSuccess(true);
               setConfirmedOrderId(orderData.appOrderId);
               onClearCart();
@@ -414,23 +439,102 @@ export default function CartDrawer({
                   Order ID: {confirmedOrderId}
                 </div>
                 
-                <div className="pt-4 space-y-2">
+                {/* Action Buttons & Order Details */}
+                <div className="pt-4 space-y-2.5">
+                  {/* WhatsApp Activation Button with FULL order details */}
                   <a
-                    href={`https://api.whatsapp.com/send?phone=${cleanWhatsAppNumber()}&text=${encodeURIComponent(`Hello OTTMoneySaver, my order ${confirmedOrderId} has been paid successfully. Please send activation details.`)}`}
+                    href={`https://api.whatsapp.com/send?phone=${cleanWhatsAppNumber()}&text=${encodeURIComponent(formatWhatsAppOrderMessage(completedOrder || {
+                      orderId: confirmedOrderId,
+                      customerName: customerName.trim(),
+                      mobileNumber: customerPhone.trim(),
+                      location: customerLocation.trim(),
+                      email: customerEmail.trim(),
+                      totalAmount: finalPayableAmount,
+                      items: cartItems
+                    }))}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="w-full py-3 px-4 rounded-xl bg-[#008744] hover:bg-[#007038] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-all"
+                    className="w-full py-3 px-4 rounded-xl bg-[#008744] hover:bg-[#007038] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer"
                   >
                     <MessageCircle className="w-4 h-4" />
                     <span>Get Instant Activation on WhatsApp</span>
                   </a>
 
+                  {/* Toggle Order Details Button */}
+                  <button
+                    type="button"
+                    onClick={() => setShowOrderDetails(!showOrderDetails)}
+                    className="w-full py-2.5 px-4 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-slate-100 transition-all cursor-pointer"
+                  >
+                    <span>{showOrderDetails ? 'Hide Order Details' : 'View Order Details'}</span>
+                    {showOrderDetails ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  </button>
+
+                  {/* Collapsible Order Details Card */}
+                  {showOrderDetails && (
+                    <div className="text-left bg-slate-50 border border-slate-200 rounded-2xl p-3.5 space-y-3 text-xs animate-fadeIn">
+                      {/* Products */}
+                      <div>
+                        <p className="font-black text-slate-800 uppercase tracking-wider text-[10px] mb-1">
+                          Product Details
+                        </p>
+                        <div className="space-y-1 divide-y divide-slate-200/60">
+                          {((completedOrder?.items || cartItems) || []).map((it, idx) => (
+                            <div key={idx} className="pt-1 first:pt-0 flex justify-between text-[11px]">
+                              <span className="font-semibold text-slate-700">{it.title} (x{it.quantity || 1})</span>
+                              <span className="font-black text-slate-900">₹{(Number(it.price) || 0) * (Number(it.quantity) || 1)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Customer Details */}
+                      <div className="pt-2 border-t border-slate-200/60">
+                        <p className="font-black text-slate-800 uppercase tracking-wider text-[10px] mb-1">
+                          Customer Details
+                        </p>
+                        <p className="text-slate-600 text-[11px]">Name: <strong className="text-slate-800">{completedOrder?.customerName || customerName}</strong></p>
+                        <p className="text-slate-600 text-[11px]">Mobile: <strong className="text-slate-800 font-mono">{completedOrder?.mobileNumber || customerPhone}</strong></p>
+                        {(completedOrder?.location || customerLocation) && (
+                          <p className="text-slate-600 text-[11px]">Location: <strong className="text-slate-800">{completedOrder?.location || customerLocation}</strong></p>
+                        )}
+                        {(completedOrder?.email || customerEmail) && (
+                          <p className="text-slate-600 text-[11px]">Email: <strong className="text-slate-800">{completedOrder?.email || customerEmail}</strong></p>
+                        )}
+                      </div>
+
+                      {/* Payment Details */}
+                      <div className="pt-2 border-t border-slate-200/60">
+                        <p className="font-black text-slate-800 uppercase tracking-wider text-[10px] mb-1">
+                          Payment Details
+                        </p>
+                        <p className="text-slate-600 text-[11px]">Total: <strong className="text-[#008744] font-black">₹{completedOrder?.totalAmount || finalPayableAmount}</strong></p>
+                        <p className="text-slate-600 text-[11px]">Status: <strong className="text-emerald-700">Successful</strong></p>
+                        <p className="text-slate-600 text-[11px] font-mono">Order ID: {confirmedOrderId}</p>
+                        {completedOrder?.transactionId && (
+                          <p className="text-slate-600 text-[11px] font-mono truncate">Txn ID: {completedOrder.transactionId}</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Transaction History Button */}
+                  <button
+                    type="button"
+                    onClick={() => setShowTransactionModal(true)}
+                    className="w-full py-2.5 px-4 rounded-xl border border-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 hover:bg-slate-50 transition-all cursor-pointer"
+                  >
+                    <Receipt className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Transaction History</span>
+                  </button>
+
                   <button
                     onClick={() => {
                       setPaymentSuccess(false);
+                      setShowOrderDetails(false);
                       onClose();
                     }}
-                    className="w-full py-2.5 px-4 rounded-xl border border-slate-200 text-slate-700 font-bold text-xs hover:bg-slate-50 transition-all"
+                    className="w-full py-2.5 px-4 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 transition-all cursor-pointer"
                   >
                     Continue Shopping
                   </button>
@@ -719,6 +823,13 @@ export default function CartDrawer({
 
         </div>
       </div>
+
+      {/* Transaction History Modal */}
+      <TransactionHistoryModal
+        isOpen={showTransactionModal}
+        onClose={() => setShowTransactionModal(false)}
+        customerPhone={customerPhone}
+      />
     </div>
   );
 }

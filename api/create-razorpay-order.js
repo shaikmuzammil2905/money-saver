@@ -144,6 +144,7 @@ export default async function handler(req, res) {
         order_id: appOrderId,
         customer_name: customerName.trim(),
         mobile_number: customerPhone.trim(),
+        email: customerEmail?.trim() || null,
         location: customerLocation.trim(),
         subtotal: subtotal,
         total_amount: finalAmount,
