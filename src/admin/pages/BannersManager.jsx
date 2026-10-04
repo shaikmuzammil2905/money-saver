@@ -65,7 +65,7 @@ export default function BannersManager({ adminEmail }) {
   const [toastMsg, setToastMsg] = useState('');
   const [activeSectionTab, setActiveSectionTab] = useState('All');
   const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'active', 'hidden'
-  const [bannerMode, setBannerMode] = useState('image'); // 'image' or 'color'
+  const [bannerMode, setBannerMode] = useState('image-blur'); // 'solid' | 'image-blur' | 'image-only'
   const [previewDevice, setPreviewDevice] = useState('desktop'); // 'desktop' or 'mobile'
 
   // Image Cropper Modal State
@@ -196,23 +196,30 @@ export default function BannersManager({ adminEmail }) {
       const bgColor2 = editingBanner.bg_color_2 || bgColor1;
       const bgDirection = editingBanner.bg_direction || 'to right';
 
+      const cleanBadge = (formData.get('badge_text') ?? editingBanner.badge_text ?? editingBanner.subheading ?? '').trim();
+      const headingAlignment = editingBanner.heading_alignment || 'left';
+      const cleanMode = bannerMode; // 'solid' | 'image-blur' | 'image-only'
+
       const payload = {
         id: editingBanner?.id,
         banner_key: editingBanner?.banner_key || `banner_${Date.now()}`,
         title_name: formData.get('title_name') || editingBanner?.title_name || 'Custom Banner',
-        heading: formData.get('heading') || '',
+        heading: formData.get('heading') || editingBanner?.heading || '',
         heading_color: editingBanner.heading_color || '#ffffff',
-        subheading: formData.get('subheading') || '',
+        heading_alignment: headingAlignment,
+        subheading: cleanBadge,
         subheading_color: editingBanner.subheading_color || '#cbd5e1',
-        badge_text: formData.get('badge_text') || formData.get('subheading') || '',
+        badge_text: cleanBadge,
         badge_color: editingBanner.badge_color || '#ffffff',
         badge_bg_color: editingBanner.badge_bg_color || '#e50914',
-        description: formData.get('description') || '',
+        badges: cleanBadge ? [{ text: cleanBadge }] : [],
+        description: formData.get('description') || editingBanner?.description || '',
         description_color: editingBanner.description_color || '#cbd5e1',
-        mode: bannerMode,
-        image_url: bannerMode === 'color' ? '' : (editingBanner.image_url || ''),
-        mobile_image_url: bannerMode === 'color' ? '' : (editingBanner.mobile_image_url || editingBanner.image_url || ''),
-        image_fit: formData.get('image_fit') || 'contain',
+        mode: cleanMode,
+        background_mode: cleanMode,
+        image_url: cleanMode === 'solid' ? '' : (editingBanner.image_url || ''),
+        mobile_image_url: cleanMode === 'solid' ? '' : (editingBanner.mobile_image_url || editingBanner.image_url || ''),
+        image_fit: formData.get('image_fit') || 'cover',
         image_position: formData.get('image_position') || 'center',
         text_color: editingBanner.heading_color || editingBanner.text_color || '#ffffff',
         button_color: editingBanner.button_color || (buttonsList[0]?.button_color) || '#e50914',
@@ -325,7 +332,18 @@ export default function BannersManager({ adminEmail }) {
 
   const startEditing = (b) => {
     const safeBanner = { ...b };
-    setBannerMode(b.mode === 'color' || (!b.image_url && b.bg_color) ? 'color' : 'image');
+    let initialMode = b.background_mode || b.mode;
+    if (!initialMode) {
+      initialMode = b.image_url ? 'image-blur' : 'solid';
+    } else if (initialMode === 'color') {
+      initialMode = 'solid';
+    } else if (initialMode === 'image') {
+      initialMode = 'image-blur';
+    }
+    setBannerMode(initialMode);
+    safeBanner.background_mode = initialMode;
+    safeBanner.mode = initialMode;
+    safeBanner.heading_alignment = b.heading_alignment || 'left';
 
     // Individual colors fallback
     safeBanner.heading_color = b.heading_color || b.text_color || '#ffffff';
@@ -367,7 +385,8 @@ export default function BannersManager({ adminEmail }) {
     safeBanner.bg_color = b.bg_color || '#050b1e';
     safeBanner.bg_color_2 = b.bg_color_2 || safeBanner.bg_color;
     safeBanner.bg_direction = b.bg_direction || 'to right';
-    safeBanner.badge_text = b.badge_text || b.subheading || '';
+    safeBanner.badge_text = b.badge_text || b.subheading || (Array.isArray(b.badges) && (b.badges[0]?.text || b.badges[0])) || '';
+    safeBanner.subheading = safeBanner.badge_text;
     safeBanner.display_location = b.display_location || 'home';
     safeBanner.target_categories = Array.isArray(b.target_categories) ? b.target_categories : [];
 
@@ -671,72 +690,102 @@ export default function BannersManager({ adminEmail }) {
 
               {/* Preview Rendering Container */}
               <div className={`mx-auto transition-all ${previewDevice === 'mobile' ? 'max-w-xs' : 'w-full'}`}>
-                <div
-                  style={getBannerBackgroundStyle(editingBanner.bg_color, editingBanner.bg_color_2, editingBanner.bg_direction)}
-                  className="rounded-2xl p-5 relative overflow-hidden border border-white/10 shadow-lg min-h-[140px] flex flex-col justify-between"
-                >
-                  {/* Artwork Image if in image mode */}
-                  {bannerMode === 'image' && (
-                    <picture className="absolute inset-0 w-full h-full pointer-events-none">
-                      {editingBanner.mobile_image_url && previewDevice === 'mobile' && (
-                        <source srcSet={editingBanner.mobile_image_url} />
+                {(() => {
+                  const isImageOnly = bannerMode === 'image-only';
+                  const isSolid = bannerMode === 'solid';
+                  const currentImg = previewDevice === 'mobile' ? (editingBanner.mobile_image_url || editingBanner.image_url) : editingBanner.image_url;
+                  const align = editingBanner.heading_alignment || 'left';
+                  const alignClasses = align === 'center'
+                    ? 'text-center items-center mx-auto'
+                    : align === 'right'
+                      ? 'text-right items-end ml-auto'
+                      : 'text-left items-start mr-auto';
+                  const btnJustify = align === 'center' ? 'justify-center' : align === 'right' ? 'justify-end' : 'justify-start';
+
+                  const previewStyle = isImageOnly && currentImg
+                    ? {
+                        backgroundImage: `url(${currentImg})`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                        backgroundRepeat: 'no-repeat',
+                        backgroundColor: '#0f172a'
+                      }
+                    : getBannerBackgroundStyle(editingBanner.bg_color, editingBanner.bg_color_2, editingBanner.bg_direction);
+
+                  return (
+                    <div
+                      style={previewStyle}
+                      className="rounded-2xl p-5 relative overflow-hidden border border-white/10 shadow-lg min-h-[150px] flex flex-col justify-between"
+                    >
+                      {/* In Image+Color/Blur mode, render backdrop image with subtle blur/tint */}
+                      {!isImageOnly && !isSolid && currentImg && (
+                        <picture className="absolute inset-0 w-full h-full pointer-events-none">
+                          {editingBanner.mobile_image_url && previewDevice === 'mobile' && (
+                            <source srcSet={editingBanner.mobile_image_url} />
+                          )}
+                          <img 
+                            src={currentImg} 
+                            alt="Preview" 
+                            className="w-full h-full object-cover opacity-50 filter blur-[0.5px]"
+                          />
+                        </picture>
                       )}
-                      {editingBanner.image_url && (
-                        <img 
-                          src={previewDevice === 'mobile' ? (editingBanner.mobile_image_url || editingBanner.image_url) : editingBanner.image_url} 
-                          alt="Preview" 
-                          className="w-full h-full object-contain opacity-75"
+
+                      {!isImageOnly && editingBanner.overlay_color && (
+                        <div 
+                          style={{ backgroundColor: editingBanner.overlay_color }}
+                          className="absolute inset-0 pointer-events-none" 
                         />
                       )}
-                    </picture>
-                  )}
 
-                  {/* Text Overlay */}
-                  <div className="relative z-10 space-y-2">
-                    {editingBanner.badge_text && (
-                      <span 
-                        style={{
-                          backgroundColor: editingBanner.badge_bg_color || '#e50914',
-                          color: editingBanner.badge_color || '#ffffff'
-                        }}
-                        className="inline-block text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full shadow"
-                      >
-                        {editingBanner.badge_text}
-                      </span>
-                    )}
-                    <h4 
-                      style={{ color: editingBanner.heading_color || '#ffffff' }}
-                      className="text-base sm:text-xl font-black leading-tight drop-shadow"
-                    >
-                      {editingBanner.heading || 'Banner Heading'}
-                    </h4>
-                    {editingBanner.description && (
-                      <p 
-                        style={{ color: editingBanner.description_color || editingBanner.subheading_color || 'rgba(255,255,255,0.8)' }}
-                        className="text-[11px] leading-relaxed max-w-md line-clamp-2"
-                      >
-                        {editingBanner.description}
-                      </p>
-                    )}
-                  </div>
+                      {/* Text Overlay */}
+                      <div className={`relative z-10 space-y-2 flex flex-col ${alignClasses}`}>
+                        {editingBanner.badge_text && (
+                          <span 
+                            style={{
+                              backgroundColor: editingBanner.badge_bg_color || '#e50914',
+                              color: editingBanner.badge_color || '#ffffff'
+                            }}
+                            className="inline-block text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full shadow shrink-0"
+                          >
+                            {editingBanner.badge_text}
+                          </span>
+                        )}
+                        <h4 
+                          style={{ color: editingBanner.heading_color || '#ffffff' }}
+                          className="text-base sm:text-xl font-black leading-tight drop-shadow"
+                        >
+                          {editingBanner.heading || 'Banner Heading'}
+                        </h4>
+                        {editingBanner.description && (
+                          <p 
+                            style={{ color: editingBanner.description_color || editingBanner.subheading_color || 'rgba(255,255,255,0.8)' }}
+                            className="text-[11px] leading-relaxed max-w-md line-clamp-2"
+                          >
+                            {editingBanner.description}
+                          </p>
+                        )}
+                      </div>
 
-                  {/* Buttons Preview */}
-                  <div className="relative z-10 pt-3 flex flex-wrap gap-2">
-                    {Array.isArray(editingBanner.buttons) && editingBanner.buttons.map((btn, i) => (
-                      <span
-                        key={i}
-                        style={{ 
-                          backgroundColor: btn.button_color || '#e50914', 
-                          color: btn.text_color || '#ffffff',
-                          border: btn.border_color ? `1px solid ${btn.border_color}` : 'none'
-                        }}
-                        className="px-3 py-1 rounded-lg text-xs font-black shadow-sm"
-                      >
-                        {btn.text || 'Action'}
-                      </span>
-                    ))}
-                  </div>
-                </div>
+                      {/* Buttons Preview */}
+                      <div className={`relative z-10 pt-3 flex flex-wrap gap-2 ${btnJustify}`}>
+                        {Array.isArray(editingBanner.buttons) && editingBanner.buttons.map((btn, i) => (
+                          <span
+                            key={i}
+                            style={{ 
+                              backgroundColor: btn.button_color || '#e50914', 
+                              color: btn.text_color || '#ffffff',
+                              border: btn.border_color ? `1px solid ${btn.border_color}` : 'none'
+                            }}
+                            className="px-3 py-1 rounded-lg text-xs font-black shadow-sm"
+                          >
+                            {btn.text || 'Action'}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
 
@@ -801,7 +850,110 @@ export default function BannersManager({ adminEmail }) {
                 )}
               </div>
 
-              {/* 2. Text Content & Individual Text Colors */}
+              {/* 2. Banner Background Mode (3 Clear Modes) */}
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-black uppercase text-slate-800 tracking-wider flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-emerald-600" /> Banner Background Mode
+                  </h4>
+                  <span className="text-[11px] font-bold text-slate-500">
+                    {bannerMode === 'solid' ? 'Mode: Solid Color' : bannerMode === 'image-only' ? 'Mode: Image Only' : 'Mode: Image + Color/Blur'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBannerMode('solid');
+                      setEditingBanner({ ...editingBanner, background_mode: 'solid', mode: 'solid' });
+                    }}
+                    className={`p-3 rounded-xl border-2 text-left transition-all cursor-pointer ${
+                      bannerMode === 'solid'
+                        ? 'border-[#008744] bg-emerald-50 text-emerald-950 shadow-sm'
+                        : 'border-slate-200 bg-white hover:border-slate-300 text-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <input type="radio" name="bg_mode_radio" checked={bannerMode === 'solid'} onChange={() => {}} className="accent-[#008744]" />
+                      <span className="text-xs font-black">Solid Color</span>
+                    </div>
+                    <p className="text-[10px] text-slate-500">Clean solid or gradient backdrop without artwork image</p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBannerMode('image-blur');
+                      setEditingBanner({ ...editingBanner, background_mode: 'image-blur', mode: 'image-blur' });
+                    }}
+                    className={`p-3 rounded-xl border-2 text-left transition-all cursor-pointer ${
+                      bannerMode === 'image-blur'
+                        ? 'border-[#008744] bg-emerald-50 text-emerald-950 shadow-sm'
+                        : 'border-slate-200 bg-white hover:border-slate-300 text-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <input type="radio" name="bg_mode_radio" checked={bannerMode === 'image-blur'} onChange={() => {}} className="accent-[#008744]" />
+                      <span className="text-xs font-black">Image + Color/Blur</span>
+                    </div>
+                    <p className="text-[10px] text-slate-500">Uploaded artwork layered with tinted color backdrop</p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBannerMode('image-only');
+                      setEditingBanner({ ...editingBanner, background_mode: 'image-only', mode: 'image-only' });
+                    }}
+                    className={`p-3 rounded-xl border-2 text-left transition-all cursor-pointer ${
+                      bannerMode === 'image-only'
+                        ? 'border-[#008744] bg-emerald-50 text-emerald-950 shadow-sm'
+                        : 'border-slate-200 bg-white hover:border-slate-300 text-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <input type="radio" name="bg_mode_radio" checked={bannerMode === 'image-only'} onChange={() => {}} className="accent-[#008744]" />
+                      <span className="text-xs font-black">Image Only</span>
+                    </div>
+                    <p className="text-[10px] text-slate-500">Direct uploaded image banner, no blur behind, no extra tint</p>
+                  </button>
+                </div>
+              </div>
+
+              {/* 3. Heading & Content Alignment */}
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-black uppercase text-slate-800 tracking-wider">
+                    📐 Heading &amp; Content Alignment
+                  </h4>
+                  <span className="text-[11px] font-bold text-slate-500 capitalize">
+                    {editingBanner.heading_alignment || 'left'} Aligned
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { value: 'left', label: 'Left' },
+                    { value: 'center', label: 'Center' },
+                    { value: 'right', label: 'Right' }
+                  ].map(al => (
+                    <button
+                      key={al.value}
+                      type="button"
+                      onClick={() => setEditingBanner({ ...editingBanner, heading_alignment: al.value })}
+                      className={`py-2 px-3 rounded-xl font-black text-xs transition-all border cursor-pointer ${
+                        (editingBanner.heading_alignment || 'left') === al.value
+                          ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
+                          : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                      }`}
+                    >
+                      {al.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 4. Text Content & Single Configurable Subheading / Badge */}
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-4">
                 <h4 className="text-xs font-black uppercase text-slate-800 tracking-wider">
                   📝 Content &amp; Individual Text Colors
@@ -810,14 +962,14 @@ export default function BannersManager({ adminEmail }) {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Top Badge / Tag Text (Leave blank to hide badge)
+                      Subheading / Badge Text (Leave blank to hide badge)
                     </label>
                     <input
                       type="text"
                       name="badge_text"
                       value={editingBanner.badge_text || ''}
-                      onChange={(e) => setEditingBanner({ ...editingBanner, badge_text: e.target.value })}
-                      placeholder="e.g. MEGA DISCOUNT CARNIVAL"
+                      onChange={(e) => setEditingBanner({ ...editingBanner, badge_text: e.target.value, subheading: e.target.value })}
+                      placeholder="e.g. EXCLUSIVE DEALS or BIG SAVINGS!"
                       className="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-xs font-bold"
                     />
                   </div>

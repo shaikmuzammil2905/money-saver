@@ -139,39 +139,51 @@ export default function ProductCard({
         </h3>
 
         {/* Price Row */}
-        {couponInfo ? (
-          <div className="mt-1.5 space-y-0.5">
-            <div className="flex items-baseline gap-1.5 flex-wrap">
-              <span className="text-sm sm:text-lg font-black text-[#008744]">
-                ₹{couponInfo.finalPrice?.toLocaleString()}
-              </span>
-              <span className="text-xs text-slate-400 line-through font-medium">
+        {(() => {
+          const coupon = couponInfo?.coupon || (couponInfo?.discount_type ? couponInfo : null);
+          const hasCoupon = Boolean(coupon && (coupon.discount_type || coupon.code) && couponInfo?.finalPrice != null);
+
+          if (hasCoupon) {
+            const isPercent = coupon.discount_type === 'percentage';
+            const discText = isPercent
+              ? `${coupon.discount_value}% OFF`
+              : `₹${coupon.discount_value} OFF`;
+
+            return (
+              <div className="mt-1.5 space-y-0.5">
+                <div className="flex items-baseline gap-1.5 flex-wrap">
+                  <span className="text-sm sm:text-lg font-black text-[#008744]">
+                    ₹{couponInfo.finalPrice?.toLocaleString()}
+                  </span>
+                  <span className="text-xs text-slate-400 line-through font-medium">
+                    ₹{product.price?.toLocaleString()}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-[10px] font-extrabold text-[#008744] bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                    {discText} with {coupon.code || 'COUPON'}
+                  </span>
+                </div>
+              </div>
+            );
+          }
+
+          return (
+            <div className="flex items-baseline gap-1.5 mt-1.5 flex-wrap">
+              <span className="text-sm sm:text-lg font-black text-slate-900">
                 ₹{product.price?.toLocaleString()}
               </span>
+              {product.originalPrice && product.originalPrice > product.price && (
+                <span className="text-xs text-slate-400 line-through font-medium">
+                  ₹{product.originalPrice.toLocaleString()}
+                </span>
+              )}
             </div>
-            <div className="flex items-center gap-1">
-              <span className="text-[10px] font-extrabold text-[#008744] bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
-                {couponInfo.coupon.discount_type === 'percentage'
-                  ? `${couponInfo.coupon.discount_value}% OFF`
-                  : `₹${couponInfo.coupon.discount_value} OFF`} with {couponInfo.coupon.code}
-              </span>
-            </div>
-          </div>
-        ) : (
-          <div className="flex items-baseline gap-1.5 mt-1.5 flex-wrap">
-            <span className="text-sm sm:text-lg font-black text-slate-900">
-              ₹{product.price?.toLocaleString()}
-            </span>
-            {product.originalPrice && product.originalPrice > product.price && (
-              <span className="text-xs text-slate-400 line-through font-medium">
-                ₹{product.originalPrice.toLocaleString()}
-              </span>
-            )}
-          </div>
-        )}
+          );
+        })()}
 
         {/* You Save text */}
-        {savings > 0 && isAvailable && !couponInfo && (
+        {savings > 0 && isAvailable && !couponInfo?.finalPrice && (
           <p className="text-[10px] sm:text-xs font-bold text-[#008744] mt-0.5">
             You Save ₹{savings.toLocaleString()}
           </p>

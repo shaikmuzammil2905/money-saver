@@ -702,7 +702,7 @@ async function migrateLegacySiteSettingsToTable(tableName) {
 // Whitelist table column schema map to prevent 400 Bad Request / PGRST204 errors
 export const TABLE_COLUMNS = {
   products: ['id', 'slug_id', 'title', 'subtitle', 'description', 'price', 'original_price', 'discount', 'image', 'images', 'category', 'category_group', 'brand', 'sku', 'rating', 'reviews_count', 'badge', 'in_stock', 'is_featured', 'display_order', 'is_active', 'created_at', 'updated_at', 'description_points', 'custom_info', 'badges', 'batches', 'sections', 'home_order', 'offers_order', 'all_otts_order'],
-  banners: ['id', 'banner_key', 'title_name', 'heading', 'heading_color', 'subheading', 'subheading_color', 'badge_text', 'badge_color', 'badge_bg_color', 'description', 'description_color', 'button_text', 'button_link', 'button_color', 'button_text_color', 'button_border_color', 'buttons', 'badges', 'image_url', 'mobile_image_url', 'text_color', 'bg_color', 'bg_color_2', 'bg_direction', 'overlay_color', 'display_location', 'target_categories', 'mode', 'display_order', 'is_active', 'created_at', 'updated_at'],
+  banners: ['id', 'banner_key', 'title_name', 'heading', 'heading_color', 'subheading', 'subheading_color', 'badge_text', 'badge_color', 'badge_bg_color', 'description', 'description_color', 'button_text', 'button_link', 'button_color', 'button_text_color', 'button_border_color', 'buttons', 'badges', 'image_url', 'mobile_image_url', 'text_color', 'bg_color', 'bg_color_2', 'bg_direction', 'overlay_color', 'display_location', 'target_categories', 'mode', 'background_mode', 'heading_alignment', 'display_order', 'is_active', 'created_at', 'updated_at'],
   coupons: ['id', 'code', 'discount_type', 'discount_value', 'min_order_amount', 'max_discount', 'usage_limit', 'used_count', 'starts_at', 'expires_at', 'duration_value', 'duration_unit', 'apply_to', 'allowed_categories', 'allowed_product_ids', 'description', 'is_active', 'created_at', 'updated_at'],
   homepage_slides: ['id', 'slide_key', 'heading', 'description', 'button_text', 'button_link', 'image_url', 'display_order', 'is_active', 'created_at', 'updated_at'],
   homepage_items: ['id', 'title', 'short_description', 'image_url', 'price', 'original_price', 'discount', 'link_url', 'badge', 'category', 'is_active', 'display_order', 'created_at', 'updated_at'],
@@ -738,6 +738,10 @@ export function sanitizePayload(tableName, data) {
 
   // Table specific property mappings
   if (tableName === 'banners') {
+    if (raw.badge_text && !raw.subheading) raw.subheading = raw.badge_text;
+    if (raw.subheading && !raw.badge_text) raw.badge_text = raw.subheading;
+    if (raw.background_mode && !raw.mode) raw.mode = raw.background_mode;
+    if (raw.mode && !raw.background_mode) raw.background_mode = raw.mode;
     if (raw.badges_data && !raw.badges) raw.badges = raw.badges_data;
     if (raw.subheadings && !raw.subheading && Array.isArray(raw.subheadings) && raw.subheadings.length > 0) {
       raw.subheading = raw.subheadings[0].text;

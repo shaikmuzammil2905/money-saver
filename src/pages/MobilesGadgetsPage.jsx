@@ -51,18 +51,41 @@ export default function MobilesGadgetsPage({ onAddToCart, onQuickView, wishlistI
           const bannerImageUrl = mobBanner.image_url || '';
           const bannerMobileImageUrl = mobBanner.mobile_image_url || '';
 
+          const bgMode = mobBanner.background_mode || mobBanner.mode || (bannerImageUrl ? 'image-blur' : 'solid');
+          const isImageOnly = bgMode === 'image-only' && Boolean(bannerImageUrl || bannerMobileImageUrl);
+          const isSolid = bgMode === 'solid' || !bannerImageUrl;
+          const currentImg = bannerImageUrl || bannerMobileImageUrl;
+
           const c1 = mobBanner.bg_color || '#022c22';
           const c2 = mobBanner.bg_color_2 || c1;
-          const bgStyle = c1.toLowerCase() === c2.toLowerCase()
-            ? { backgroundColor: c1 }
-            : { background: `linear-gradient(${mobBanner.bg_direction || 'to right'}, ${c1}, ${c2})` };
+          const bgStyle = (() => {
+            if (isImageOnly && currentImg) {
+              return {
+                backgroundImage: `url(${currentImg})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+                backgroundColor: '#022c22'
+              };
+            }
+            if (c1.toLowerCase() === c2.toLowerCase()) return { backgroundColor: c1 };
+            return { background: `linear-gradient(${mobBanner.bg_direction || 'to right'}, ${c1}, ${c2})` };
+          })();
+
+          const align = mobBanner.heading_alignment || 'left';
+          const alignContainerClasses = align === 'center'
+            ? 'max-w-3xl mx-auto text-center items-center flex flex-col'
+            : align === 'right'
+              ? 'max-w-3xl ml-auto text-right items-end flex flex-col'
+              : 'max-w-3xl mr-auto text-left items-start flex flex-col';
+          const btnJustify = align === 'center' ? 'justify-center' : align === 'right' ? 'justify-end' : 'justify-start';
 
           return (
             <div 
               style={{ ...bgStyle, color: bannerTextColor }}
               className="relative rounded-3xl p-6 sm:p-10 mb-8 border border-slate-800 shadow-2xl overflow-hidden"
             >
-              {bannerImageUrl && (
+              {!isImageOnly && !isSolid && bannerImageUrl && (
                 <picture className="absolute inset-0 w-full h-full pointer-events-none">
                   {bannerMobileImageUrl && (
                     <source media="(max-width: 640px)" srcSet={bannerMobileImageUrl} />
@@ -74,20 +97,24 @@ export default function MobilesGadgetsPage({ onAddToCart, onQuickView, wishlistI
                   />
                 </picture>
               )}
-              <div 
-                style={{ backgroundColor: bannerOverlayColor }}
-                className="absolute inset-0 pointer-events-none" 
-              />
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_50%,rgba(16,185,129,0.25),transparent_60%)] pointer-events-none" />
+              {!isImageOnly && (
+                <>
+                  <div 
+                    style={{ backgroundColor: bannerOverlayColor }}
+                    className="absolute inset-0 pointer-events-none" 
+                  />
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_50%,rgba(16,185,129,0.25),transparent_60%)] pointer-events-none" />
+                </>
+              )}
               
-              <div className="relative z-10 max-w-3xl space-y-4">
+              <div className={`relative z-10 ${alignContainerClasses} space-y-4`}>
                 {bannerSubheading && (
                   <span 
                     style={{
                       backgroundColor: mobBanner.badge_bg_color || 'rgba(6,78,59,0.8)',
                       color: mobBanner.badge_color || '#34d399'
                     }}
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-emerald-500/60 text-xs font-black uppercase tracking-wider"
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-emerald-500/60 text-xs font-black uppercase tracking-wider shadow-sm"
                   >
                     <Smartphone className="w-3.5 h-3.5" /> {bannerSubheading}
                   </span>
@@ -100,12 +127,12 @@ export default function MobilesGadgetsPage({ onAddToCart, onQuickView, wishlistI
                 </h1>
                 <p 
                   style={{ color: mobBanner.description_color || mobBanner.subheading_color || '#cbd5e1' }}
-                  className="text-sm sm:text-base leading-relaxed"
+                  className="text-sm sm:text-base leading-relaxed max-w-2xl"
                 >
                   {bannerDescription}
                 </p>
                 {Array.isArray(mobBanner.buttons) && mobBanner.buttons.length > 0 && (
-                  <div className="flex flex-wrap gap-3 pt-2">
+                  <div className={`flex flex-wrap gap-3 pt-2 ${btnJustify}`}>
                     {mobBanner.buttons.filter(b => b.is_active !== false).map((btn, bIdx) => (
                       <button
                         key={btn.id || bIdx}

@@ -11,12 +11,34 @@ export default function ElectronicsPage({ onAddToCart, onQuickView, wishlistIds 
   const eleBanner = (banners && banners.find(b => b.banner_key === 'electronics_top_banner' || b.display_location === 'electronics')) || {};
   const isBannerActive = eleBanner.is_active !== false;
 
+  const bgMode = eleBanner.background_mode || eleBanner.mode || (eleBanner.image_url ? 'image-blur' : 'solid');
+  const isImageOnly = bgMode === 'image-only' && Boolean(eleBanner.image_url || eleBanner.mobile_image_url);
+  const isSolid = bgMode === 'solid' || !eleBanner.image_url;
+  const currentImg = eleBanner.image_url || eleBanner.mobile_image_url;
+
   const bannerBgStyle = (() => {
+    if (isImageOnly && currentImg) {
+      return {
+        backgroundImage: `url(${currentImg})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        backgroundColor: '#0a0f1d'
+      };
+    }
     const c1 = eleBanner.bg_color || '#0a0f1d';
     const c2 = eleBanner.bg_color_2 || c1;
     if (c1.toLowerCase() === c2.toLowerCase()) return { backgroundColor: c1 };
     return { background: `linear-gradient(${eleBanner.bg_direction || 'to right'}, ${c1}, ${c2})` };
   })();
+
+  const align = eleBanner.heading_alignment || 'left';
+  const alignContainerClasses = align === 'center'
+    ? 'max-w-3xl mx-auto text-center items-center flex flex-col'
+    : align === 'right'
+      ? 'max-w-3xl ml-auto text-right items-end flex flex-col'
+      : 'max-w-3xl mr-auto text-left items-start flex flex-col';
+  const btnJustify = align === 'center' ? 'justify-center' : align === 'right' ? 'justify-end' : 'justify-start';
 
   const electronicsList = useMemo(() => {
     return activePublicProducts.filter(p => 
@@ -46,7 +68,7 @@ export default function ElectronicsPage({ onAddToCart, onQuickView, wishlistIds 
             style={bannerBgStyle}
             className="relative rounded-3xl text-white p-6 sm:p-10 mb-8 border border-slate-800 shadow-2xl overflow-hidden"
           >
-            {eleBanner.image_url && (
+            {!isImageOnly && !isSolid && eleBanner.image_url && (
               <picture className="absolute inset-0 w-full h-full pointer-events-none">
                 {eleBanner.mobile_image_url && (
                   <source media="(max-width: 640px)" srcSet={eleBanner.mobile_image_url} />
@@ -58,17 +80,19 @@ export default function ElectronicsPage({ onAddToCart, onQuickView, wishlistIds 
                 />
               </picture>
             )}
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(245,158,11,0.25),transparent_60%)] pointer-events-none" />
-            <div className="relative z-10 max-w-3xl space-y-4">
-              {(eleBanner.badge_text || eleBanner.subheading || 'High Performance Electronics') && (
+            {!isImageOnly && (
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(245,158,11,0.25),transparent_60%)] pointer-events-none" />
+            )}
+            <div className={`relative z-10 ${alignContainerClasses} space-y-4`}>
+              {(eleBanner.badge_text || eleBanner.subheading) && (
                 <span 
                   style={{
                     backgroundColor: eleBanner.badge_bg_color || '#78350f',
                     color: eleBanner.badge_color || '#fbbf24'
                   }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-amber-500/60 text-xs font-black uppercase tracking-wider"
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-amber-500/60 text-xs font-black uppercase tracking-wider shadow-sm"
                 >
-                  <Laptop className="w-3.5 h-3.5" /> {eleBanner.badge_text || eleBanner.subheading || 'High Performance Electronics'}
+                  <Laptop className="w-3.5 h-3.5" /> {eleBanner.badge_text || eleBanner.subheading}
                 </span>
               )}
               <h1 
@@ -79,12 +103,12 @@ export default function ElectronicsPage({ onAddToCart, onQuickView, wishlistIds 
               </h1>
               <p 
                 style={{ color: eleBanner.description_color || eleBanner.subheading_color || '#cbd5e1' }}
-                className="text-sm sm:text-base leading-relaxed"
+                className="text-sm sm:text-base leading-relaxed max-w-2xl"
               >
                 {eleBanner.description || 'Shop 4K Smart TVs, high performance laptops, fast chargers & essential tech devices backed by official manufacturer warranties & instant doorstep setup.'}
               </p>
               {Array.isArray(eleBanner.buttons) && eleBanner.buttons.length > 0 && (
-                <div className="flex flex-wrap gap-3 pt-2">
+                <div className={`flex flex-wrap gap-3 pt-2 ${btnJustify}`}>
                   {eleBanner.buttons.filter(b => b.is_active !== false).map((btn, bIdx) => (
                     <button
                       key={btn.id || bIdx}

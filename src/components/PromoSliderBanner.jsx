@@ -93,7 +93,33 @@ export default function PromoSliderBanner({ onViewOffers, onSelectCategory }) {
     return { background: `linear-gradient(${dir || 'to right'}, ${col1}, ${col2})` };
   };
 
-  const isPureImage = activeBanner.mode === 'image' && activeBanner.image_url && !activeBanner.heading;
+  const bgMode = activeBanner.background_mode || activeBanner.mode || (activeBanner.image_url ? 'image-blur' : 'solid');
+  const isImageOnly = bgMode === 'image-only' && Boolean(activeBanner.image_url || activeBanner.mobile_image_url);
+  const isSolid = bgMode === 'solid' || !activeBanner.image_url;
+  const currentImg = activeBanner.image_url || activeBanner.mobile_image_url;
+
+  const align = activeBanner.heading_alignment || 'left';
+  const alignContainerClasses = align === 'center'
+    ? 'max-w-2xl mx-auto text-center items-center flex flex-col'
+    : align === 'right'
+      ? 'max-w-2xl ml-auto text-right items-end flex flex-col'
+      : 'max-w-2xl mr-auto text-left items-start flex flex-col';
+  const btnJustify = align === 'center' ? 'justify-center' : align === 'right' ? 'justify-end' : 'justify-start';
+
+  const containerBgStyle = (() => {
+    if (isImageOnly && currentImg) {
+      return {
+        backgroundImage: `url(${currentImg})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        backgroundColor: '#0f172a'
+      };
+    }
+    return getBackgroundStyle(activeBanner.bg_color, activeBanner.bg_color_2, activeBanner.bg_direction);
+  })();
+
+  const isPureImage = isImageOnly && !activeBanner.heading && !activeBanner.badge_text && !activeBanner.subheading;
 
   return (
     <div className="py-6 bg-slate-50 font-sans">
@@ -106,11 +132,11 @@ export default function PromoSliderBanner({ onViewOffers, onSelectCategory }) {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.35 }}
-              style={getBackgroundStyle(activeBanner.bg_color, activeBanner.bg_color_2, activeBanner.bg_direction)}
+              style={containerBgStyle}
               className="p-6 sm:p-10 relative overflow-hidden border border-white/10 min-h-[220px] flex flex-col justify-center"
             >
-              {/* Responsive Artwork Image */}
-              {activeBanner.image_url && (
+              {/* Responsive Artwork Image for Image+Blur mode */}
+              {!isImageOnly && !isSolid && activeBanner.image_url && (
                 <picture className="absolute inset-0 w-full h-full pointer-events-none">
                   {activeBanner.mobile_image_url && (
                     <source media="(max-width: 640px)" srcSet={activeBanner.mobile_image_url} />
@@ -118,13 +144,13 @@ export default function PromoSliderBanner({ onViewOffers, onSelectCategory }) {
                   <img 
                     src={activeBanner.image_url} 
                     alt={activeBanner.heading || 'Banner'}
-                    className={`w-full h-full ${isPureImage ? 'object-cover' : 'object-cover opacity-35'}`}
+                    className="w-full h-full object-cover opacity-35"
                   />
                 </picture>
               )}
 
               {/* Color Overlay if configured */}
-              {activeBanner.overlay_color && !isPureImage && (
+              {activeBanner.overlay_color && !isImageOnly && (
                 <div 
                   style={{ backgroundColor: activeBanner.overlay_color }}
                   className="absolute inset-0 pointer-events-none"
@@ -132,10 +158,10 @@ export default function PromoSliderBanner({ onViewOffers, onSelectCategory }) {
               )}
 
               {!isPureImage && (
-                <div className="relative z-10 max-w-2xl space-y-3 sm:space-y-4">
+                <div className={`relative z-10 ${alignContainerClasses} space-y-3 sm:space-y-4`}>
                   {/* Badge Text (Rendered only if non-empty) */}
                   {(activeBanner.badge_text || activeBanner.subheading) && (
-                    <div className="flex items-center gap-2 flex-wrap">
+                    <div className={`flex items-center gap-2 flex-wrap ${btnJustify}`}>
                       <span className="bg-black/40 backdrop-blur-md text-amber-300 border border-amber-300/30 text-[10px] sm:text-xs font-black uppercase px-3 py-1 rounded-full flex items-center gap-1.5 shadow">
                         <Flame className="w-3.5 h-3.5 fill-current animate-bounce" />
                         {activeBanner.badge_text || activeBanner.subheading}
@@ -153,13 +179,13 @@ export default function PromoSliderBanner({ onViewOffers, onSelectCategory }) {
                   )}
 
                   {activeBanner.description && (
-                    <p className="text-white/90 text-xs sm:text-base leading-relaxed">
+                    <p className="text-white/90 text-xs sm:text-base leading-relaxed max-w-xl">
                       {activeBanner.description}
                     </p>
                   )}
 
                   {/* Buttons List */}
-                  <div className="pt-2 flex items-center gap-3 flex-wrap">
+                  <div className={`pt-2 flex items-center gap-3 flex-wrap ${btnJustify}`}>
                     {Array.isArray(activeBanner.buttons) && activeBanner.buttons.length > 0 ? (
                       activeBanner.buttons.filter(b => b.is_active !== false).map((btn, bIdx) => (
                         <button

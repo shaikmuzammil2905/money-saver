@@ -115,28 +115,20 @@ export default function HeroSection({ onExploreDeals, onShopNow }) {
                 {/* Left Column */}
                 <div className="lg:col-span-5 space-y-2 sm:space-y-4 text-center lg:text-left flex flex-col justify-center">
                   {/* Subheading / Badges */}
-                  <div className="flex items-center justify-center lg:justify-start gap-2 flex-wrap mb-1">
-                    {Array.isArray(banner1.subheadings) && banner1.subheadings.length > 0 ? (
-                      banner1.subheadings.filter(s => s.is_active !== false).map((sub, sIdx) => (
-                        <span key={sub.id || sIdx} style={{ transform: `translate(${sub.position_x || 0}px, ${sub.position_y || 0}px)`, backgroundColor: banner1.badge_bg_color || '#f59e0b', color: banner1.badge_color || '#000000' }} className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wide relative shadow-sm">
-                          {sub.text}
+                  {(() => {
+                    const badge = banner1.badge_text || banner1.subheading || (Array.isArray(banner1.badges) && (banner1.badges[0]?.text || banner1.badges[0])) || '';
+                    if (!badge) return null;
+                    return (
+                      <div className="flex items-center justify-center lg:justify-start gap-2 flex-wrap mb-1">
+                        <span 
+                          style={{ backgroundColor: banner1.badge_bg_color || '#f59e0b', color: banner1.badge_color || '#000000' }}
+                          className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wide shadow-sm"
+                        >
+                          {badge}
                         </span>
-                      ))
-                    ) : banner1.subheading && (
-                      <span 
-                        style={{ backgroundColor: banner1.badge_bg_color || '#f59e0b', color: banner1.badge_color || '#000000' }}
-                        className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wide shadow-sm"
-                      >
-                        {banner1.subheading}
-                      </span>
-                    )}
-
-                    {banner1.badge_config?.enabled && banner1.badge_config.text && (
-                      <span style={{ backgroundColor: banner1.badge_config.bg_color || banner1.badge_bg_color || '#e50914', color: banner1.badge_config.text_color || banner1.badge_color || '#ffffff' }} className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase shadow-sm border border-red-400/40">
-                        {banner1.badge_config.text}
-                      </span>
-                    )}
-                  </div>
+                      </div>
+                    );
+                  })()}
 
                   <div>
                     <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-5xl font-black uppercase tracking-tight leading-none font-sans flex flex-wrap gap-x-2.5 gap-y-1">

@@ -65,30 +65,39 @@ export default function ViewAllProducts({
   // Filter & Sort Products
   const filteredProducts = useMemo(() => {
     return activePublicProducts.filter((product) => {
+      if (!product) return false;
+      const pCat = String(product.category || '').toLowerCase();
+      const pGroup = String(product.categoryGroup || '').toLowerCase();
+
       // Exclude products belonging to disabled categories
-      if (product.category && disabledCategoryNames.has(product.category.toLowerCase())) {
+      if (pCat && disabledCategoryNames.has(pCat)) {
         return false;
       }
 
-      const sec = Array.isArray(product.sections) ? product.sections : ['Home', 'All OTTs'];
-      const matchesSection = sec.includes('All OTTs');
+      const sec = Array.isArray(product.sections) && product.sections.length > 0 
+        ? product.sections 
+        : ['Home', 'All OTTs'];
+      const matchesSection = sec.includes('All OTTs') || activeCategory !== 'All' || !product.sections || product.sections.length === 0;
 
-      const matchesCat = activeCategory === 'All' || 
-        product.category?.toLowerCase() === activeCategory.toLowerCase() ||
-        product.categoryGroup?.toLowerCase() === activeCategory.toLowerCase();
+      const targetCat = String(activeCategory || 'All').toLowerCase();
+      const matchesCat = targetCat === 'all' || 
+        pCat === targetCat || 
+        pGroup === targetCat ||
+        pCat.includes(targetCat) ||
+        targetCat.includes(pCat);
       
-      const query = searchTerm.toLowerCase();
+      const query = searchTerm.trim().toLowerCase();
       const matchesSearch = !query ||
-        product.title.toLowerCase().includes(query) ||
-        product.subtitle?.toLowerCase().includes(query) ||
-        product.category?.toLowerCase().includes(query) ||
-        product.categoryGroup?.toLowerCase().includes(query);
+        String(product.title || '').toLowerCase().includes(query) ||
+        String(product.subtitle || '').toLowerCase().includes(query) ||
+        pCat.includes(query) ||
+        pGroup.includes(query);
 
       return matchesSection && matchesCat && matchesSearch;
     }).sort((a, b) => {
-      if (sortBy === 'price-low') return a.price - b.price;
-      if (sortBy === 'price-high') return b.price - a.price;
-      if (sortBy === 'rating') return b.rating - a.rating;
+      if (sortBy === 'price-low') return (Number(a.price) || 0) - (Number(b.price) || 0);
+      if (sortBy === 'price-high') return (Number(b.price) || 0) - (Number(a.price) || 0);
+      if (sortBy === 'rating') return (Number(b.rating) || 0) - (Number(a.rating) || 0);
       return 0;
     });
   }, [activePublicProducts, activeCategory, searchTerm, sortBy, disabledCategoryNames]);

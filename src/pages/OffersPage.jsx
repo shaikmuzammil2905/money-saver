@@ -10,9 +10,7 @@ export default function OffersPage({ onAddToCart, onQuickView, wishlistIds = [],
   const offersBanner = (banners && banners.find(b => b.banner_key === 'offers_top' || b.banner_key === 'offers_main')) || (offerSlides && offerSlides[0]) || {};
   const isBannerVisible = offersBanner.is_active !== false;
 
-  const badgesList = Array.isArray(offersBanner.badges) && offersBanner.badges.length > 0
-    ? offersBanner.badges.map(b => typeof b === 'string' ? { text: b } : b)
-    : (offersBanner.subheading ? [{ text: offersBanner.subheading }] : [{ text: 'MEGA DISCOUNT CARNIVAL' }]);
+  const singleBadge = offersBanner.badge_text || offersBanner.subheading || (Array.isArray(offersBanner.badges) && (offersBanner.badges[0]?.text || offersBanner.badges[0])) || '';
 
   const buttonsList = Array.isArray(offersBanner.buttons) && offersBanner.buttons.length > 0
     ? offersBanner.buttons.filter(b => b.is_active !== false)
@@ -50,6 +48,35 @@ export default function OffersPage({ onAddToCart, onQuickView, wishlistIds = [],
     return discB - discA;
   });
 
+  const bgMode = offersBanner.background_mode || offersBanner.mode || (offersBanner.image_url ? 'image-blur' : 'solid');
+  const isImageOnly = bgMode === 'image-only' && Boolean(offersBanner.image_url || offersBanner.mobile_image_url);
+  const isSolid = bgMode === 'solid' || !offersBanner.image_url;
+  const currentBannerImg = offersBanner.image_url || offersBanner.mobile_image_url || '';
+
+  const bannerBgStyle = (() => {
+    if (isImageOnly && currentBannerImg) {
+      return {
+        backgroundImage: `url(${currentBannerImg})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        backgroundColor: '#0f172a'
+      };
+    }
+    const c1 = offersBanner.bg_color || '#e50914';
+    const c2 = offersBanner.bg_color_2 || offersBanner.bg_color || '#ea580c';
+    if (c1.toLowerCase() === c2.toLowerCase()) return { backgroundColor: c1 };
+    return { background: `linear-gradient(${offersBanner.bg_direction || 'to right'}, ${c1}, ${c2})` };
+  })();
+
+  const align = offersBanner.heading_alignment || 'left';
+  const alignContainerClasses = align === 'center'
+    ? 'max-w-3xl mx-auto text-center items-center flex flex-col'
+    : align === 'right'
+      ? 'max-w-3xl ml-auto text-right items-end flex flex-col'
+      : 'max-w-3xl mr-auto text-left items-start flex flex-col';
+  const btnJustify = align === 'center' ? 'justify-center' : align === 'right' ? 'justify-end' : 'justify-start';
+
   return (
     <div className="min-h-screen bg-slate-50 py-8 font-sans">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -57,42 +84,42 @@ export default function OffersPage({ onAddToCart, onQuickView, wishlistIds = [],
         {/* Offers Top Slide Banner */}
         {isBannerVisible && (
           <div 
-            style={(() => {
-              const c1 = offersBanner.bg_color || '#e50914';
-              const c2 = offersBanner.bg_color_2 || offersBanner.bg_color || '#ea580c';
-              if (c1.toLowerCase() === c2.toLowerCase()) return { backgroundColor: c1 };
-              return { background: `linear-gradient(${offersBanner.bg_direction || 'to right'}, ${c1}, ${c2})` };
-            })()}
+            style={bannerBgStyle}
             className="relative rounded-3xl text-white p-6 sm:p-10 mb-8 shadow-2xl overflow-hidden"
           >
-            {/* Background Image if uploaded */}
-            {offersBanner.image_url && (
-              <picture className="absolute inset-0 z-0 opacity-25 pointer-events-none">
+            {/* Image + Color/Blur mode: Render backdrop image with subtle blur/tint */}
+            {!isImageOnly && !isSolid && currentBannerImg && (
+              <picture className="absolute inset-0 z-0 opacity-30 pointer-events-none">
                 {offersBanner.mobile_image_url && (
                   <source media="(max-width: 640px)" srcSet={offersBanner.mobile_image_url} />
                 )}
-                <img src={offersBanner.image_url} alt="Offer Background" className="w-full h-full object-cover" />
+                <img src={offersBanner.image_url || currentBannerImg} alt="Offer Background" className="w-full h-full object-cover" />
               </picture>
             )}
 
-            <div className="relative z-10 max-w-3xl space-y-4">
-              {/* Dynamic Badges */}
-              <div className="flex flex-wrap items-center gap-2">
-                {badgesList.map((bdg, i) => (
+            {!isImageOnly && offersBanner.overlay_color && (
+              <div 
+                style={{ backgroundColor: offersBanner.overlay_color }}
+                className="absolute inset-0 z-0 pointer-events-none" 
+              />
+            )}
+
+            <div className={`relative z-10 ${alignContainerClasses} space-y-4`}>
+              {/* Single Configured Badge */}
+              {singleBadge && (
+                <div className={`flex flex-wrap items-center gap-2 ${btnJustify}`}>
                   <span 
-                    key={bdg.id || i}
                     style={{
-                      transform: (bdg.position_x || bdg.position_y) ? `translate(${bdg.position_x || 0}px, ${bdg.position_y || 0}px)` : undefined,
-                      backgroundColor: bdg.bg_color || 'rgba(0,0,0,0.3)',
-                      color: bdg.text_color || '#ffffff'
+                      backgroundColor: offersBanner.badge_bg_color || 'rgba(0,0,0,0.4)',
+                      color: offersBanner.badge_color || '#ffffff'
                     }}
                     className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-white/30 text-xs font-black uppercase tracking-wider shadow-sm"
                   >
                     <Flame className="w-4 h-4 fill-amber-300 text-amber-300 animate-bounce" />
-                    {bdg.text || bdg.name || 'MEGA DISCOUNT CARNIVAL'}
+                    {singleBadge}
                   </span>
-                ))}
-              </div>
+                </div>
+              )}
 
               <h1 
                 style={{ color: offersBanner.heading_color || '#ffffff' }}
@@ -109,7 +136,7 @@ export default function OffersPage({ onAddToCart, onQuickView, wishlistIds = [],
 
               {/* Dynamic Action Buttons */}
               {buttonsList.length > 0 && (
-                <div className="pt-2 flex flex-wrap gap-3">
+                <div className={`pt-2 flex flex-wrap gap-3 ${btnJustify}`}>
                   {buttonsList.map((btn, i) => (
                     <button
                       key={btn.id || i}

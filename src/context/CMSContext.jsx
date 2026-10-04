@@ -552,6 +552,7 @@ export function CMSProvider({ children }) {
     if (!product || !Array.isArray(coupons) || coupons.length === 0) return null;
     const now = Date.now();
     const activeCoupons = coupons.filter(c => getCouponStatus(c, now).status === 'ACTIVE');
+    if (activeCoupons.length === 0) return null;
 
     const prodId = String(product.id || product.slug_id || product.db_id || '').toLowerCase();
     const productMatch = activeCoupons.find(c => 
@@ -559,17 +560,46 @@ export function CMSProvider({ children }) {
       Array.isArray(c.allowed_product_ids) && 
       c.allowed_product_ids.some(id => String(id).toLowerCase() === prodId)
     );
-    if (productMatch) return productMatch;
 
     const prodCat = String(product.category || product.categoryGroup || '').toLowerCase();
-    const categoryMatch = activeCoupons.find(c =>
+    const categoryMatch = !productMatch ? activeCoupons.find(c =>
       c.apply_to === 'categories' &&
       Array.isArray(c.allowed_categories) &&
       c.allowed_categories.some(cat => prodCat.includes(String(cat).toLowerCase()))
-    );
-    if (categoryMatch) return categoryMatch;
+    ) : null;
 
-    return activeCoupons.find(c => !c.apply_to || c.apply_to === 'all') || null;
+    const allMatch = (!productMatch && !categoryMatch)
+      ? activeCoupons.find(c => !c.apply_to || c.apply_to === 'all')
+      : null;
+
+    const matchedCoupon = productMatch || categoryMatch || allMatch;
+    if (!matchedCoupon) return null;
+
+    const price = Number(product.price) || 0;
+    if (price <= 0) return null;
+
+    let discountAmount = 0;
+    const discountVal = Number(matchedCoupon.discount_value) || 0;
+
+    if (matchedCoupon.discount_type === 'percentage') {
+      discountAmount = (price * discountVal) / 100;
+      const maxDiscount = Number(matchedCoupon.max_discount || matchedCoupon.max_discount_amount);
+      if (!isNaN(maxDiscount) && maxDiscount > 0 && discountAmount > maxDiscount) {
+        discountAmount = maxDiscount;
+      }
+    } else {
+      discountAmount = Math.min(discountVal, price);
+    }
+
+    if (discountAmount <= 0) return null;
+
+    const finalPrice = Math.max(0, Math.round(price - discountAmount));
+
+    return {
+      coupon: matchedCoupon,
+      discountAmount: Math.round(discountAmount),
+      finalPrice
+    };
   }, [coupons]);
 
   return (

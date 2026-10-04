@@ -60,6 +60,8 @@ ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS display_order INT DEFAULT 1;
 ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS position INT DEFAULT 1;
 ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
 ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS visible BOOLEAN DEFAULT true;
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS background_mode TEXT DEFAULT 'image-blur';
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS heading_alignment TEXT DEFAULT 'left';
 ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc', now());
 ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc', now());
 
